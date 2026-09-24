@@ -252,21 +252,28 @@ Create a clean Django + DRF foundation with clear module boundaries.
 > backend (F0-F5) before Django migration") for reference — domain rules
 > (single-active-academic-year constraint, NIK/KK/NISN handling, RBAC seed
 > data, session/throttle design, etc.) are worth reading there before
-> re-implementing in Django. All checkboxes below are reset to `[ ]` because
-> no Django code exists yet; do not mark them done by pointing at the old
-> FastAPI files.
+> re-implementing in Django.
+>
+> **F1 status (2026-09-24):** the Django foundation below has now been
+> (re)built and verified — `manage.py check` passes on all three settings
+> modules, `pytest` (pytest-django, against a real ephemeral PostgreSQL via
+> `pgserver` + fakeredis-backed cache) is 2/2 green, `ruff check .` and
+> `mypy .` are clean across 56 source files. Work stopped here deliberately
+> per explicit instruction ("sampai fondasi django terbentuk saja") — F2
+> onward (base model conventions beyond `DATABASES`, RBAC, business domains)
+> is still open.
 
 ---
 
 ## F1.1 Initialize Python Backend
 
-- [ ] Create Python project.
-- [ ] Add Django.
-- [ ] Add Django REST Framework.
-- [ ] Add PostgreSQL driver (`psycopg`).
-- [ ] Add Celery (background jobs / Redis integration).
-- [ ] Add testing dependencies (`pytest`, `pytest-django`).
-- [ ] Add linting/formatting tools.
+- [x] Create Python project.
+- [x] Add Django.
+- [x] Add Django REST Framework.
+- [x] Add PostgreSQL driver (`psycopg`).
+- [x] Add Celery (background jobs / Redis integration).
+- [x] Add testing dependencies (`pytest`, `pytest-django`).
+- [x] Add linting/formatting tools.
 
 Suggested tools:
 
@@ -297,18 +304,22 @@ python manage.py runserver
 
 ## F1.2 Create Backend Structure
 
-- [ ] `config/settings/` (base/development/testing/production)
-- [ ] `config/urls.py`
-- [ ] `apps/auth/`
-- [ ] `apps/admission/`
-- [ ] `apps/documents/`
-- [ ] `apps/verification/`
-- [ ] `apps/selection/`
-- [ ] `apps/finance/`
-- [ ] `apps/enrollment/`
-- [ ] `apps/mpls/`
-- [ ] `apps/communication/`
-- [ ] `apps/system/`
+- [x] `config/settings/` (base/development/testing/production)
+- [x] `config/urls.py`
+- [x] `apps/auth/` (label `spmb_auth` — `auth` collides with `django.contrib.auth`)
+- [x] `apps/admission/`
+- [x] `apps/documents/`
+- [x] `apps/verification/`
+- [x] `apps/selection/`
+- [x] `apps/finance/`
+- [x] `apps/enrollment/`
+- [x] `apps/mpls/`
+- [x] `apps/communication/`
+- [x] `apps/system/`
+
+All apps are currently empty (`apps.py` + `models.py` + `migrations/`
+package only, no models/serializers/services/views yet) except
+`apps/system`, which owns `GET /health` and `GET /ready`.
 
 See `AGENTS.md` §5 for the expected structure inside each app
 (`models.py`, `serializers.py`, `services.py`, `permissions.py`, `views.py`).
@@ -317,12 +328,12 @@ See `AGENTS.md` §5 for the expected structure inside each app
 
 ## F1.3 Application Configuration
 
-- [ ] Environment-based settings (`config/settings/{base,development,testing,production}.py`).
-- [ ] Development settings.
-- [ ] Production-safe defaults (`SECRET_KEY` strength + no wildcard `ALLOWED_HOSTS`/CORS when `DJANGO_ENV=production`).
-- [ ] Database URL validation.
-- [ ] CORS configuration (`django-cors-headers`).
-- [ ] App metadata.
+- [x] Environment-based settings (`config/settings/{base,development,testing,production}.py`).
+- [x] Development settings.
+- [x] Production-safe defaults (`config/settings/production.py` raises `ImproperlyConfigured` on the default `SECRET_KEY`, a key under 32 chars, or wildcard `ALLOWED_HOSTS`/`CORS_ALLOWED_ORIGINS` — verified: fails closed when tested with the insecure default).
+- [x] Database URL validation (via discrete `POSTGRES_*` env vars into `DATABASES`; connection failure surfaces through `/ready`).
+- [x] CORS configuration (`django-cors-headers`).
+- [x] App metadata (`APP_NAME`, `API_V1_PREFIX`).
 
 Never use production wildcard CORS.
 
@@ -330,8 +341,8 @@ Never use production wildcard CORS.
 
 ## F1.4 Health Endpoints
 
-- [ ] `GET /health`
-- [ ] `GET /ready`
+- [x] `GET /health` (`apps/system/views.py:HealthView`)
+- [x] `GET /ready` (`apps/system/views.py:ReadyView`; checks PostgreSQL + Redis, 503 on failure, no internal details leaked)
 
 ### Acceptance Criteria
 
@@ -343,12 +354,12 @@ Never use production wildcard CORS.
 
 ## F1.5 Global Error Handling
 
-- [ ] Validation errors (DRF exception handler).
-- [ ] Domain/business errors.
-- [ ] Authentication errors.
-- [ ] Authorization errors.
-- [ ] 404 handling.
-- [ ] Safe 500 response.
+- [x] Validation errors (`config/exceptions.py:exception_handler`, `{"error": {code, message, details}}` envelope).
+- [ ] Domain/business errors — no domain exception class exists yet (no business logic to raise one); add when F3+ introduces the first one, rather than building the abstraction speculatively.
+- [x] Authentication errors (401 → `AUTHENTICATION_REQUIRED`).
+- [x] Authorization errors (403 → `FORBIDDEN`).
+- [x] 404 handling.
+- [x] Safe 500 response (unhandled exceptions logged server-side, generic message returned; DRF default -> `None` case handled explicitly).
 
 ### Acceptance Criteria
 
@@ -359,11 +370,14 @@ production settings.
 
 ## F1.6 API Versioning
 
-- [ ] Mount all domain endpoints under:
+- [x] Mount all domain endpoints under:
 
 ```text
 /api/v1
 ```
+
+(`config/urls.py`'s `api_v1_patterns` list is ready but empty — no domain
+routers exist yet since no domain app has views/serializers/urls yet.)
 
 ---
 
@@ -2183,7 +2197,7 @@ Update this section after completing milestones.
 
 ```text
 F0  [-] Repository & Project Foundation
-F1  [ ] Backend Core Foundation
+F1  [x] Backend Core Foundation
 F2  [ ] Database & Infrastructure
 F3  [ ] Authentication & RBAC
 F4  [ ] Academic Year & Admission Period
