@@ -1,0 +1,53 @@
+name: Frontend CI
+
+on:
+  pull_request:
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend.yml"
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - ".github/workflows/frontend.yml"
+  workflow_dispatch:
+
+jobs:
+  frontend:
+    name: Frontend lint, typecheck, test, and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Report foundation status
+        if: ${{ hashFiles('frontend/package.json') == '' }}
+        run: echo "Frontend project files are not initialized yet; CI skeleton is ready."
+
+      - name: Install dependencies
+        if: ${{ hashFiles('frontend/package.json') != '' }}
+        run: npm ci
+
+      - name: Lint
+        if: ${{ hashFiles('frontend/package.json') != '' }}
+        run: npm run lint --if-present
+
+      - name: Typecheck
+        if: ${{ hashFiles('frontend/package.json') != '' }}
+        run: npm run typecheck --if-present
+
+      - name: Test
+        if: ${{ hashFiles('frontend/package.json') != '' }}
+        run: npm run test --if-present
+
+      - name: Build
+        if: ${{ hashFiles('frontend/package.json') != '' }}
+        run: npm run build --if-present
