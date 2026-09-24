@@ -5,12 +5,12 @@
 **Version:** 1.0  
 **Project Architecture:** Modular Monolith  
 **Frontend:** React + TypeScript + Vite  
-**Backend:** Python + FastAPI  
+**Backend:** Python + Django + Django REST Framework  
 **Database:** PostgreSQL  
-**ORM:** SQLAlchemy  
-**Migration:** Alembic  
-**Cache / Queue:** Redis  
-**Testing:** Pytest + Vitest + React Testing Library + Playwright
+**ORM:** Django ORM  
+**Migration:** Django Migrations  
+**Cache / Queue:** Redis (Django cache framework + Celery)  
+**Testing:** Pytest (pytest-django) + Vitest + React Testing Library + Playwright
 
 ---
 
@@ -242,35 +242,45 @@ Never place real credentials inside `.env.example`.
 
 ## Goal
 
-Create a clean FastAPI foundation with clear module boundaries.
+Create a clean Django + DRF foundation with clear module boundaries.
+
+> **Django migration reset (2026-09-24):** F1-F5 below were previously
+> implemented and fully passing (73/73 tests) on FastAPI + SQLAlchemy +
+> Alembic. That implementation was removed from the working tree as part of
+> the architecture decision recorded in `AGENTS.md`/`AI_RULES.md`, and is
+> preserved in git history at commit `b984024` ("chore: checkpoint FastAPI
+> backend (F0-F5) before Django migration") for reference — domain rules
+> (single-active-academic-year constraint, NIK/KK/NISN handling, RBAC seed
+> data, session/throttle design, etc.) are worth reading there before
+> re-implementing in Django. All checkboxes below are reset to `[ ]` because
+> no Django code exists yet; do not mark them done by pointing at the old
+> FastAPI files.
 
 ---
 
 ## F1.1 Initialize Python Backend
 
-- [x] Create Python project.
-- [x] Add FastAPI.
-- [x] Add Uvicorn.
-- [x] Add SQLAlchemy.
-- [x] Add Alembic.
-- [x] Add Pydantic settings.
-- [x] Add PostgreSQL driver.
-- [x] Add testing dependencies.
-- [x] Add linting/formatting tools.
+- [ ] Create Python project.
+- [ ] Add Django.
+- [ ] Add Django REST Framework.
+- [ ] Add PostgreSQL driver (`psycopg`).
+- [ ] Add Celery (background jobs / Redis integration).
+- [ ] Add testing dependencies (`pytest`, `pytest-django`).
+- [ ] Add linting/formatting tools.
 
 Suggested tools:
 
 ```text
-fastapi
-uvicorn
-sqlalchemy
-alembic
+django
+djangorestframework
 psycopg
-pydantic-settings
+celery
+django-redis
 pytest
-httpx
+pytest-django
 ruff
 mypy
+django-stubs
 ```
 
 ### Acceptance Criteria
@@ -280,36 +290,39 @@ Backend starts successfully.
 Example:
 
 ```bash
-uvicorn app.main:app --reload
+python manage.py runserver
 ```
 
 ---
 
 ## F1.2 Create Backend Structure
 
-- [x] `app/main.py`
-- [x] `app/api/v1/`
-- [x] `app/core/`
-- [x] `app/models/`
-- [x] `app/schemas/`
-- [x] `app/repositories/`
-- [x] `app/services/`
-- [x] `app/workflows/`
-- [x] `app/permissions/`
-- [x] `app/tasks/`
-- [x] `app/integrations/`
-- [x] `tests/`
+- [ ] `config/settings/` (base/development/testing/production)
+- [ ] `config/urls.py`
+- [ ] `apps/auth/`
+- [ ] `apps/admission/`
+- [ ] `apps/documents/`
+- [ ] `apps/verification/`
+- [ ] `apps/selection/`
+- [ ] `apps/finance/`
+- [ ] `apps/enrollment/`
+- [ ] `apps/mpls/`
+- [ ] `apps/communication/`
+- [ ] `apps/system/`
+
+See `AGENTS.md` §5 for the expected structure inside each app
+(`models.py`, `serializers.py`, `services.py`, `permissions.py`, `views.py`).
 
 ---
 
 ## F1.3 Application Configuration
 
-- [x] Environment-based settings.
-- [x] Development settings.
-- [x] Production-safe defaults (`AUTH_SECRET` strength + no wildcard CORS enforced when `APP_ENV=production`; see `app/core/config.py`).
-- [x] Database URL validation.
-- [x] CORS configuration.
-- [x] App metadata.
+- [ ] Environment-based settings (`config/settings/{base,development,testing,production}.py`).
+- [ ] Development settings.
+- [ ] Production-safe defaults (`SECRET_KEY` strength + no wildcard `ALLOWED_HOSTS`/CORS when `DJANGO_ENV=production`).
+- [ ] Database URL validation.
+- [ ] CORS configuration (`django-cors-headers`).
+- [ ] App metadata.
 
 Never use production wildcard CORS.
 
@@ -317,8 +330,8 @@ Never use production wildcard CORS.
 
 ## F1.4 Health Endpoints
 
-- [x] `GET /health`
-- [x] `GET /ready`
+- [ ] `GET /health`
+- [ ] `GET /ready`
 
 ### Acceptance Criteria
 
@@ -330,22 +343,23 @@ Never use production wildcard CORS.
 
 ## F1.5 Global Error Handling
 
-- [x] Validation errors.
-- [x] Domain/business errors.
-- [x] Authentication errors.
-- [x] Authorization errors.
-- [x] 404 handling.
-- [x] Safe 500 response.
+- [ ] Validation errors (DRF exception handler).
+- [ ] Domain/business errors.
+- [ ] Authentication errors.
+- [ ] Authorization errors.
+- [ ] 404 handling.
+- [ ] Safe 500 response.
 
 ### Acceptance Criteria
 
-Production-safe errors do not expose stack traces or SQL.
+Production-safe errors do not expose stack traces or SQL. `DEBUG = False` in
+production settings.
 
 ---
 
 ## F1.6 API Versioning
 
-- [x] Mount all domain endpoints under:
+- [ ] Mount all domain endpoints under:
 
 ```text
 /api/v1
@@ -357,49 +371,46 @@ Production-safe errors do not expose stack traces or SQL.
 
 ## Goal
 
-Prepare PostgreSQL, Alembic, Redis, and storage abstractions.
+Prepare PostgreSQL, Django migrations, Redis, and storage abstractions.
 
 ---
 
 ## F2.1 PostgreSQL Integration
 
-- [x] Configure SQLAlchemy engine.
-- [x] Configure session factory.
-- [x] Create DB dependency.
-- [x] Add connection test.
+- [ ] Configure Django `DATABASES` setting.
+- [ ] Add connection test / `/ready` check.
 
 ---
 
-## F2.2 SQLAlchemy Base Models
+## F2.2 Base Model Conventions
 
-- [x] UUID primary key helper/mixin.
-- [x] Timestamp mixin.
+- [ ] UUID primary key mixin/abstract base model.
+- [ ] Timestamp mixin (`created_at`, `updated_at`).
 - [ ] Optional soft-delete strategy if needed.
-- [x] Naming conventions for constraints.
+- [ ] Naming conventions for constraints/indexes.
 
 ---
 
-## F2.3 Alembic Setup
+## F2.3 Django Migrations Setup
 
-- [x] Initialize Alembic.
-- [x] Connect metadata.
-- [x] Support autogeneration.
-- [ ] Test upgrade/downgrade on development DB.
+- [ ] Confirm `makemigrations`/`migrate` workflow per app.
+- [ ] Test upgrade/downgrade (`migrate <app> <previous_migration>`) on development DB.
 
 ---
+
 ## F2.4 Redis Integration
 
-- [x] Add Redis client abstraction.
-- [x] Add health/readiness check.
-- [x] Keep business features independent of direct Redis calls.
+- [ ] Add Redis cache backend (`django-redis`) / Celery broker config.
+- [ ] Add health/readiness check.
+- [ ] Keep business features independent of direct Redis calls.
 
 ---
 
 ## F2.5 Object Storage Abstraction
 
-- [x] Define storage interface.
-- [x] Local development adapter.
-- [x] S3-compatible adapter contract.
+- [ ] Define storage interface (Django Storage backend or custom abstraction).
+- [ ] Local development adapter.
+- [ ] S3-compatible adapter contract.
 - [ ] Protected/signed URL abstraction.
 
 Do not implement public permanent document URLs.
@@ -426,23 +437,31 @@ New developer can start dependencies from documented commands.
 
 Implement secure user authentication and permission-based authorization.
 
+> Reference: the FastAPI implementation (Argon2id hashing, Redis-backed
+> opaque session cookie, login throttling, RBAC seed data for the 8 system
+> roles and 12 baseline permission codes) is preserved at git commit
+> `b984024`. The business rules there are still valid; only the framework
+> changes (DRF serializers/views/permission classes instead of Pydantic
+> schemas/FastAPI routes/dependencies, Django's own password hashers instead
+> of calling `argon2-cffi` directly, etc.).
+
 ---
 
 ## F3.1 Users Model
 
-- [x] Implement `users` (`app/models/user.py`).
-- [x] Migration (`alembic/versions/b589f1d165a2_create_users_table.py`; now verified — the test suite runs `alembic upgrade head` against a real ephemeral PostgreSQL instance, see F3 Tests note below).
-- [x] Unique email constraint.
-- [x] Unique phone constraint.
-- [x] Active state (`is_active`, DB default `TRUE`).
+- [ ] Implement `users` (custom Django user model, `AUTH_USER_MODEL`).
+- [ ] Migration.
+- [ ] Unique email constraint.
+- [ ] Unique phone constraint.
+- [ ] Active state.
 
 ---
 
 ## F3.2 Roles Model
 
-- [x] Implement `roles` (`app/models/role.py`).
-- [x] Migration (`alembic/versions/f5e3162632a8_create_rbac_tables.py`).
-- [x] Seed system roles (`alembic/versions/42a959998a57_seed_rbac_baseline_data.py`).
+- [ ] Implement `roles`.
+- [ ] Migration.
+- [ ] Seed system roles.
 
 Required initial roles:
 
@@ -461,72 +480,60 @@ parent
 
 ## F3.3 Permissions Model
 
-- [x] Implement `permissions` (`app/models/permission.py`).
-- [x] Implement `user_roles` (`app/models/user_role.py`).
-- [x] Implement `role_permissions` (`app/models/role_permission.py`).
-- [x] Seed baseline permissions (`alembic/versions/42a959998a57_seed_rbac_baseline_data.py`).
-  Note: the role -> permission grants seeded there are a first-cut development
-  baseline (documented in that migration's docstring), not a spec'd PRD/ERD
-  rule — revisit via an admin RBAC UI before production.
+- [ ] Implement `permissions`.
+- [ ] Implement `user_roles`.
+- [ ] Implement `role_permissions`.
+- [ ] Seed baseline permissions.
 
 ---
 
 ## F3.4 Password Security
 
-- [x] Secure password hashing (`app/core/security.py`, Argon2id via `argon2-cffi`).
-- [x] Password verification.
-- [x] Password validation policy (8-128 chars; see `validate_password_strength`).
-- [x] Never log password content (no logging calls touch password fields).
+- [ ] Secure password hashing (Django's built-in password hashers, Argon2id).
+- [ ] Password verification.
+- [ ] Password validation policy.
+- [ ] Never log password content.
 
 ---
 
 ## F3.5 Registration Endpoint
 
-- [x] Parent registration (`POST /api/v1/auth/register`).
-- [x] Input validation (Pydantic `RegisterRequest`; email-or-phone required).
-- [x] Duplicate email/phone prevention (409 `EMAIL_TAKEN` / `PHONE_TAKEN`).
-- [x] Default parent role assignment.
+- [ ] Parent registration.
+- [ ] Input validation.
+- [ ] Duplicate email/phone prevention.
+- [ ] Default parent role assignment.
 
 ---
 
 ## F3.6 Login / Logout
 
-- [x] Login endpoint (`POST /api/v1/auth/login`).
-- [x] Secure session/token strategy (opaque token in Redis, HttpOnly/Secure/SameSite=Lax cookie; see `app/core/session.py`). Login throttling implemented (`app/core/rate_limit.py`, 5 attempts / 15 min).
-- [x] Logout endpoint (`POST /api/v1/auth/logout`).
-- [x] Active account check.
+- [ ] Login endpoint.
+- [ ] Secure session/token strategy.
+- [ ] Logout endpoint.
+- [ ] Active account check.
 
 ---
 
 ## F3.7 Current User Endpoint
 
-- [x] `GET /api/v1/auth/me`
-- [x] Return safe user profile (no `password_hash`).
-- [x] Return roles/permissions needed by frontend.
+- [ ] `GET /api/v1/auth/me`
+- [ ] Return safe user profile.
+- [ ] Return roles/permissions needed by frontend.
 
 ---
 
 ## F3.8 Permission Dependency
 
-- [x] Implement reusable backend permission guard (`app/permissions/dependencies.py`: `get_current_user`, `require_permission`).
-- [x] Deny unauthorized API calls server-side.
+- [ ] Implement reusable backend permission guard (DRF `permissions.BasePermission`).
+- [ ] Deny unauthorized API calls server-side.
 
 ### Tests
 
-- [x] valid login
-- [x] invalid password
-- [x] inactive user
-- [x] permitted endpoint
-- [x] forbidden endpoint
-
-All in `backend/tests/test_auth.py` (31/31 backend tests passing, `ruff`/`mypy`
-clean on all files touched). Tests run against a real ephemeral PostgreSQL
-(via the `pgserver` dev dependency) and an in-process Redis-compatible server
-(via `fakeredis`), wired in `backend/tests/conftest.py` — not mocks; this also
-made the CI test suite (which previously had no DB/Redis service) able to
-verify DB-backed behavior for the first time. No `require_permission`-guarded
-business endpoint exists yet (F4+), so its allow/deny logic is tested by
-calling the dependency directly rather than through a route.
+- [ ] valid login
+- [ ] invalid password
+- [ ] inactive user
+- [ ] permitted endpoint
+- [ ] forbidden endpoint
 
 ---
 
@@ -536,47 +543,49 @@ calling the dependency directly rather than through a route.
 
 Make yearly admission configuration fully manageable.
 
+> Reference: git commit `b984024` has a working FastAPI implementation,
+> including the single-active-academic-year rule (there done with a
+> PostgreSQL partial unique index + transactional auto-deactivation) and the
+> registration-availability rules (`REGISTRATION_NOT_STARTED`,
+> `REGISTRATION_CLOSED`, `PERIOD_INACTIVE`, `ACADEMIC_YEAR_INACTIVE`).
+
 ---
 
 ## F4.1 Academic Year
 
-- [x] Model (`app/models/academic_year.py`).
-- [x] Migration (`alembic/versions/c7b2a9e34512_create_academic_years_and_admission_periods.py`).
-- [x] Repository (`app/repositories/academic_year_repository.py`).
-- [x] Service (`app/services/academic_year_service.py`).
-- [x] Schemas (`app/schemas/academic_year.py`).
-- [x] Admin CRUD API (`app/api/v1/endpoints/academic_years.py`, guarded by `academic_year.manage`).
-- [x] Active academic year rule (PostgreSQL partial unique index `uq_academic_years_single_active` + transactional service auto-deactivation).
+- [ ] Model.
+- [ ] Migration.
+- [ ] Service.
+- [ ] Serializers.
+- [ ] Admin CRUD API.
+- [ ] Active academic year rule.
 
 ---
 
 ## F4.2 Admission Period
 
-- [x] Model (`app/models/admission_period.py`).
-- [x] Migration (`alembic/versions/c7b2a9e34512_create_academic_years_and_admission_periods.py`).
-- [x] CRUD (`app/repositories/admission_period_repository.py`, `app/services/admission_period_service.py`, `app/api/v1/endpoints/admission_periods.py`).
-- [x] Registration open/close dates (`registration_start < registration_end`).
-- [x] Quota (`quota IS NULL OR quota >= 0`).
-- [x] Active state (`is_active`, default `TRUE`).
-- [x] Optional settings JSONB (`settings`).
+- [ ] Model.
+- [ ] Migration.
+- [ ] CRUD.
+- [ ] Registration open/close dates.
+- [ ] Quota.
+- [ ] Active state.
+- [ ] Optional settings JSONB.
 
 ---
 
 ## F4.3 Registration Availability Service
 
-- [x] Determine whether registration is currently open (`app/services/registration_availability_service.py`).
-- [x] Reject new submission outside allowed period (`assert_can_submit` with codes `REGISTRATION_NOT_STARTED`, `REGISTRATION_CLOSED`, `PERIOD_INACTIVE`, `ACADEMIC_YEAR_INACTIVE`).
-- [x] Draft behavior defined (`assert_can_create_draft` allowing draft initialization only during active open windows).
+- [ ] Determine whether registration is currently open.
+- [ ] Reject new submission outside allowed period.
+- [ ] Draft behavior defined.
 
 ### Tests
 
-- [x] before opening
-- [x] during opening
-- [x] after closing
-- [x] inactive period
-
-All in `backend/tests/test_academic_years.py`, `backend/tests/test_admission_periods.py`, and `backend/tests/test_registration_availability.py` (52/52 backend tests passing, `ruff` and `mypy` strict clean across all 48 source files).
-
+- [ ] before opening
+- [ ] during opening
+- [ ] after closing
+- [ ] inactive period
 
 ---
 
@@ -586,24 +595,28 @@ All in `backend/tests/test_academic_years.py`, `backend/tests/test_admission_per
 
 Implement reusable student identity data owned by parent accounts.
 
+> Reference: git commit `b984024` has a working FastAPI implementation,
+> including NIK/KK/NISN field handling, parental-ownership access control,
+> and the guardian single-primary-contact rule.
+
 ---
 
 ## F5.1 Applicant Model
 
-- [x] Implement fields defined by ERD (`app/models/applicant.py`).
-- [x] Migration (`alembic/versions/c7b2a9e34513_create_applicants_and_guardians.py`).
-- [x] Sensitive field handling (NIK, KK, NISN formatted, protected by parental ownership and `application.read` permission checks).
-- [x] Ownership relation to user (`owner_user_id` FK to `users.id` with `RESTRICT`).
+- [ ] Implement fields defined by ERD.
+- [ ] Migration.
+- [ ] Sensitive field handling.
+- [ ] Ownership relation to user.
 
 ---
 
 ## F5.2 Guardian Model
 
-- [x] Father (`relationship = 'FATHER'`).
-- [x] Mother (`relationship = 'MOTHER'`).
-- [x] Optional guardian (`relationship = 'GUARDIAN'`).
-- [x] Primary contact (`is_primary_contact` boolean with automatic single-active switching).
-- [x] Migration (`alembic/versions/c7b2a9e34513_create_applicants_and_guardians.py`, check constraint `ck_guardians_relationship`, unique constraint `uq_guardians_applicant_relationship`).
+- [ ] Father.
+- [ ] Mother.
+- [ ] Optional guardian.
+- [ ] Primary contact.
+- [ ] Migration.
 
 ---
 
@@ -611,27 +624,23 @@ Implement reusable student identity data owned by parent accounts.
 
 Parent can:
 
-- [x] create applicant (`POST /api/v1/applicants`);
-- [x] view own applicant (`GET /api/v1/applicants/{id}`);
-- [x] edit applicant before locked stages (`PATCH /api/v1/applicants/{id}`);
-- [x] list children (`GET /api/v1/applicants` isolated to logged-in parent).
+- [ ] create applicant;
+- [ ] view own applicant;
+- [ ] edit applicant before locked stages;
+- [ ] list children.
 
 ### Security Tests
 
-- [x] parent cannot access another parent's applicant (403 `PERMISSION_DENIED`).
-- [x] admin with permission can access appropriate records (`application.read` role e.g. `admission_admin`, `verifier`).
+- [ ] parent cannot access another parent's applicant.
+- [ ] admin with permission can access appropriate records.
 
 ---
 
 ## F5.4 Guardian CRUD
 
-- [x] create/update guardian (`POST`/`PATCH /api/v1/applicants/{applicant_id}/guardians`).
-- [x] ownership validation (strict check that the requesting parent owns the applicant).
-- [x] relationship validation (uniqueness check per applicant, preventing duplicate father/mother).
-
-### Tests
-
-All in `backend/tests/test_applicants.py` and `backend/tests/test_guardians.py` (73/73 backend tests passing, `ruff check` and `mypy` strict clean across all 58 source files).
+- [ ] create/update guardian.
+- [ ] ownership validation.
+- [ ] relationship validation.
 
 ---
 
@@ -2157,8 +2166,8 @@ F0.1 Repository Structure
 → F0.2 .gitignore
 → F0.3 .env.example
 → F0.4 README
-→ F1.1 Backend Initialization
-→ F1.2 Backend Structure
+→ F1.1 Django Backend Initialization
+→ F1.2 Backend Structure (apps/)
 → F1.3 Configuration
 → F1.4 Health Endpoints
 → F2 Database Foundation
@@ -2174,9 +2183,9 @@ Update this section after completing milestones.
 
 ```text
 F0  [-] Repository & Project Foundation
-F1  [-] Backend Core Foundation
-F2  [-] Database & Infrastructure
-F3  [x] Authentication & RBAC
+F1  [ ] Backend Core Foundation
+F2  [ ] Database & Infrastructure
+F3  [ ] Authentication & RBAC
 F4  [ ] Academic Year & Admission Period
 F5  [ ] Applicant & Guardian
 F6  [ ] Application / Registration Workflow

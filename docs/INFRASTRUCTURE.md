@@ -1,23 +1,32 @@
-# F2 infrastructure status
+# Infrastructure status — Django migration
 
-Install backend dependencies from `backend/` with the selected virtual environment:
-`../venv/bin/python -m pip install -e '.[dev]'`.
+**Status (2026-09-24):** the backend is being rewritten on Django + Django
+REST Framework, replacing the original FastAPI + SQLAlchemy + Alembic
+implementation. See `AGENTS.md` §1 and `AI_RULES.md` §2 for the architecture
+decision.
 
-`/health` checks the process. `/ready` checks PostgreSQL and Redis with bounded
-timeouts and returns 503 if either is unavailable. It does not expose connection
-details. Redis clients and database pools close on application shutdown.
+## What happened to the FastAPI implementation
 
-Alembic includes its revision template. Offline SQL generation works, but there
-are currently no domain migrations or tables. Online upgrade/downgrade remains
-unverified. Do not interpret an empty offline migration as a provisioned database.
+The previous backend reached F0-F5 (repository foundation, backend core,
+database/infrastructure, auth/RBAC, academic year/admission period,
+applicant/guardian) with 73/73 tests passing. It was removed from the
+working tree and is preserved at git commit `b984024`
+("chore: checkpoint FastAPI backend (F0-F5) before Django migration").
 
-`LocalObjectStorage` stores opaque UUID keys with private file permissions.
-Use a private root outside any static directory. The caller must perform ownership
-and permission checks before opening an object. There is no public download route
-or signed URL implementation yet. The storage Protocol is also the contract for a
-future S3 adapter; a working S3 provider has not been implemented.
+Use that commit as a reference for domain rules and behavior, not as code to
+port line-by-line — serializers, views, permission classes, and the ORM
+layer all need to be re-authored in Django/DRF idioms per `AGENTS.md` §5,
+§11, §12.
 
-Verification: 7 focused infrastructure/error tests pass. Full suite: 7 pass,
-5 fail in existing configuration and health contracts. F1 is reopened accordingly.
-Redis/PostgreSQL packages are installed in the root `venv`; live PostgreSQL migration
-verification, protected document delivery, and complete Compose app services remain.
+## Current state
+
+`backend/` is empty except for `.env`. No Django project has been scaffolded
+yet. Docker Compose currently provisions PostgreSQL and Redis only; backend
+and frontend services are not yet defined (see `docker-compose.yml` and
+TODO.md F2.6).
+
+## Next steps
+
+Follow `TODO.md` starting at F1.1 (Initialize Python Backend — Django) in
+order. Do not skip ahead to business features (F4+) before F1-F3 are stable,
+per `AGENTS.md` §4's required development order.

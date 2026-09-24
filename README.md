@@ -7,16 +7,22 @@ Sistem penerimaan murid baru end-to-end untuk mengelola proses mulai dari inform
 Versi pertama menggunakan modular monolith:
 
 - Frontend: React + TypeScript + Vite
-- Backend: Python + FastAPI
-- Database: PostgreSQL dengan SQLAlchemy dan Alembic
-- Cache/queue: Redis
+- Backend: Python + Django + Django REST Framework
+- Database: PostgreSQL dengan Django ORM dan Django Migrations
+- Cache/queue: Redis (Django cache framework + Celery)
 - Dokumen: object storage yang kompatibel dengan S3
 - Deployment: Docker Compose dengan reverse proxy
+
+> **Catatan migrasi:** versi awal backend dibangun dengan FastAPI +
+> SQLAlchemy + Alembic. Proyek ini sedang bermigrasi ke Django + DRF.
+> Implementasi FastAPI sebelumnya (F0-F5, teruji) tersimpan di riwayat git
+> pada commit `b984024` sebagai referensi. Lihat `docs/AGENTS.md` §1 dan
+> `docs/TODO.md` untuk detail.
 
 Struktur utama:
 
 ```text
-backend/   Backend FastAPI dan modul domain
+backend/   Backend Django (DRF) dan modul domain per app
 frontend/  Frontend React berbasis feature
 docs/      PRD, ERD, aturan agen, dan roadmap eksekusi
 ```
@@ -47,7 +53,7 @@ Perintah konkret akan mengikuti package manager dan script yang didefinisikan sa
 # Backend
 pytest
 ruff check .
-mypy app
+mypy .
 
 # Frontend
 npm run lint

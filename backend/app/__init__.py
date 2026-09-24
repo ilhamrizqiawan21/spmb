@@ -1,1 +1,0 @@
-"""SPMB Terpadu backend application."""

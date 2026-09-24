@@ -6,7 +6,7 @@
 **Referensi:** `PRD_SPMB_Terpadu_2026_2027.md`  
 **Database:** PostgreSQL  
 **Arsitektur:** Modular Monolith  
-**Backend:** FastAPI + SQLAlchemy + Alembic
+**Backend:** Django + Django REST Framework + Django ORM (lihat `AGENTS.md` §1 untuk catatan migrasi dari FastAPI)
 
 ---
 

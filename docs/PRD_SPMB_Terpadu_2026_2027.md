@@ -6,7 +6,7 @@
 **Jenis Produk:** Sistem Penerimaan Murid Baru Terpadu  
 **Target Penggunaan:** Tahun Pelajaran 2026/2027  
 **Platform:** Web Responsive / PWA-ready  
-**Arsitektur Utama:** React + TypeScript + FastAPI + PostgreSQL
+**Arsitektur Utama:** React + TypeScript + Django (DRF) + PostgreSQL (lihat `AGENTS.md` §1 untuk catatan migrasi dari FastAPI)
 
 ---
 
