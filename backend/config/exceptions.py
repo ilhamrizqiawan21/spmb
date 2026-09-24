@@ -8,6 +8,7 @@ import logging
 from typing import Any
 
 from rest_framework import status
+from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
 
@@ -40,6 +41,9 @@ def exception_handler(exc: Exception, context: dict[str, Any]) -> Response | Non
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
+
+    if isinstance(exc, (AuthenticationFailed, NotAuthenticated)):
+        response.status_code = status.HTTP_401_UNAUTHORIZED
 
     code = _CODE_BY_STATUS.get(response.status_code, "HTTP_ERROR")
     response.data = {

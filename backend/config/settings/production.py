@@ -12,9 +12,7 @@ ENVIRONMENT_NAME = "production"
 INSECURE_SECRET_KEY = "insecure-placeholder-change-me"
 
 if SECRET_KEY == INSECURE_SECRET_KEY or len(SECRET_KEY) < 32:
-    raise ImproperlyConfigured(
-        "SECRET_KEY must be set to a strong, unique value in production."
-    )
+    raise ImproperlyConfigured("SECRET_KEY must be set to a strong, unique value in production.")
 
 if "*" in ALLOWED_HOSTS:
     raise ImproperlyConfigured("Wildcard ALLOWED_HOSTS is not allowed in production.")

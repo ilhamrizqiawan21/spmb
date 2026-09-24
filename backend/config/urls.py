@@ -7,9 +7,13 @@ from django.urls import include, path
 from apps.system.views import HealthView, ReadyView
 
 api_v1_patterns: list = [
-    # Domain app routers are included here as they are implemented, e.g.:
-    # path("auth/", include("apps.auth.urls")),
+    path("auth/", include("apps.auth.urls")),
+    path("admission/", include("apps.admission.urls")),
+    path("verification/", include("apps.verification.urls")),
+    path("selection/", include("apps.selection.urls")),
+    path("enrollment/", include("apps.enrollment.urls")),
 ]
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
