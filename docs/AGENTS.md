@@ -11,18 +11,20 @@ This file defines how AI coding agents must work inside this repository.
 **Type:** End-to-end student admission management system  
 **Architecture:** Modular Monolith  
 **Frontend:** React + TypeScript + Vite  
-**Backend:** Python + Django + Django REST Framework  
-**Database:** PostgreSQL  
-**ORM:** Django ORM  
-**Migration:** Django Migrations  
-**Cache / Queue:** Redis (Django cache framework + Celery)  
-**Testing:** Pytest (pytest-django) + Vitest + React Testing Library + Playwright
+**Backend:** PHP 8.3 + Laravel 13 (JSON API, Laravel Sanctum bearer tokens)  
+**Database:** MySQL 8.0.16+ (utf8mb4)  
+**ORM:** Eloquent  
+**Migration:** Laravel Migrations  
+**Cache / Queue:** Laravel cache + queue (database driver by default, Redis optional)  
+**Testing:** PHPUnit (Laravel feature tests) + Vitest + React Testing Library + Playwright  
+**Frontend:** not final — see `frontend/README.md` for the recommendation
 
-> **Migration note:** v1 was originally built on FastAPI + SQLAlchemy +
-> Alembic. The project is migrating to Django + DRF + the Django ORM. This is
-> a rewrite of the backend, not a port — see `INFRASTRUCTURE.md` (once
-> updated) for the cutover plan. Until the migration is complete, code under
-> `backend/` may still reflect the old stack; do not assume it is current.
+> **Migration note:** the backend was first built on FastAPI + SQLAlchemy +
+> Alembic (git commit `b984024`), then on Django + DRF + PostgreSQL (git
+> commit `e781905`), and has now been rewritten on Laravel + MySQL. The
+> Django implementation is kept in git history as a behavioral reference only.
+> Do not reintroduce Python, Django, FastAPI, or PostgreSQL without an
+> explicit architectural decision.
 
 Primary product documents:
 
@@ -119,70 +121,56 @@ Do not start from UI and then invent backend behavior later.
 
 # 5. Architecture Rules
 
-Django project structure should follow:
+Laravel project structure should follow:
 
 ```text
-config/                  # Django project package (settings, root urls, asgi/wsgi)
-├── settings/
-│   ├── base.py
-│   ├── development.py
-│   ├── testing.py
-│   └── production.py
-├── urls.py
-└── asgi.py / wsgi.py
-
-apps/
-├── auth/
-├── admission/
-├── documents/
-├── verification/
-├── selection/
-├── finance/
-├── enrollment/
-├── mpls/
-├── communication/
-└── system/
+backend/
+├── app/
+│   ├── Exceptions/          # ApiException (standard error envelope)
+│   ├── Http/
+│   │   ├── Controllers/Api/ # thin controllers per domain
+│   │   ├── Middleware/      # RequirePermission (RBAC)
+│   │   └── Resources/       # API Resources (response contracts)
+│   ├── Models/              # Eloquent models (UUID keys via HasUuids)
+│   ├── Services/            # business logic and workflow rules
+│   └── Support/             # status vocabularies, private storage
+├── bootstrap/app.php        # routing, middleware aliases, error rendering
+├── config/                  # app, database, sanctum, spmb (project settings)
+├── database/migrations/     # schema, RBAC seed, MySQL CHECK constraints
+├── routes/                  # api.php (/api/v1/*), web.php (/health, /ready)
+└── tests/Feature/           # PHPUnit feature tests per domain
 ```
 
-Each domain app under `apps/` should follow:
-
-```text
-apps/<domain>/
-├── models.py            # or models/ package if large
-├── migrations/
-├── serializers.py        # DRF serializers (request/response contracts)
-├── services.py            # or services/ package — business logic
-├── permissions.py        # DRF permission classes for this domain
-├── views.py               # or viewsets.py
-├── urls.py
-├── tasks.py                # Celery tasks
-└── tests/
-```
+Domains (auth, admission, documents, verification, selection, finance,
+enrollment, mpls, communication, system) map to services/controllers/resources
+named after the domain. New domains follow the same layout.
 
 Preferred call flow:
 
 ```text
-API View / ViewSet
+Route (+ auth:sanctum, permission:<codes> middleware)
    ↓
-Service
+Controller (validate input)
    ↓
-Manager / QuerySet (Django ORM)
+Service (business rules, transactions)
+   ↓
+Eloquent model / query builder
    ↓
 Database
 ```
 
-Business rules must not live directly in views.
+Business rules must not live directly in controllers.
 
-Views should mainly:
+Controllers should mainly:
 
-- parse input via a serializer;
+- validate input (`$request->validate()` / Form Requests);
 - invoke service logic;
-- enforce DRF permission classes;
-- return a response built from a serializer.
+- rely on route middleware (`auth:sanctum`, `permission:...`) for authorization;
+- return an API Resource.
 
-Prefer function-based or class-based API views/viewsets that stay thin.
-Fat models and fat views are both against this rule — put business logic in
-`services.py`, not in `Model.save()` overrides or view methods.
+Keep controllers thin. Fat models and fat controllers are both against this
+rule — put business logic in `app/Services`, not in model events/observers or
+controller methods.
 
 ---
 
@@ -289,17 +277,18 @@ All transitions must:
 
 Never do this:
 
-```python
-application.status = "ACCEPTED"
+```php
+$application->status = 'ACCEPTED';
 ```
 
-directly inside a route/controller without transition validation.
+directly inside a route/controller without transition validation
+(use `ApplicationStateMachine::transition()`).
 
 ---
 
 # 8. Database Rules
 
-Use PostgreSQL relational design.
+Use MySQL (InnoDB) relational design.
 
 Primary keys:
 
@@ -307,13 +296,8 @@ Primary keys:
 UUID
 ```
 
-Use:
-
-```python
-uuid.UUID
-```
-
-in Python and UUID types in PostgreSQL.
+Use Eloquent's `HasUuids` trait; UUIDs are stored as `CHAR(36)` in MySQL
+(`$table->uuid('id')->primary()` / `foreignUuid()` in migrations).
 
 All business tables should include:
 
@@ -342,7 +326,7 @@ Use status, archive, or soft-delete strategy where appropriate.
 
 # 9. Migration Rules
 
-All schema changes must use Django migrations (`makemigrations` / `migrate`).
+All schema changes must use Laravel migrations (`php artisan make:migration` / `migrate`).
 
 Never modify production schema manually.
 
@@ -394,45 +378,35 @@ Avoid returning raw ORM objects without response schemas.
 
 ---
 
-# 11. DRF Serializer Rules
+# 11. API Resource & Validation Rules
 
-All external API input/output must use Django REST Framework serializers.
+All external API output must go through Laravel API Resources
+(`app/Http/Resources`); never return raw Eloquent models.
 
-Separate serializers by purpose where needed:
+All external API input must be validated (`$request->validate()` or Form
+Requests) with explicit rules per endpoint. Validation failures are rendered as
+HTTP 400 with the standard `{"error": {code, message, details}}` envelope.
 
-```text
-ApplicationCreateSerializer
-ApplicationUpdateSerializer
-ApplicationReadSerializer
-ApplicationListItemSerializer
-ApplicationSubmitRequestSerializer
-```
-
-Do not expose sensitive fields unintentionally (use `fields`/explicit
-declarations, not `fields = "__all__"` on models with sensitive columns).
-
-Do not reuse `ModelSerializer` defaults as the public API contract for
-business-critical endpoints — declare fields explicitly once the contract is
-stable, so a model change cannot silently change the API shape.
+Separate rules by purpose (create vs. partial update) and never mass-assign
+unvalidated request input. Do not expose sensitive attributes (password,
+storage internals) unintentionally; declare resource fields explicitly so a
+model change cannot silently change the API shape.
 
 ---
 
-# 12. Django ORM Rules
+# 12. Eloquent Rules
 
-Use modern Django ORM patterns (`QuerySet` methods, `F()`/`Q()` expressions,
-custom `Manager`/`QuerySet` classes for reusable query logic).
+Use modern Eloquent patterns (query scopes, relationships, `whereHas`,
+eager loading).
 
-Avoid N+1 queries: use `select_related()` for forward FK/O2O and
-`prefetch_related()` for reverse FK/M2M.
+Avoid N+1 queries: use `with()` / `load()` for relationships rendered by
+resources.
 
-Do not place large business rules inside `Model.save()`, `pre_save`/`post_save`
-signals, or other model event hooks.
+Do not place large business rules inside model events, observers, or
+accessors.
 
-A custom `Manager`/`QuerySet` on the model handles data access patterns
-(equivalent to a repository layer).
-
-Service layer (`services.py`) handles business rules — not the model, not the
-view.
+Service layer (`app/Services`) handles business rules — not the model, not the
+controller. Wrap multi-step writes in `DB::transaction()`.
 
 ---
 
@@ -573,8 +547,8 @@ audit.read
 
 Avoid logic like:
 
-```python
-if user.role == "admin":
+```php
+if ($user->role === 'admin') {
 ```
 
 when a permission check is more appropriate.
@@ -780,7 +754,7 @@ Critical business logic requires tests.
 Backend:
 
 ```text
-Pytest
+PHPUnit (Laravel feature tests)
 ```
 
 Frontend:
@@ -877,12 +851,11 @@ Expected commands may include:
 Backend:
 
 ```bash
-pytest                                        # pytest-django
-python manage.py migrate
-python manage.py makemigrations <app_label>
-python manage.py test                          # Django's own test runner, if used instead of pytest
-ruff check .
-mypy .
+composer install
+php artisan migrate
+php artisan test                               # PHPUnit (SQLite in-memory by default)
+DB_CONNECTION=mysql php artisan test           # run the suite against MySQL
+vendor/bin/pint --test                         # code style
 ```
 
 Frontend:
@@ -969,7 +942,7 @@ Agents must not:
 - introduce microservices without need;
 - introduce Go into v1 without an architectural decision;
 - add dependencies without a clear need;
-- replace PostgreSQL with another datastore without approval.
+- replace MySQL with another datastore without approval.
 
 ---
 

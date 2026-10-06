@@ -1,20 +1,23 @@
 services:
-  postgres:
-    image: postgres:16-alpine
+  mysql:
+    image: mysql:8.4
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-spmb}
-      POSTGRES_USER: ${POSTGRES_USER:-spmb}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-spmb}
+      MYSQL_DATABASE: ${DB_DATABASE:-spmb}
+      MYSQL_USER: ${DB_USERNAME:-spmb}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-spmb}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:3306:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
 
+  # Optional: switch CACHE_STORE / QUEUE_CONNECTION to `redis` in backend/.env to use it.
   redis:
     image: redis:7-alpine
     ports:
@@ -28,5 +31,5 @@ services:
       retries: 5
 
 volumes:
-  postgres_data:
+  mysql_data:
   redis_data:
