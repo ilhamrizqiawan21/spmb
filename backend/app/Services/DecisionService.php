@@ -55,7 +55,6 @@ class DecisionService
                     'rank' => $rank,
                     'decided_by' => $user->id,
                     'reason' => $reason,
-                    'published_at' => now(),
                 ]);
                 $appDecision = $existing;
             } else {
@@ -66,7 +65,7 @@ class DecisionService
                     'rank' => $rank,
                     'decided_by' => $user->id,
                     'reason' => $reason,
-                    'published_at' => now(),
+                    'published_at' => null,
                 ]);
                 AuditService::log('decision.made', $appDecision, null, ['decision' => $decision, 'reason' => $reason], $user);
             }

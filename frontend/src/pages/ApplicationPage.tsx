@@ -130,9 +130,10 @@ export function ApplicationPage() {
         <h1>{a.applicant_name}</h1>
         <p>{a.period_name} · No. {a.registration_number} · <StatusBadge status={a.status} /></p>
         <progress value={a.completion_percentage} max={100} aria-label="Kelengkapan" /> {a.completion_percentage}%
-        {a.status === 'DRAFT' && (
+        {a.status === 'REVISION_REQUIRED' && <p className="error">Verifikator meminta perbaikan. Unggah ulang berkas yang ditandai, lalu kirim ulang.</p>}
+        {(a.status === 'DRAFT' || a.status === 'REVISION_REQUIRED') && (
           <p>
-            <button onClick={() => submit.mutate()} disabled={submit.isPending}>Kirim pendaftaran</button>
+            <button onClick={() => submit.mutate()} disabled={submit.isPending}>{a.status === 'DRAFT' ? 'Kirim pendaftaran' : 'Kirim ulang pendaftaran'}</button>
             {submit.error && <span className="error" role="alert"> {message(submit.error)}</span>}
           </p>
         )}

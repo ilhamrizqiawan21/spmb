@@ -10,6 +10,7 @@ use App\Models\ApplicationStatusHistory;
 use App\Models\DocumentRequirement;
 use App\Models\User;
 use App\Support\ApplicationStatus;
+use App\Support\DocumentStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -115,7 +116,15 @@ class ApplicationService
         return DB::transaction(function () use ($user, $id) {
             $application = self::getForUser($user, $id);
             ApplicantService::checkModify($user, $application->applicant);
-            RegistrationAvailabilityService::assertCanSubmit($application->admissionPeriod->load('academicYear'));
+
+            $resubmitting = $application->status === ApplicationStatus::REVISION_REQUIRED;
+            if (! $resubmitting && $application->status !== ApplicationStatus::DRAFT) {
+                throw ApiException::validation(['detail' => "Application cannot be submitted from status '{$application->status}'."]);
+            }
+            // Corrections requested by a verifier may be sent after registration closes.
+            if (! $resubmitting) {
+                RegistrationAvailabilityService::assertCanSubmit($application->admissionPeriod->load('academicYear'));
+            }
 
             [$perc, $step] = self::completion($application);
             $application->completion_percentage = $perc;
@@ -138,6 +147,20 @@ class ApplicationService
                         'detail' => 'Application missing required documents: '.$missing->pluck('name')->implode(', ').'.',
                     ]);
                 }
+            }
+
+            if ($resubmitting) {
+                // The newest version of every document must no longer be flagged.
+                $flagged = ApplicationDocument::with('requirement')->where('application_id', $application->id)->get()
+                    ->groupBy('requirement_id')->map(fn ($versions) => $versions->sortByDesc('version')->first())
+                    ->filter(fn ($d) => in_array($d->status, [DocumentStatus::REVISION_REQUIRED, DocumentStatus::INVALID], true));
+                if ($flagged->isNotEmpty()) {
+                    throw ApiException::validation([
+                        'detail' => 'Documents still need correction: '.$flagged->map(fn ($d) => $d->requirement->name)->implode(', ').'.',
+                    ]);
+                }
+
+                return ApplicationStateMachine::transition($user, $application, ApplicationStatus::RESUBMITTED, 'Resubmitted by applicant owner after revision.');
             }
 
             return ApplicationStateMachine::transition($user, $application, ApplicationStatus::SUBMITTED, 'Submitted by applicant owner.');

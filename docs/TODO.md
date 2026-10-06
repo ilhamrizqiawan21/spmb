@@ -12,38 +12,40 @@
 **Testing:** PHPUnit + Vitest + React Testing Library + Playwright  
 **Frontend:** React + TypeScript + Vite (`frontend/README.md`)
 
-## Laravel migration status (2026-10-06)
+## Laravel migration status and audit (2026-10-06)
 
-The backend was rewritten from Django/DRF/PostgreSQL to Laravel/MySQL
-(see `INFRASTRUCTURE.md`). The detailed task lists below were written for the
-Django stack; read them with this mapping:
+The backend was rewritten from Django/DRF/PostgreSQL to Laravel/MySQL (see
+`INFRASTRUCTURE.md`). **F0–F12 below were audited line by line against the
+Laravel code and tests** (62 backend tests, 23 frontend tests); checkboxes
+reflect what is actually implemented and verified. `[-]` marks partially done
+items and `[ ]` real gaps — several need a business decision, noted inline.
 
-| Task wording (Django) | Laravel equivalent |
+Concept mapping for the remaining (not yet started) milestones, which were
+written for the earlier stack:
+
+| Task wording (earlier stacks) | Laravel equivalent |
 | --- | --- |
-| `apps/<domain>/models.py` | `app/Models/*.php` |
-| `services.py` | `app/Services/*.php` |
-| DRF serializers / views | API Resources (`app/Http/Resources`) / controllers (`app/Http/Controllers/Api`) |
-| DRF permission classes | `permission:<codes>` route middleware (`RequirePermission`) |
-| Django migrations (`makemigrations`) | `database/migrations/*.php` (`php artisan migrate`) |
-| pytest / pytest-django | PHPUnit feature tests (`php artisan test`) |
+| `apps/<domain>/models.py`, `services.py` | `app/Models/*.php`, `app/Services/*.php` |
+| serializers / views | API Resources / controllers (`app/Http/...`) |
+| permission classes | `permission:<codes>` route middleware |
+| migrations (`makemigrations`) | `database/migrations/*.php` (`php artisan migrate`) |
+| pytest | PHPUnit feature tests (`php artisan test`) |
 | Celery + Redis | Laravel queue/cache (database driver; Redis optional) |
-| Session auth | Sanctum bearer tokens |
-| `ruff` / `mypy` | Laravel Pint |
+| JSONB | JSON |
 
-**Ported and covered by feature tests (42 tests, SQLite in-memory; CI also
-runs them on MySQL):** F1 (health, error envelope, versioning), F2 (UUID base
-models, migrations, private storage abstraction), F3 (auth/RBAC), F4 (academic
-year/admission period/availability), F5 (applicant/guardian), F6 (application
-workflow + state machine), F7 (documents), F8 (verification), F9
-(selection/assessment/ranking), F10 (decision/waiting list), F11
-(announcement), and the backend part of F12 (re-registration).
+**Status summary**
 
-**Partially done (F18):** append-only audit log + viewer, identity-number masking, security headers (see `INFRASTRUCTURE.md`). Remaining: consent records, retention/erasure workflow, MFA.
-
-**Not started:** F13–F17 (finance, enrollment/student, MPLS, notifications,
-reporting). F19 (frontend) is in progress — see `frontend/README.md`. F20–F22 not started. The checkboxes
-below have **not** been re-audited against the Laravel code; verify acceptance
-criteria before ticking or un-ticking a task.
+| Milestone | Status |
+| --- | --- |
+| F0–F12 | Implemented (backend) with the gaps listed per task |
+| F13 Finance & Payment | Not started |
+| F14 Enrollment & Student | Not started |
+| F15 MPLS | Not started |
+| F16 Notification System | Not started |
+| F17 Dashboard & Reporting | Not started |
+| F18 Audit, Privacy & Security | Partial: audit log + viewer, identity masking, security headers. Remaining: consent records, retention/erasure workflow, MFA |
+| F19 Frontend | In progress — see `frontend/README.md` |
+| F20–F22 | Not started (CI runs backend/frontend tests; MySQL job added) |
 
 ---
 
@@ -188,65 +190,36 @@ Create a clean, reproducible repository structure before implementing business f
 
 - [x] Create backend directory.
 - [x] Create frontend directory.
-- [x] Create docs directory if documentation is grouped.
-- [ ] Ensure root contains the project governance files.
-
-Expected root:
-
-```text
-/
-├── backend/
-├── frontend/
-├── docs/
-├── .github/
-├── docker-compose.yml
-├── .env.example
-├── AGENTS.md
-├── AI_RULES.md
-├── TODO.md
-├── PRD_SPMB_Terpadu_2026_2027.md
-└── ERD_SPMB_Terpadu_2026_2027.md
-```
+- [x] Create docs directory (governance files — PRD, ERD, AGENTS, AI_RULES, TODO — live in `docs/`).
+- [x] `.github/` workflows, `docker-compose.yml`, `.env.example` at the root.
 
 ### Acceptance Criteria
 
-- Repository structure is clear.
-- No generated build artifacts committed.
-- No secret files committed.
-- `.gitignore` covers Python, Node, environment, IDE, test, and build artifacts.
+- [x] Repository structure is clear.
+- [x] No generated build artifacts or dependency folders committed (`backend/vendor`, `frontend/node_modules`, `dist`).
+- [x] No secret files committed (`.env` ignored; only `.env.example`).
+- [x] `.gitignore` covers PHP/Composer, Node, environment, IDE, test, and build artifacts.
 
 ---
 
 ## F0.2 Create `.gitignore`
 
-- [x] Python cache.
-- [x] `.venv`.
+- [x] Composer `vendor/` and PHPUnit cache.
 - [x] Node modules.
-- [x] frontend build output.
-- [x] `.env`.
-- [x] test artifacts.
-- [x] coverage.
-- [x] temporary upload files.
-- [x] editor-specific files where appropriate.
-
-### Acceptance Criteria
-
-```bash
-git status
-```
-
-must not show dependency folders or secret environment files.
+- [x] Frontend build output.
+- [x] `.env` and local SQLite databases.
+- [x] Test artifacts and coverage.
+- [x] Temporary upload files (private storage under `backend/storage`, ignored by Laravel's own rules).
+- [x] Editor-specific files.
 
 ---
 
 ## F0.3 Create `.env.example`
 
-- [x] Add placeholder DB configuration.
-- [x] Add Redis placeholder.
-- [x] Add object storage placeholder.
-- [x] Add auth secret placeholder.
-- [x] Add frontend API base URL.
-- [x] Add email/notification placeholder.
+- [x] Root `.env.example` (docker-compose DB credentials, `VITE_API_BASE_URL`).
+- [x] `backend/.env.example` (MySQL, cache/queue, Redis placeholder, private storage disk, Sanctum token lifetime, CORS origins).
+- [x] `frontend/.env.example` (API base URL).
+- [ ] Email/notification provider placeholder (arrives with F16).
 
 Never place real credentials inside `.env.example`.
 
@@ -257,17 +230,17 @@ Never place real credentials inside `.env.example`.
 - [x] Project summary.
 - [x] Architecture summary.
 - [x] Prerequisites.
-- [x] Local setup instructions.
+- [x] Local setup instructions (including the zero-install Codespaces path).
 - [x] Development commands.
 - [x] Link to PRD, ERD, AGENTS, AI_RULES, TODO.
 
 ---
 
-## F0.5 GitHub Workflow Skeleton
+## F0.5 GitHub Workflow
 
-- [x] Add backend lint/test workflow placeholder.
-- [x] Add frontend lint/typecheck/test/build workflow placeholder.
-- [x] Keep deploy workflow disabled until production deployment phase.
+- [x] Backend workflow: Pint + PHPUnit on SQLite, plus a MySQL 8.4 service-container job.
+- [x] Frontend workflow: lint/typecheck/test/build (activates when `frontend/package.json` exists).
+- [x] Deploy workflow intentionally absent until F21.
 
 ---
 
@@ -275,98 +248,49 @@ Never place real credentials inside `.env.example`.
 
 ## Goal
 
-Create a clean Django + DRF foundation with clear module boundaries.
+Create a clean Laravel API foundation with clear module boundaries.
 
-> **Django migration reset (2026-09-24):** F1-F5 below were previously
-> implemented and fully passing (73/73 tests) on FastAPI + SQLAlchemy +
-> Alembic. That implementation was removed from the working tree as part of
-> the architecture decision recorded in `AGENTS.md`/`AI_RULES.md`, and is
-> preserved in git history at commit `b984024` ("chore: checkpoint FastAPI
-> backend (F0-F5) before Django migration") for reference — domain rules
-> (single-active-academic-year constraint, NIK/KK/NISN handling, RBAC seed
-> data, session/throttle design, etc.) are worth reading there before
-> re-implementing in Django.
->
-> **F1 status (2026-09-24):** the Django foundation below has now been
-> (re)built and verified — `manage.py check` passes on all three settings
-> modules, `pytest` (pytest-django, against a real ephemeral PostgreSQL via
-> `pgserver` + fakeredis-backed cache) is 2/2 green, `ruff check .` and
-> `mypy .` are clean across 56 source files. Work stopped here deliberately
-> per explicit instruction ("sampai fondasi django terbentuk saja") — F2
-> onward (base model conventions beyond `DATABASES`, RBAC, business domains)
-> is still open.
+> **History:** the backend was built on FastAPI (commit `b984024`), then
+> Django/DRF/PostgreSQL (commit `e781905`), and is now Laravel 13 + MySQL.
+> See `INFRASTRUCTURE.md`. Earlier commits remain valid references for domain
+> rules.
 
 ---
 
-## F1.1 Initialize Python Backend
+## F1.1 Initialize Backend
 
-- [x] Create Python project.
-- [x] Add Django.
-- [x] Add Django REST Framework.
-- [x] Add PostgreSQL driver (`psycopg`).
-- [x] Add Celery (background jobs / Redis integration).
-- [x] Add testing dependencies (`pytest`, `pytest-django`).
-- [x] Add linting/formatting tools.
-
-Suggested tools:
-
-```text
-django
-djangorestframework
-psycopg
-celery
-django-redis
-pytest
-pytest-django
-ruff
-mypy
-django-stubs
-```
+- [x] Laravel 13 project (PHP 8.3).
+- [x] Laravel Sanctum (API tokens).
+- [x] MySQL driver (`pdo_mysql`); SQLite for tests.
+- [x] PHPUnit.
+- [x] Code style: Laravel Pint (enforced in CI).
+- [ ] Static analysis (Larastan/PHPStan) — optional, not added yet.
 
 ### Acceptance Criteria
 
-Backend starts successfully.
-
-Example:
-
-```bash
-python manage.py runserver
-```
+- [x] `php artisan serve` starts the API; `php artisan test` passes.
 
 ---
 
 ## F1.2 Create Backend Structure
 
-- [x] `config/settings/` (base/development/testing/production)
-- [x] `config/urls.py`
-- [x] `apps/auth/` (label `spmb_auth` — `auth` collides with `django.contrib.auth`)
-- [x] `apps/admission/`
-- [x] `apps/documents/`
-- [x] `apps/verification/`
-- [x] `apps/selection/`
-- [x] `apps/finance/`
-- [x] `apps/enrollment/`
-- [x] `apps/mpls/`
-- [x] `apps/communication/`
-- [x] `apps/system/`
+- [x] `app/Services` (business rules), `app/Http/Controllers/Api`, `app/Http/Resources`, `app/Http/Middleware`, `app/Models`, `app/Support`, `app/Exceptions`.
+- [x] `routes/api.php` (`/api/v1`) and `routes/web.php` (`/health`, `/ready`).
+- [x] Domain code present: auth, admission, documents, verification, selection, enrollment (re-registration), system, audit.
+- [ ] Domain code not started: finance, mpls, communication (F13, F15, F16).
 
-All apps are currently empty (`apps.py` + `models.py` + `migrations/`
-package only, no models/serializers/services/views yet) except
-`apps/system`, which owns `GET /health` and `GET /ready`.
-
-See `AGENTS.md` §5 for the expected structure inside each app
-(`models.py`, `serializers.py`, `services.py`, `permissions.py`, `views.py`).
+See `AGENTS.md` §5 for the layered call flow (route → controller → service → model).
 
 ---
 
 ## F1.3 Application Configuration
 
-- [x] Environment-based settings (`config/settings/{base,development,testing,production}.py`).
-- [x] Development settings.
-- [x] Production-safe defaults (`config/settings/production.py` raises `ImproperlyConfigured` on the default `SECRET_KEY`, a key under 32 chars, or wildcard `ALLOWED_HOSTS`/`CORS_ALLOWED_ORIGINS` — verified: fails closed when tested with the insecure default).
-- [x] Database URL validation (via discrete `POSTGRES_*` env vars into `DATABASES`; connection failure surfaces through `/ready`).
-- [x] CORS configuration (`django-cors-headers`).
-- [x] App metadata (`APP_NAME`, `API_V1_PREFIX`).
+- [x] Environment-based configuration (`.env`, `config/*.php`, `config/spmb.php` for project settings).
+- [x] Missing `APP_KEY` fails closed (framework behavior).
+- [-] Production-safe defaults: error rendering hides internals when `APP_DEBUG=false`, but there is no boot-time guard that refuses to start with `APP_DEBUG=true`/wildcard CORS in production.
+- [x] Database configuration from `DB_*`; connection failures surface through `/ready`.
+- [x] CORS from `CORS_ALLOWED_ORIGINS` (no wildcard default).
+- [x] App metadata (`config/spmb.php`: name, version).
 
 Never use production wildcard CORS.
 
@@ -374,43 +298,27 @@ Never use production wildcard CORS.
 
 ## F1.4 Health Endpoints
 
-- [x] `GET /health` (`apps/system/views.py:HealthView`)
-- [x] `GET /ready` (`apps/system/views.py:ReadyView`; checks PostgreSQL + Redis, 503 on failure, no internal details leaked)
-
-### Acceptance Criteria
-
-`/health` verifies app process.
-
-`/ready` should eventually verify required infrastructure.
+- [x] `GET /health` (process).
+- [x] `GET /ready` (database + cache probe, 503 `{"status":"not_ready"}` without internal details).
 
 ---
 
 ## F1.5 Global Error Handling
 
-- [x] Validation errors (`config/exceptions.py:exception_handler`, `{"error": {code, message, details}}` envelope).
-- [ ] Domain/business errors — no domain exception class exists yet (no business logic to raise one); add when F3+ introduces the first one, rather than building the abstraction speculatively.
-- [x] Authentication errors (401 → `AUTHENTICATION_REQUIRED`).
-- [x] Authorization errors (403 → `FORBIDDEN`).
-- [x] 404 handling.
-- [x] Safe 500 response (unhandled exceptions logged server-side, generic message returned; DRF default -> `None` case handled explicitly).
+- [x] Validation errors → 400 `VALIDATION_ERROR` with per-field `details`.
+- [x] Domain/business errors (`ApiException` with `details`).
+- [x] Authentication errors → 401 `AUTHENTICATION_REQUIRED`.
+- [x] Authorization errors → 403 `FORBIDDEN`.
+- [x] 404 handling (`NOT_FOUND`, malformed UUIDs included), 429 `RATE_LIMIT_EXCEEDED`.
+- [x] Safe 500 (`INTERNAL_SERVER_ERROR`, no stack trace/SQL/paths; covered by `WorkflowGapsTest`).
 
-### Acceptance Criteria
-
-Production-safe errors do not expose stack traces or SQL. `DEBUG = False` in
-production settings.
+All errors use the envelope `{"error": {"code", "message", "details"}}`.
 
 ---
 
 ## F1.6 API Versioning
 
-- [x] Mount all domain endpoints under:
-
-```text
-/api/v1
-```
-
-(`config/urls.py`'s `api_v1_patterns` list is ready but empty — no domain
-routers exist yet since no domain app has views/serializers/urls yet.)
+- [x] All domain endpoints are mounted under `/api/v1`.
 
 ---
 
@@ -418,63 +326,68 @@ routers exist yet since no domain app has views/serializers/urls yet.)
 
 ## Goal
 
-Prepare PostgreSQL, Django migrations, Redis, and storage abstractions.
+Prepare MySQL, Laravel migrations, optional Redis, and storage abstractions.
 
 ---
 
-## F2.1 PostgreSQL Integration
+## F2.1 MySQL Integration
 
-- [ ] Configure Django `DATABASES` setting.
-- [ ] Add connection test / `/ready` check.
+- [x] Database configuration (`config/database.php`, default `mysql`).
+- [x] Connection check in `/ready`.
+- [ ] Verified on a real MySQL server — CI runs the suite on MySQL 8.4, local verification pending.
 
 ---
 
 ## F2.2 Base Model Conventions
 
-- [ ] UUID primary key mixin/abstract base model.
-- [ ] Timestamp mixin (`created_at`, `updated_at`).
-- [ ] Optional soft-delete strategy if needed.
-- [ ] Naming conventions for constraints/indexes.
+- [x] UUID primary keys (`BaseModel` + `HasUuids`; `CHAR(36)`).
+- [x] Timestamps (`created_at`, `updated_at`; `audit_logs` is append-only with `created_at` only).
+- [ ] Soft delete strategy — not used so far; hard delete is limited to draft/configuration data (see AGENTS.md §8). Decide before F14.
+- [-] Constraint/index naming: explicit short names where Laravel's generated name could exceed MySQL's 64-character limit; MySQL `CHECK` constraints in a dedicated migration.
 
 ---
 
-## F2.3 Django Migrations Setup
+## F2.3 Migrations Setup
 
-- [ ] Confirm `makemigrations`/`migrate` workflow per app.
-- [ ] Test upgrade/downgrade (`migrate <app> <previous_migration>`) on development DB.
+- [x] `php artisan migrate` workflow; baseline RBAC data seeded by migration.
+- [x] Rollback verified (`migrate:fresh` → `migrate:rollback --step=50` → `migrate`) on SQLite.
+- [ ] Rollback verified on MySQL.
 
 ---
 
-## F2.4 Redis Integration
+## F2.4 Cache / Queue / Redis
 
-- [ ] Add Redis cache backend (`django-redis`) / Celery broker config.
-- [ ] Add health/readiness check.
-- [ ] Keep business features independent of direct Redis calls.
+- [x] Cache and queue use the database driver by default; Redis selectable by env (`CACHE_STORE`, `QUEUE_CONNECTION`).
+- [x] Readiness check covers the cache store.
+- [x] Business features never call Redis directly.
+- [ ] Redis driver exercised in an environment (docker-compose provides the service).
 
 ---
 
 ## F2.5 Object Storage Abstraction
 
-- [ ] Define storage interface (Django Storage backend or custom abstraction).
-- [ ] Local development adapter.
-- [ ] S3-compatible adapter contract.
-- [ ] Protected/signed URL abstraction.
+- [x] `PrivateStorage` over a non-public Laravel disk (`SPMB_STORAGE_DISK`).
+- [x] Local development adapter (`storage/app/private`).
+- [-] S3-compatible adapter: swap the disk in config; the `league/flysystem-aws-s3-v3` package is not installed yet.
+- [x] Time-limited signed token abstraction (`signedToken`/`verifyToken`).
 
-Do not implement public permanent document URLs.
+Do not implement public permanent document URLs. (None exist; `serve` is disabled on the local disk.)
 
 ---
 
 ## F2.6 Docker Compose Development Stack
 
-- [ ] backend
-- [ ] frontend
-- [x] PostgreSQL
-- [x] Redis
-- [ ] optional local object storage such as MinIO if selected
+- [x] MySQL 8.4.
+- [x] Redis (optional).
+- [ ] backend container.
+- [ ] frontend container.
+- [ ] optional local object storage such as MinIO.
+
+A Codespaces devcontainer (SQLite + demo seed) is provided for quick trials.
 
 ### Acceptance Criteria
 
-New developer can start dependencies from documented commands.
+- [x] A new developer can start dependencies and the app from documented commands.
 
 ---
 
@@ -484,103 +397,78 @@ New developer can start dependencies from documented commands.
 
 Implement secure user authentication and permission-based authorization.
 
-> Reference: the FastAPI implementation (Argon2id hashing, Redis-backed
-> opaque session cookie, login throttling, RBAC seed data for the 8 system
-> roles and 12 baseline permission codes) is preserved at git commit
-> `b984024`. The business rules there are still valid; only the framework
-> changes (DRF serializers/views/permission classes instead of Pydantic
-> schemas/FastAPI routes/dependencies, Django's own password hashers instead
-> of calling `argon2-cffi` directly, etc.).
-
 ---
 
 ## F3.1 Users Model
 
-- [ ] Implement `users` (custom Django user model, `AUTH_USER_MODEL`).
-- [ ] Migration.
-- [ ] Unique email constraint.
-- [ ] Unique phone constraint.
-- [ ] Active state.
+- [x] `users` (UUID, email/phone optional but at least one required, `is_active`).
+- [x] Migration.
+- [x] Unique email and phone constraints.
+- [x] Active state.
 
 ---
 
 ## F3.2 Roles Model
 
-- [ ] Implement `roles`.
-- [ ] Migration.
-- [ ] Seed system roles.
-
-Required initial roles:
-
-```text
-super_admin
-admission_admin
-verifier
-finance
-assessor
-principal
-mpls_officer
-parent
-```
+- [x] `roles` + migration.
+- [x] System roles seeded by migration: `super_admin`, `admission_admin`, `verifier`, `finance`, `assessor`, `principal`, `mpls_officer`, `parent`.
 
 ---
 
 ## F3.3 Permissions Model
 
-- [ ] Implement `permissions`.
-- [ ] Implement `user_roles`.
-- [ ] Implement `role_permissions`.
-- [ ] Seed baseline permissions.
+- [x] `permissions`, `user_roles`, `role_permissions`.
+- [x] 12 baseline permissions seeded and mapped to roles.
+- [ ] Admin UI/API to manage users and role assignments (`user.manage` exists but no endpoints yet).
 
 ---
 
 ## F3.4 Password Security
 
-- [ ] Secure password hashing (Django's built-in password hashers, Argon2id).
-- [ ] Password verification.
-- [ ] Password validation policy.
-- [ ] Never log password content.
+- [x] Password hashing via Laravel's `hashed` cast (bcrypt, `BCRYPT_ROUNDS`); Argon2id is a config switch if required.
+- [x] Password verification.
+- [-] Password policy: min 8 characters and not numeric-only; no common-password/breach check.
+- [x] Passwords and tokens never logged (audit scrubber drops credential-like keys).
 
 ---
 
 ## F3.5 Registration Endpoint
 
-- [ ] Parent registration.
-- [ ] Input validation.
-- [ ] Duplicate email/phone prevention.
-- [ ] Default parent role assignment.
+- [x] Parent registration (email and/or phone).
+- [x] Input validation.
+- [x] Duplicate email/phone prevention (case-insensitive email).
+- [x] Default `parent` role assignment.
 
 ---
 
 ## F3.6 Login / Logout
 
-- [ ] Login endpoint.
-- [ ] Secure session/token strategy.
-- [ ] Logout endpoint.
-- [ ] Active account check.
+- [x] Login by email or phone → Sanctum bearer token (expiry configurable).
+- [x] Logout revokes the current token.
+- [x] Active account check.
+- [x] Login throttling: 5 failed attempts / 15 minutes → 429; route throttles on register/login.
+- [ ] Email/phone verification and password reset flows.
 
 ---
 
 ## F3.7 Current User Endpoint
 
-- [ ] `GET /api/v1/auth/me`
-- [ ] Return safe user profile.
-- [ ] Return roles/permissions needed by frontend.
+- [x] `GET /api/v1/auth/me`.
+- [x] Safe profile with roles and permission codes.
 
 ---
 
-## F3.8 Permission Dependency
+## F3.8 Permission Middleware
 
-- [ ] Implement reusable backend permission guard (DRF `permissions.BasePermission`).
-- [ ] Deny unauthorized API calls server-side.
+- [x] `permission:code1,code2` route middleware (any-of), server-side enforcement.
 
 ### Tests
 
-- [ ] valid login
-- [ ] invalid password
-- [ ] inactive user
-- [ ] permitted endpoint
-- [ ] forbidden endpoint
+- [x] valid login
+- [x] invalid password (+ lockout)
+- [x] inactive user
+- [x] permitted endpoint
+- [x] forbidden endpoint
 
 ---
 
@@ -590,49 +478,36 @@ parent
 
 Make yearly admission configuration fully manageable.
 
-> Reference: git commit `b984024` has a working FastAPI implementation,
-> including the single-active-academic-year rule (there done with a
-> PostgreSQL partial unique index + transactional auto-deactivation) and the
-> registration-availability rules (`REGISTRATION_NOT_STARTED`,
-> `REGISTRATION_CLOSED`, `PERIOD_INACTIVE`, `ACADEMIC_YEAR_INACTIVE`).
-
 ---
 
 ## F4.1 Academic Year
 
-- [ ] Model.
-- [ ] Migration.
-- [ ] Service.
-- [ ] Serializers.
-- [ ] Admin CRUD API.
-- [ ] Active academic year rule.
+- [x] Model, migration, service, admin CRUD API.
+- [x] Active academic year rule (single active; enforced in the service layer inside a transaction because MySQL has no partial unique index).
+- [x] Cannot delete a year that has periods.
 
 ---
 
 ## F4.2 Admission Period
 
-- [ ] Model.
-- [ ] Migration.
-- [ ] CRUD.
-- [ ] Registration open/close dates.
-- [ ] Quota.
-- [ ] Active state.
-- [ ] Optional settings JSONB.
+- [x] Model, migration, CRUD.
+- [x] Registration open/close dates (ISO-8601, stored UTC), announcement date, quota, active state.
+- [x] Optional settings JSON.
 
 ---
 
 ## F4.3 Registration Availability Service
 
-- [ ] Determine whether registration is currently open.
-- [ ] Reject new submission outside allowed period.
-- [ ] Draft behavior defined.
+- [x] Determine whether registration is open (`OPEN`, `BEFORE_OPENING`, `CLOSED`, `PERIOD_INACTIVE`, `ACADEMIC_YEAR_INACTIVE`).
+- [x] Reject new drafts and submissions outside the allowed period.
+- [x] Draft behavior defined (drafts need an open period; corrections after revision may be resubmitted after closing).
 
 ### Tests
 
-- [ ] before opening
-- [ ] during opening
-- [ ] after closing
-- [ ] inactive period
+- [x] before opening
+- [x] during opening
+- [x] after closing
+- [x] inactive period / inactive academic year
 
 ---
 
@@ -642,28 +517,21 @@ Make yearly admission configuration fully manageable.
 
 Implement reusable student identity data owned by parent accounts.
 
-> Reference: git commit `b984024` has a working FastAPI implementation,
-> including NIK/KK/NISN field handling, parental-ownership access control,
-> and the guardian single-primary-contact rule.
-
 ---
 
 ## F5.1 Applicant Model
 
-- [ ] Implement fields defined by ERD.
-- [ ] Migration.
-- [ ] Sensitive field handling.
-- [ ] Ownership relation to user.
+- [x] Fields defined by the ERD, migration.
+- [x] Sensitive field handling: NIK/NISN/KK masked for staff without a verification need; personal-data edits audited as field names only.
+- [x] Ownership relation to user.
 
 ---
 
 ## F5.2 Guardian Model
 
-- [ ] Father.
-- [ ] Mother.
-- [ ] Optional guardian.
-- [ ] Primary contact.
-- [ ] Migration.
+- [x] Father, mother, optional guardian (one per relationship).
+- [x] Single primary contact rule.
+- [x] Migration.
 
 ---
 
@@ -671,23 +539,23 @@ Implement reusable student identity data owned by parent accounts.
 
 Parent can:
 
-- [ ] create applicant;
-- [ ] view own applicant;
-- [ ] edit applicant before locked stages;
-- [ ] list children.
+- [x] create applicant;
+- [x] view own applicant;
+- [ ] edit applicant before locked stages — **no lock yet**: an applicant remains editable after submission. Needs a business decision on which statuses lock the data.
+- [x] list children.
 
 ### Security Tests
 
-- [ ] parent cannot access another parent's applicant.
-- [ ] admin with permission can access appropriate records.
+- [x] parent cannot access another parent's applicant.
+- [x] staff with permission can access appropriate records (identity numbers masked per role).
 
 ---
 
 ## F5.4 Guardian CRUD
 
-- [ ] create/update guardian.
-- [ ] ownership validation.
-- [ ] relationship validation.
+- [x] create/update/delete guardian.
+- [x] ownership validation.
+- [x] relationship validation.
 
 ---
 
@@ -701,87 +569,84 @@ Create the core admission application and controlled state machine.
 
 ## F6.1 Application Model
 
-- [ ] Implement `applications`.
-- [ ] Migration.
-- [ ] Unique registration number.
-- [ ] Current step.
-- [ ] Completion percentage.
-- [ ] State enum.
+- [x] `applications`, migration.
+- [x] Unique registration number.
+- [x] Current step, completion percentage.
+- [x] State vocabulary (17 states, `App\Support\ApplicationStatus`).
 
 ---
 
 ## F6.2 Status History
 
-- [ ] Implement `application_status_histories`.
-- [ ] Migration.
-- [ ] Append history for every transition.
+- [x] `application_status_histories`, migration.
+- [x] History appended for every transition (including draft creation).
 
 ---
 
 ## F6.3 State Machine Service
 
-- [ ] Central transition map.
-- [ ] Validation of legal transitions.
-- [ ] Transition permission support.
-- [ ] Reason support.
-- [ ] Atomic transaction.
-- [ ] History creation.
-- [ ] Audit integration hook.
+- [x] Central transition map (`ApplicationStateMachine::LEGAL_TRANSITIONS`).
+- [x] Validation of legal transitions.
+- [-] Transition permission support: endpoint-level permissions plus an `application.override` bypass; no per-transition permission matrix.
+- [x] Reason and metadata support.
+- [x] Atomic transaction.
+- [x] History creation.
+- [x] Audit integration (`application.status_changed`).
 
 ### Required Tests
 
-- [ ] valid transition
-- [ ] invalid transition
-- [ ] repeated transition
-- [ ] missing prerequisite
-- [ ] history creation
+- [x] valid transition
+- [x] invalid transition
+- [x] repeated transition
+- [x] missing prerequisite
+- [x] history creation
 
 ---
 
 ## F6.4 Create Draft Application
 
-- [ ] Parent selects applicant.
-- [ ] Parent selects admission period.
-- [ ] Prevent duplicate application if policy requires.
-- [ ] Start as `DRAFT`.
+- [x] Parent selects applicant and admission period.
+- [x] Duplicate application per applicant/period prevented.
+- [x] Starts as `DRAFT`.
 
 ---
 
 ## F6.5 Registration Number Generator
 
-Format recommendation:
+Format: `REG-<academic year start>-<6-digit sequence>`, e.g. `REG-2026-000001`.
 
-```text
-REG-2027-000001
-```
-
-- [ ] Central generator.
-- [ ] Collision-safe.
-- [ ] Not used as PK.
+- [x] Central generator.
+- [x] Collision-safe (row lock + unique constraint); heavy concurrency not load-tested.
+- [x] Not used as PK.
 
 ---
 
 ## F6.6 Completion Calculator
 
-- [ ] Calculate wizard completion percentage.
-- [ ] Do not trust frontend percentage.
+- [x] Calculated server-side (5 weighted checkpoints); frontend percentage is never trusted.
 
 ---
 
-## F6.7 Submit Application
+## F6.7 Submit / Resubmit Application
 
 Before transition to `SUBMITTED`, validate:
 
-- [ ] mandatory applicant fields;
-- [ ] required guardians;
-- [ ] required documents;
-- [ ] active admission period;
-- [ ] registration period;
-- [ ] consent requirements.
+- [x] mandatory applicant fields;
+- [x] required guardians;
+- [x] required documents;
+- [x] active admission period;
+- [x] registration period;
+- [ ] consent requirements (no consent model yet — F18).
+
+Resubmission after `REVISION_REQUIRED`:
+
+- [x] allowed after registration closes;
+- [x] blocked until the newest version of every flagged document is replaced;
+- [x] transitions to `RESUBMITTED` and re-enters the verification queue.
 
 ### Acceptance Criteria
 
-Invalid application cannot submit.
+- [x] Invalid application cannot submit.
 
 ---
 
@@ -795,35 +660,23 @@ Provide secure configurable upload and verification-ready document handling.
 
 ## F7.1 Document Requirement Model
 
-- [ ] Model.
-- [ ] Migration.
-- [ ] Admission-period-specific requirements.
-- [ ] Required/optional.
-- [ ] MIME types.
-- [ ] Size limit.
-- [ ] Sort order.
+- [x] Model, migration.
+- [x] Admission-period-specific (or global) requirements.
+- [x] Required/optional, allowed MIME types, size limit, sort order.
 
 ---
 
 ## F7.2 Admin Requirement CRUD
 
-- [ ] list
-- [ ] create
-- [ ] edit
-- [ ] disable
-
-Do not delete historically referenced requirements.
+- [x] list, create, edit.
+- [x] disable (a requirement already referenced by documents is deactivated, not deleted).
 
 ---
 
 ## F7.3 Application Document Model
 
-- [ ] Model.
-- [ ] Migration.
-- [ ] Metadata.
-- [ ] Version.
-- [ ] Status.
-- [ ] Verifier relation.
+- [x] Model, migration, metadata, checksum (SHA-256).
+- [x] Version, status, verifier relation.
 
 ---
 
@@ -831,38 +684,38 @@ Do not delete historically referenced requirements.
 
 Validate:
 
-- [ ] ownership;
-- [ ] requirement exists;
-- [ ] MIME;
-- [ ] extension;
-- [ ] file size;
-- [ ] checksum if implemented.
+- [x] ownership;
+- [x] requirement exists and is active;
+- [x] MIME (server-detected, not client-declared);
+- [ ] extension allow-list;
+- [x] file size;
+- [x] checksum stored.
 
 ---
 
 ## F7.5 Secure Download / Preview
 
-- [ ] Permission check.
-- [ ] Ownership check.
-- [ ] Signed/protected access.
-- [ ] No public permanent URL.
+- [x] Permission and ownership checks (staff access is audited).
+- [x] Private storage, streamed through the API.
+- [-] Signed access: token verification exists, but no endpoint issues tokens yet.
+- [x] No public permanent URL.
 
 ---
 
 ## F7.6 Document Revision
 
-- [ ] Implement revision request.
-- [ ] Preserve old version.
-- [ ] Upload new version.
-- [ ] Resolution workflow.
+- [x] Revision request (moves the application to `REVISION_REQUIRED` when under verification).
+- [x] Previous version preserved.
+- [x] Upload of a new version resolves open revisions.
+- [x] Resubmission workflow (see F6.7).
 
 ### Tests
 
-- [ ] valid upload
-- [ ] invalid MIME
-- [ ] oversized file
-- [ ] unauthorized access
-- [ ] revision flow
+- [x] valid upload
+- [x] invalid MIME
+- [x] oversized file
+- [x] unauthorized access
+- [x] revision flow
 
 ---
 
@@ -876,19 +729,17 @@ Enable efficient administrative verification with work queues.
 
 ## F8.1 Verification Assignment
 
-- [ ] `verification_assignments`.
-- [ ] Assign manually.
-- [ ] Optional auto-assignment strategy later.
-- [ ] Completion tracking.
+- [x] `verification_assignments`.
+- [x] Assign manually (admin picks a verifier from `GET /auth/staff`).
+- [ ] Auto-assignment strategy (optional, later).
+- [x] Completion tracking (reassignment closes the previous assignment).
 
 ---
 
 ## F8.2 Verification Review
 
-- [ ] `verification_reviews`.
-- [ ] Status.
-- [ ] Notes.
-- [ ] Start/completion timestamps.
+- [x] `verification_reviews`.
+- [x] Status, notes, start/completion timestamps.
 
 ---
 
@@ -896,13 +747,11 @@ Enable efficient administrative verification with work queues.
 
 Filters:
 
-- [ ] unassigned
-- [ ] assigned to me
-- [ ] pending
-- [ ] revision required
-- [ ] verified
-- [ ] admission period
-- [ ] search applicant
+- [x] unassigned
+- [x] assigned to me
+- [x] status (pending / revision required / verified …)
+- [x] admission period
+- [x] search applicant or registration number
 
 ---
 
@@ -910,22 +759,24 @@ Filters:
 
 Actions:
 
-- [ ] valid
-- [ ] invalid
-- [ ] revision required
+- [x] valid
+- [x] invalid
+- [x] revision required
 
 ---
 
 ## F8.5 Complete Application Verification
 
-Only allow `VERIFIED` if all mandatory documents and data satisfy rules.
+Only allow `VERIFIED` if all mandatory documents are present and valid.
 
 ### Tests
 
-- [ ] complete application verifies
-- [ ] missing required document blocks
-- [ ] revision blocks verification
-- [ ] unauthorized verifier blocked
+- [x] complete application verifies
+- [x] missing required document blocks
+- [x] revision/pending/invalid document blocks verification
+- [x] unauthorized verifier blocked
+
+Known behavior: completing with `REJECTED` is only possible with `application.override` (the state machine has no `UNDER_VERIFICATION → REJECTED` transition). Confirm with the school whether verifiers may reject outright.
 
 ---
 
@@ -939,40 +790,34 @@ Implement configurable assessment components and scoring.
 
 ## F9.1 Selection Component
 
-- [ ] Model.
-- [ ] Migration.
-- [ ] CRUD.
-- [ ] Weight.
-- [ ] Max score.
-- [ ] Minimum score.
-- [ ] Active status.
+- [x] Model, migration, CRUD.
+- [x] Weight, max score, active status.
+- [-] Minimum score is stored but not enforced anywhere (needs a rule: does it block acceptance?).
 
 ---
 
 ## F9.2 Weight Validation
 
-- [ ] Prevent invalid negative/over-100 weight.
-- [ ] Add service to validate total active weight.
+- [x] Prevent negative/over-100 weight.
+- [x] Service validates the total active weight per period (≤ 100%).
+- [ ] Require total = 100% before scoring/ranking is allowed.
 
 ---
 
 ## F9.3 Assessment Schedule
 
-- [ ] Model.
-- [ ] Migration.
-- [ ] Schedule per applicant/component.
-- [ ] Location.
-- [ ] Status.
+- [x] Model, migration, schedule per applicant/component.
+- [x] Location, room, notes, status (`SCHEDULED`, `COMPLETED`, `CANCELLED`, `NO_SHOW`).
+- [x] Reschedule/cancel/no-show; owner can view their schedule.
+- [ ] Conflict detection (room/time clashes).
 
 ---
 
 ## F9.4 Assessment Model
 
-- [ ] Model.
-- [ ] Migration.
-- [ ] Assessor relation.
-- [ ] Score bounds.
-- [ ] Notes.
+- [x] Model, migration, assessor relation.
+- [x] Score bounds (0 … component max).
+- [x] Notes.
 
 ---
 
@@ -980,29 +825,27 @@ Implement configurable assessment components and scoring.
 
 Assessor can:
 
-- [ ] view assigned candidates;
-- [ ] submit score;
-- [ ] edit score within policy;
-- [ ] not access unrelated candidates.
+- [ ] view *assigned* candidates — there is no per-assessor assignment; every assessor sees all verified candidates of the period;
+- [x] submit score;
+- [-] edit score within policy — scores can be overwritten at any time (audited); no edit window;
+- [ ] be restricted from unrelated candidates (depends on assignment).
 
 ---
 
 ## F9.6 Score Calculation Service
 
-- [ ] Central weighted score calculator.
-- [ ] Use Decimal.
-- [ ] No hardcoded assessment components.
-- [ ] Save aggregate if using `application_scores`.
+- [x] Central weighted score calculation (`score ÷ max_score × weight`).
+- [x] Exact decimal arithmetic (brick/math).
+- [x] No hardcoded components.
+- [x] Aggregate saved in `application_scores`; status becomes `ASSESSED` once every active component is scored.
 
 ---
 
 ## F9.7 Ranking Service
 
-- [ ] rank by final score;
-- [ ] scope by admission period;
-- [ ] deterministic tie rule documented.
-
-Do not invent a tie rule silently. If not specified, leave explicit TODO before production.
+- [x] Rank by final score.
+- [x] Scoped by admission period.
+- [-] Deterministic tie rule implemented (`final_score` desc, then `submitted_at` asc, then `registration_number` asc) but **not yet confirmed by the school** — confirm before production.
 
 ---
 
@@ -1016,64 +859,55 @@ Convert assessment results into controlled admission decisions.
 
 ## F10.1 Application Decision Model
 
-- [ ] Model.
-- [ ] Migration.
-- [ ] One decision per application.
-- [ ] Score/rank snapshot.
-- [ ] Decided by.
+- [x] Model, migration.
+- [x] One decision per application.
+- [x] Score/rank snapshot.
+- [x] Decided by.
 
 ---
 
 ## F10.2 Decision Service
 
-Allowed decision:
+Allowed decisions: `ACCEPTED`, `WAITLISTED`, `REJECTED`.
 
-```text
-ACCEPTED
-WAITLISTED
-REJECTED
-```
-
-- [ ] Require permission.
-- [ ] Validate assessment status.
-- [ ] Store reason when relevant.
-- [ ] Update application through state machine.
+- [x] Require permission (`assessment.approve` or `application.override`).
+- [x] Validate application status via the state machine (override can bypass).
+- [x] Store reason (mandatory when changing an existing decision).
+- [x] Update the application through the state machine.
+- [x] A new decision is **private until published** (`published_at` is null).
 
 ---
 
 ## F10.3 Decision History
 
-- [ ] Implement override history.
-- [ ] Mandatory reason for override.
-- [ ] Audit log.
+- [x] Override history (`decision_histories`).
+- [x] Mandatory reason for override.
+- [x] Audit log (`decision.made`, `decision.overridden`).
 
 ---
 
 ## F10.4 Waiting List
 
-- [ ] Model.
-- [ ] Migration.
-- [ ] Position.
-- [ ] Score.
-- [ ] Status.
+- [x] Model, migration.
+- [x] Position, score, status.
 
 ---
 
 ## F10.5 Waiting List Promotion
 
-- [ ] privileged permission;
-- [ ] reason;
-- [ ] history;
-- [ ] state transition;
-- [ ] audit log.
+- [x] privileged permission;
+- [x] reason;
+- [x] history;
+- [x] state transition;
+- [x] audit log.
 
 ### Tests
 
-- [ ] normal decision
-- [ ] invalid decision
-- [ ] unauthorized override
-- [ ] override with reason
-- [ ] waiting-list promotion
+- [x] normal decision
+- [x] invalid decision
+- [x] unauthorized override
+- [x] override with reason
+- [x] waiting-list promotion
 
 ---
 
@@ -1087,25 +921,27 @@ Publish results safely to applicants.
 
 ## F11.1 Publication Control
 
-- [ ] Decision remains private before publication.
-- [ ] Admin publish action.
-- [ ] `published_at`.
+- [x] Decision remains private before publication (also hidden from public lookup).
+- [x] Admin publish action per admission period.
+- [x] `published_at` / period `announcement_at`.
+- [ ] Per-application publish endpoint (service exists, no route).
 
 ---
 
 ## F11.2 Parent Result API
 
-- [ ] Parent sees only own result.
-- [ ] Only after publication.
-- [ ] Include next-step instructions.
+- [x] Parent sees only their own result.
+- [x] Only after publication (staff with publish permission can preview).
+- [x] Includes next-step instructions.
+- [x] Public lookup by registration number + birth date (masked name, throttled).
 
 ---
 
 ## F11.3 Result Letter / PDF
 
-- [ ] Template.
-- [ ] Generate asynchronously if needed.
-- [ ] Secure download.
+- [x] Template (minimal dependency-free PDF; not school-branded yet).
+- [x] Generated on request (synchronous).
+- [x] Secure download (authenticated, only when published).
 
 ---
 
@@ -1119,37 +955,31 @@ Handle accepted applicants from acceptance to final enrollment readiness.
 
 ## F12.1 Re-registration Model
 
-- [ ] Model.
-- [ ] Migration.
-- [ ] Status workflow.
+- [x] Model, migration.
+- [-] Status workflow: `PENDING`, `IN_PROGRESS`, `COMPLETED` are used; `CANCELLED` and `EXPIRED` exist but nothing sets them (no deadline job).
 
 ---
 
 ## F12.2 Re-registration Requirements
 
-- [ ] configurable requirements;
-- [ ] migration;
-- [ ] admission period relation.
+- [x] Configurable requirements per admission period, migration.
+- [x] Admin management UI.
 
 ---
 
 ## F12.3 Re-registration Items
 
-- [ ] requirement completion tracking.
-- [ ] notes.
-- [ ] timestamp.
+- [x] Requirement completion tracking.
+- [x] Notes and completion timestamp.
 
 ---
 
 ## F12.4 Start Re-registration
 
-Only:
+Only `ACCEPTED` applications may start.
 
-```text
-ACCEPTED
-```
-
-applications may start.
+- [x] Enforced; idempotent for an existing re-registration.
+- [x] Items created from the period's requirements; application moves to `RE_REGISTRATION`.
 
 ---
 
@@ -1157,10 +987,10 @@ applications may start.
 
 Validate:
 
-- [ ] mandatory items;
+- [x] mandatory items;
 - [ ] required documents;
-- [ ] payment conditions;
-- [ ] confirmation.
+- [ ] payment conditions (needs F13);
+- [-] confirmation (recorded as `confirmed_at` at start; no separate confirmation step).
 
 Transition:
 
@@ -1168,6 +998,8 @@ Transition:
 RE_REGISTRATION
 → RE_REGISTRATION_VERIFIED
 ```
+
+- [x] Owner or staff with `enrollment.manage`/`application.override` may complete.
 
 ---
 
@@ -1550,9 +1382,11 @@ Protect sensitive student/family information and provide traceability.
 
 ## F18.1 Audit Log Model
 
-- [ ] Model.
-- [ ] Migration.
-- [ ] Append-only behavior.
+- [x] Model (`AuditLog`).
+- [x] Migration (`audit_logs`).
+- [x] Append-only behavior (model refuses update/delete; tested).
+- [x] Viewer API (`GET /api/v1/audit/logs`, `/audit/actions`) and frontend page, permission `audit.read`.
+- [ ] Retention/archival policy.
 
 ---
 
@@ -1560,13 +1394,14 @@ Protect sensitive student/family information and provide traceability.
 
 Must audit:
 
-- [ ] status override
-- [ ] decision override
-- [ ] payment verification
-- [ ] role assignment
-- [ ] permission changes
-- [ ] enrollment
-- [ ] system settings changes
+- [x] status changes (every transition, including override)
+- [x] decision made/override
+- [ ] payment verification (needs F13)
+- [ ] role assignment (no endpoint yet)
+- [ ] permission changes (no endpoint yet)
+- [-] enrollment (re-registration completion audited; student enrollment is F14)
+- [x] system settings / master data changes
+- [x] auth events, document access by staff, applicant views by staff, scoring, schedules, announcements
 
 ---
 
@@ -1582,11 +1417,12 @@ Must audit:
 
 ## F18.4 Security Headers
 
-- [ ] CSP
-- [ ] HSTS in production
-- [ ] X-Content-Type-Options
-- [ ] appropriate frame protection
-- [ ] Referrer Policy
+- [ ] CSP (belongs to the host serving the frontend; not set by the JSON API)
+- [x] HSTS in production
+- [x] X-Content-Type-Options
+- [x] frame protection (`X-Frame-Options: DENY`)
+- [x] Referrer Policy
+- [x] `Cache-Control: no-store` on API responses
 
 ---
 
@@ -1594,28 +1430,28 @@ Must audit:
 
 Apply to:
 
-- [ ] login
-- [ ] registration
-- [ ] password reset
-- [ ] sensitive public endpoints
-- [ ] upload endpoints as appropriate
+- [x] login (route throttle + 5 failures / 15 min lockout)
+- [x] registration
+- [ ] password reset (flow does not exist yet)
+- [x] sensitive public endpoints (result lookup)
+- [ ] upload endpoints
 
 ---
 
 ## F18.6 File Access Review
 
-- [ ] No private document is public.
-- [ ] Ownership tests.
-- [ ] Admin permission tests.
-- [ ] Expiring links.
+- [x] No private document is public.
+- [x] Ownership tests.
+- [x] Admin/staff permission tests (access is audited).
+- [-] Expiring links (token support exists; nothing issues them).
 
 ---
 
 ## F18.7 Secret Review
 
-- [ ] scan repository;
-- [ ] ensure `.env` ignored;
-- [ ] rotate any accidentally exposed secrets.
+- [x] scan repository (pattern scan of tracked files: no keys/tokens found, 2026-10-06);
+- [x] ensure `.env` ignored;
+- [x] no exposed secrets found, nothing to rotate.
 
 ---
 
@@ -2213,7 +2049,7 @@ F0.1 Repository Structure
 → F0.2 .gitignore
 → F0.3 .env.example
 → F0.4 README
-→ F1.1 Django Backend Initialization
+→ F1.1 Backend Initialization
 → F1.2 Backend Structure (apps/)
 → F1.3 Configuration
 → F1.4 Health Endpoints
