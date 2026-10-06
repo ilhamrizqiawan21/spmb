@@ -26,13 +26,13 @@ frontend ke `CORS_ALLOWED_ORIGINS` di `backend/.env`.
 - **Penilai** (`/penilaian`): input nilai per komponen; status otomatis menjadi ASSESSED setelah semua komponen terisi.
 - **Kepala sekolah / admin** (`/seleksi`): hitung peringkat, keputusan (terima / daftar tunggu / tolak, alasan wajib saat mengubah), promosi daftar tunggu, umumkan hasil.
 - **Orang tua, setelah seleksi**: kartu hasil seleksi (keputusan, langkah berikutnya, unduh surat PDF) dan **daftar ulang** (mulai, centang persyaratan, selesaikan; tombol selesai aktif setelah semua persyaratan wajib terpenuhi).
+- **Admin** (`/admin`, menu *Data Master*): tambah/ubah/hapus tahun ajaran, periode (waktu mengikuti zona waktu browser), persyaratan berkas, komponen seleksi (validasi total bobot ≤ 100%), dan persyaratan daftar ulang. Form dirender dari definisi kolom (`ResourceManager`), jadi master data baru cukup menambah definisi.
 - TanStack Query, React Router, Vitest + Testing Library.
 
 ## Belum ada / berikutnya
 
-Penjadwalan asesmen, pembayaran, MPLS, pengelolaan
-data master oleh admin (tahun ajaran, periode, persyaratan, komponen), dan pemilihan verifikator
-oleh admin. React Hook Form + Zod, Tailwind, dan shadcn/ui dari PRD belum dipasang (CSS biasa).
+Penjadwalan asesmen, pembayaran, MPLS, dan pemilihan
+verifikator oleh admin. React Hook Form + Zod, Tailwind, dan shadcn/ui dari PRD belum dipasang (CSS biasa).
 
 ## Kontrak API yang perlu diketahui frontend
 

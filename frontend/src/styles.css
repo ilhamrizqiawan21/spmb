@@ -34,3 +34,8 @@ button.secondary { background: transparent; color: var(--brand); }
 button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
 .details { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; }
 .details dt { color: var(--muted); } .details dd { margin: 0; }
+.between { justify-content: space-between; align-items: center; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 16px; margin-bottom: 16px; padding: 12px; border: 1px dashed var(--line); border-radius: 8px; }
+.grid-form .row, .grid-form .error { grid-column: 1 / -1; }
+.check { display: flex; align-items: center; gap: 6px; }

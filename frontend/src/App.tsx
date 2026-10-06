@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Layout, RequireAuth } from './components/Layout'
 import { AuthProvider } from './features/auth/AuthContext'
+import { AdminPage } from './pages/admin/AdminPage'
 import { ApplicationPage } from './pages/ApplicationPage'
 import { LoginPage, RegisterPage } from './pages/AuthPages'
 import { DashboardPage } from './pages/DashboardPage'
@@ -35,6 +36,9 @@ export default function App() {
               </Route>
               <Route element={<RequireAuth permissions={['assessment.input', 'assessment.approve', 'application.override']} />}>
                 <Route path="penilaian" element={<AssessmentPage />} />
+              </Route>
+              <Route element={<RequireAuth permissions={['application.override', 'enrollment.manage']} />}>
+                <Route path="admin" element={<AdminPage />} />
               </Route>
               <Route element={<RequireAuth permissions={['assessment.approve', 'application.override']} />}>
                 <Route path="seleksi" element={<SelectionPage />} />
