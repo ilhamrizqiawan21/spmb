@@ -33,6 +33,14 @@ docs/      PRD, ERD, aturan agen, dan roadmap eksekusi
 - Node.js 20+ (frontend)
 - Docker dan Docker Compose (opsional)
 
+## Coba Cepat (tanpa instalasi): GitHub Codespaces
+
+Buka repo di GitHub → **Code** → **Codespaces** → **Create codespace** (bisa dari browser HP).
+Setelah setup selesai (± 3–5 menit), buka port **5173** di tab *Ports*. Database memakai
+SQLite dan data demo sudah terisi (tanpa MySQL). Akun demo (kata sandi `Rahasia-123`):
+`parent@demo.test`, `verifier@demo.test`, `admission_admin@demo.test`, `assessor@demo.test`,
+`principal@demo.test`, `super_admin@demo.test`. Atau daftar akun orang tua baru lewat halaman *Daftar*.
+
 ## Setup Lokal
 
 ```bash
@@ -45,6 +53,8 @@ php artisan key:generate
 php artisan migrate               # skema + seed role/permission baseline
 php artisan serve                 # http://localhost:8000
 ```
+
+Data demo: `php artisan db:seed` (hanya di luar production).
 
 API tersedia di `http://localhost:8000/api/v1/...`, health check di `/health` dan `/ready`.
 Alur autentikasi: `POST /api/v1/auth/register` → `POST /api/v1/auth/login`

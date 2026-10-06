@@ -6,6 +6,8 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [react()],
   server: {
+    // Allow tunnel/Codespaces host names in development.
+    allowedHosts: true,
     // Proxy API calls to the Laravel dev server (`php artisan serve`) to avoid CORS in development.
     proxy: { '/api': 'http://localhost:8000' },
   },
