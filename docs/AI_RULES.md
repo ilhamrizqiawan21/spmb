@@ -31,36 +31,35 @@ Frontend:
 React + TypeScript + Vite
 
 Backend:
-Python + Django + Django REST Framework
+PHP 8.3 + Laravel 13 (JSON API + Laravel Sanctum)
 
 Database:
-PostgreSQL
+MySQL 8.0.16+
 
 ORM:
-Django ORM
+Eloquent
 
 Migrations:
-Django Migrations
+Laravel Migrations
 
 Cache / Queue:
-Redis (Django cache framework + Celery)
+Laravel cache + queue (database driver; Redis optional)
 
 Deployment:
 Docker Compose + Reverse Proxy
 ```
 
-> **Migration note:** this replaces the original FastAPI + SQLAlchemy +
-> Alembic architecture. See `AGENTS.md` §1 for the migration note and
-> `INFRASTRUCTURE.md` for the cutover plan. Do not reintroduce FastAPI,
-> SQLAlchemy, or Alembic without an explicit architectural decision — the
-> same bar this file sets for any other stack change.
+> **Migration note:** the backend moved from FastAPI → Django/DRF/PostgreSQL →
+> Laravel/MySQL. See `AGENTS.md` §1 and `INFRASTRUCTURE.md`. Do not
+> reintroduce Python backends (FastAPI, Django), SQLAlchemy/Alembic, or
+> PostgreSQL without an explicit architectural decision — the same bar this
+> file sets for any other stack change.
 
 Do not replace this architecture unless explicitly requested.
 
 Do not introduce:
 
-- Laravel;
-- FastAPI (as a competing/parallel framework once the migration lands);
+- Django, FastAPI, or any other competing/parallel backend framework;
 - NestJS;
 - Go backend;
 - MongoDB;
@@ -304,8 +303,8 @@ from frontend request bodies.
 
 Avoid:
 
-```python
-if user.role == "admin":
+```php
+if ($user->role === 'admin') {
 ```
 
 Prefer:
@@ -380,7 +379,7 @@ Files belong in object storage.
 
 Database stores metadata.
 
-Do not place PDFs/images into PostgreSQL bytea unless explicitly justified.
+Do not place PDFs/images into MySQL BLOB columns unless explicitly justified.
 
 ---
 
@@ -390,14 +389,15 @@ Frontend validation improves UX.
 
 Backend validation enforces truth.
 
-Never assume Zod validation eliminates the need for DRF serializer validation.
+Never assume Zod validation eliminates the need for Laravel request validation.
 
 ---
 
 # 19. API Contracts Must Be Typed
 
-DRF views must use serializer classes for input/output — not raw
-`request.data` dict access or hand-built `Response(dict(...))` payloads.
+Controllers must validate input with explicit rules and return API
+Resources — not raw `$request->all()` mass assignment or hand-built
+response arrays for stable resource endpoints.
 
 Do not return arbitrary untyped dictionaries for stable public endpoints.
 
@@ -419,28 +419,32 @@ Errors should be understandable to clients without leaking internals.
 
 ---
 
-# 21. Do Not Put Business Logic in Views
+# 21. Do Not Put Business Logic in Controllers
 
 Wrong:
 
-```python
-class ApplicationSubmitView(APIView):
-    def post(self, request, pk):
-        # 100 lines of validation
-        # query database
-        # calculate score
-        # change status
-        # send notification
+```php
+class ApplicationController
+{
+    public function submit(Request $request, string $id)
+    {
+        // 100 lines of validation
+        // query database
+        // calculate score
+        // change status
+        // send notification
+    }
+}
 ```
 
 Correct:
 
 ```text
-view
+controller
 ↓
 service/workflow
 ↓
-manager / queryset
+Eloquent model / query builder
 ```
 
 ---
@@ -647,13 +651,15 @@ for currency amounts.
 
 Use timezone-aware timestamps.
 
-PostgreSQL:
+MySQL:
 
 ```text
-TIMESTAMPTZ
+DATETIME / TIMESTAMP stored in UTC (config/app.php timezone = UTC)
 ```
 
-Application logic must avoid naive datetime values for production events.
+The API accepts ISO-8601 with offsets, normalizes to UTC, and always returns
+UTC (`...Z`). Application logic must avoid naive datetime values for
+production events.
 
 ---
 

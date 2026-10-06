@@ -6,7 +6,7 @@
 **Jenis Produk:** Sistem Penerimaan Murid Baru Terpadu  
 **Target Penggunaan:** Tahun Pelajaran 2026/2027  
 **Platform:** Web Responsive / PWA-ready  
-**Arsitektur Utama:** React + TypeScript + Django (DRF) + PostgreSQL (lihat `AGENTS.md` §1 untuk catatan migrasi dari FastAPI)
+**Arsitektur Utama:** Laravel (API) + MySQL + frontend SPA (React + TypeScript direkomendasikan; belum final) (lihat `AGENTS.md` §1 untuk catatan migrasi dari FastAPI/Django)
 
 ---
 
@@ -1013,16 +1013,16 @@ Arsitektur harus memungkinkan pemisahan service di masa depan tanpa memaksakan m
 
 ### 20.2 Backend
 
-- Python
-- FastAPI
-- Pydantic
-- SQLAlchemy
-- Alembic
-- Pytest
+- PHP 8.3
+- Laravel 13
+- Laravel Sanctum (bearer token)
+- Eloquent ORM
+- Laravel Migrations
+- PHPUnit
 
 ### 20.3 Database
 
-- PostgreSQL
+- MySQL 8.0.16+
 
 ### 20.4 Cache & Job
 
@@ -1054,10 +1054,10 @@ Database menyimpan:
 
 - Docker Compose
 - Nginx / reverse proxy
-- PostgreSQL
-- Redis
-- FastAPI
-- worker
+- MySQL
+- Redis (opsional)
+- Laravel (PHP-FPM)
+- queue worker
 - React static frontend
 
 Kubernetes tidak dibutuhkan untuk versi awal.
@@ -1079,7 +1079,7 @@ Kubernetes tidak dibutuhkan untuk versi awal.
                 │ REST API
                 ▼
 ┌───────────────────────────────┐
-│        Python FastAPI         │
+│        PHP Laravel API        │
 ├───────────────────────────────┤
 │ Auth                          │
 │ Admission                     │
@@ -1092,7 +1092,7 @@ Kubernetes tidak dibutuhkan untuk versi awal.
 └─────┬───────────┬─────────────┘
       │           │
       ▼           ▼
- PostgreSQL     Redis
+ MySQL          Redis
       │           │
       │           ▼
       │         Worker
@@ -1273,7 +1273,7 @@ Frontend menggunakan feature-based architecture.
 Tool:
 
 ```text
-Pytest
+PHPUnit
 ```
 
 ### Frontend
@@ -1488,9 +1488,9 @@ Fokus pada:
 
 - repository;
 - Docker;
-- FastAPI;
-- React;
-- PostgreSQL;
+- Laravel;
+- frontend SPA;
+- MySQL;
 - migration;
 - authentication;
 - RBAC;
@@ -1707,16 +1707,16 @@ Frontend
 └── shadcn/ui
 
 Backend
-├── Python
-├── FastAPI
-├── Pydantic
-├── SQLAlchemy
-├── Alembic
-└── Pytest
+├── PHP 8.3
+├── Laravel 13
+├── Laravel Sanctum
+├── Eloquent
+├── Laravel Migrations
+└── PHPUnit
 
 Data
-├── PostgreSQL
-├── Redis
+├── MySQL
+├── Redis (opsional)
 └── S3-Compatible Object Storage
 
 Infrastructure
@@ -1726,7 +1726,7 @@ Infrastructure
 └── Linux Server
 
 Testing
-├── Pytest
+├── PHPUnit
 ├── Vitest
 ├── React Testing Library
 └── Playwright
@@ -1749,7 +1749,7 @@ Alasan:
 
 Go tidak digunakan pada versi pertama.
 
-Python FastAPI dipilih untuk backend agar proyek memberikan pengalaman teknologi baru di luar Laravel, sementara React + TypeScript digunakan untuk membangun frontend modern dengan type safety yang kuat.
+Laravel + MySQL dipilih untuk backend karena ekosistemnya matang (migration, validation, queue, auth via Sanctum) dan mudah dioperasikan di hosting umum. Frontend dibangun sebagai SPA terpisah yang mengonsumsi REST API; pilihan framework frontend belum final (lihat `frontend/README.md`).
 
 ---
 

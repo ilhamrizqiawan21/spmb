@@ -1,15 +1,6 @@
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-.venv/
-venv/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-coverage.xml
+# PHP / Laravel (backend/.gitignore holds the framework-specific rules)
+backend/vendor/
+backend/.phpunit.cache/
 
 # Node / frontend
 node_modules/
@@ -29,9 +20,9 @@ pnpm-debug.log*
 
 # Uploads and local runtime data
 uploads/
-storage/
 tmp/
 .tmp/
+*.sqlite
 *.sqlite3
 
 # IDE / OS

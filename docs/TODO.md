@@ -4,13 +4,44 @@
 **Status:** Active Development Plan  
 **Version:** 1.0  
 **Project Architecture:** Modular Monolith  
-**Frontend:** React + TypeScript + Vite  
-**Backend:** Python + Django + Django REST Framework  
-**Database:** PostgreSQL  
-**ORM:** Django ORM  
-**Migration:** Django Migrations  
-**Cache / Queue:** Redis (Django cache framework + Celery)  
-**Testing:** Pytest (pytest-django) + Vitest + React Testing Library + Playwright
+**Backend:** PHP 8.3 + Laravel 13 (JSON API, Laravel Sanctum)  
+**Database:** MySQL 8.0.16+  
+**ORM:** Eloquent  
+**Migration:** Laravel Migrations  
+**Cache / Queue:** Laravel cache + queue (database driver; Redis optional)  
+**Testing:** PHPUnit + Vitest + React Testing Library + Playwright  
+**Frontend:** React + TypeScript + Vite (`frontend/README.md`)
+
+## Laravel migration status (2026-10-06)
+
+The backend was rewritten from Django/DRF/PostgreSQL to Laravel/MySQL
+(see `INFRASTRUCTURE.md`). The detailed task lists below were written for the
+Django stack; read them with this mapping:
+
+| Task wording (Django) | Laravel equivalent |
+| --- | --- |
+| `apps/<domain>/models.py` | `app/Models/*.php` |
+| `services.py` | `app/Services/*.php` |
+| DRF serializers / views | API Resources (`app/Http/Resources`) / controllers (`app/Http/Controllers/Api`) |
+| DRF permission classes | `permission:<codes>` route middleware (`RequirePermission`) |
+| Django migrations (`makemigrations`) | `database/migrations/*.php` (`php artisan migrate`) |
+| pytest / pytest-django | PHPUnit feature tests (`php artisan test`) |
+| Celery + Redis | Laravel queue/cache (database driver; Redis optional) |
+| Session auth | Sanctum bearer tokens |
+| `ruff` / `mypy` | Laravel Pint |
+
+**Ported and covered by feature tests (42 tests, SQLite in-memory; CI also
+runs them on MySQL):** F1 (health, error envelope, versioning), F2 (UUID base
+models, migrations, private storage abstraction), F3 (auth/RBAC), F4 (academic
+year/admission period/availability), F5 (applicant/guardian), F6 (application
+workflow + state machine), F7 (documents), F8 (verification), F9
+(selection/assessment/ranking), F10 (decision/waiting list), F11
+(announcement), and the backend part of F12 (re-registration).
+
+**Not started:** F13–F18 (finance, enrollment/student, MPLS, notifications,
+reporting, audit/privacy hardening), F19 (frontend), F20–F22. The checkboxes
+below have **not** been re-audited against the Laravel code; verify acceptance
+criteria before ticking or un-ticking a task.
 
 ---
 

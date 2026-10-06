@@ -6,61 +6,84 @@ Sistem penerimaan murid baru end-to-end untuk mengelola proses mulai dari inform
 
 Versi pertama menggunakan modular monolith:
 
-- Frontend: React + TypeScript + Vite
-- Backend: Python + Django + Django REST Framework
-- Database: PostgreSQL dengan Django ORM dan Django Migrations
-- Cache/queue: Redis (Django cache framework + Celery)
-- Dokumen: object storage yang kompatibel dengan S3
+- Backend: PHP 8.3 + Laravel 13 (JSON API, autentikasi token via Laravel Sanctum)
+- Database: MySQL 8.0.16+ dengan Eloquent dan Laravel Migrations
+- Cache/queue: driver database Laravel (Redis opsional)
+- Dokumen: disk privat Laravel (lokal) atau object storage kompatibel S3
+- Frontend: React + TypeScript + Vite (SPA) yang mengonsumsi REST API — lihat [`frontend/README.md`](frontend/README.md)
 - Deployment: Docker Compose dengan reverse proxy
 
-> **Catatan migrasi:** versi awal backend dibangun dengan FastAPI +
-> SQLAlchemy + Alembic. Proyek ini sedang bermigrasi ke Django + DRF.
-> Implementasi FastAPI sebelumnya (F0-F5, teruji) tersimpan di riwayat git
-> pada commit `b984024` sebagai referensi. Lihat `docs/AGENTS.md` §1 dan
-> `docs/TODO.md` untuk detail.
+> **Catatan migrasi:** backend awalnya dibangun dengan FastAPI (commit
+> `b984024`), kemudian Django + PostgreSQL (commit `e781905`), dan kini
+> ditulis ulang di atas **Laravel + MySQL**. Implementasi sebelumnya tersimpan
+> di riwayat git sebagai referensi perilaku. Lihat `docs/INFRASTRUCTURE.md`.
 
 Struktur utama:
 
 ```text
-backend/   Backend Django (DRF) dan modul domain per app
-frontend/  Frontend React berbasis feature
+backend/   Backend Laravel (app/Services, app/Http, database/migrations, tests)
+frontend/  Frontend React + TypeScript + Vite
 docs/      PRD, ERD, aturan agen, dan roadmap eksekusi
 ```
 
 ## Prasyarat
 
-- Python 3.11+
-- Node.js 20+
-- Docker dan Docker Compose
-- PostgreSQL 15+
-- Redis 7+
+- PHP 8.3+ (ekstensi: mbstring, intl, pdo_mysql, pdo_sqlite untuk test) dan Composer 2
+- MySQL 8.0.16+ (atau lewat Docker Compose)
+- Node.js 20+ (frontend)
+- Docker dan Docker Compose (opsional)
 
-Versi final yang digunakan proyek akan dikunci oleh konfigurasi backend/frontend masing-masing.
+## Coba Cepat (tanpa instalasi): GitHub Codespaces
+
+Buka repo di GitHub → **Code** → **Codespaces** → **Create codespace** (bisa dari browser HP).
+Setelah setup selesai (± 3–5 menit), buka port **5173** di tab *Ports*. Database memakai
+SQLite dan data demo sudah terisi (tanpa MySQL). Akun demo (kata sandi `Rahasia-123`):
+`parent@demo.test`, `verifier@demo.test`, `admission_admin@demo.test`, `assessor@demo.test`,
+`principal@demo.test`, `super_admin@demo.test`. Atau daftar akun orang tua baru lewat halaman *Daftar*.
 
 ## Setup Lokal
 
-1. Salin `.env.example` menjadi `.env` dan sesuaikan nilainya untuk mesin lokal.
-2. Jalankan stack pengembangan dengan Docker Compose setelah konfigurasi Compose tersedia.
-3. Siapkan backend dan frontend mengikuti README pada direktori masing-masing setelah bootstrap selesai.
+```bash
+docker compose up -d mysql        # MySQL 8.4 di 127.0.0.1:3306 (opsional jika MySQL sudah ada)
+
+cd backend
+cp .env.example .env              # sesuaikan DB_* bila perlu
+composer install
+php artisan key:generate
+php artisan migrate               # skema + seed role/permission baseline
+php artisan serve                 # http://localhost:8000
+```
+
+Data demo: `php artisan db:seed` (hanya di luar production).
+
+API tersedia di `http://localhost:8000/api/v1/...`, health check di `/health` dan `/ready`.
+Alur autentikasi: `POST /api/v1/auth/register` → `POST /api/v1/auth/login`
+(mengembalikan `token`) → kirim header `Authorization: Bearer <token>`.
+
+Frontend (terminal lain): `cd frontend && npm install && npm run dev` → http://localhost:5173
 
 Jangan masukkan `.env` atau kredensial nyata ke repository.
 
 ## Perintah Pengembangan
 
-Perintah konkret akan mengikuti package manager dan script yang didefinisikan saat backend/frontend diinisialisasi. Target perintahnya:
-
 ```bash
-# Backend
-pytest
-ruff check .
-mypy .
+# Backend (dari direktori backend/)
+php artisan test                      # PHPUnit, SQLite in-memory
+DB_CONNECTION=mysql php artisan test  # jalankan suite terhadap MySQL
+vendor/bin/pint --test                # cek code style (hapus --test untuk memperbaiki)
+php artisan migrate:fresh             # reset skema lokal
 
-# Frontend
-npm run lint
-npm run typecheck
-npm run test
-npm run build
+# Frontend (dari direktori frontend/)
+npm run typecheck && npm run lint && npm test && npm run build
 ```
+
+## Status Fitur
+
+Sudah ada (portasi lengkap dari versi Django): auth/RBAC, tahun ajaran & periode,
+applicant/guardian, aplikasi pendaftaran + state machine, dokumen privat,
+verifikasi, seleksi/penilaian/ranking, keputusan & daftar tunggu, pengumuman,
+daftar ulang. Belum: pembayaran, enrollment/siswa, MPLS, notifikasi, dashboard,
+audit log. Frontend baru fondasi (login, periode, pendaftaran orang tua, antrean verifikasi). Lihat `docs/TODO.md`.
 
 ## Dokumen Sumber Kebenaran
 

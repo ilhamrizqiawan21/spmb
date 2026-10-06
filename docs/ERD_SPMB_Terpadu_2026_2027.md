@@ -4,9 +4,16 @@
 **Versi:** 1.0  
 **Status:** Draft Utama  
 **Referensi:** `PRD_SPMB_Terpadu_2026_2027.md`  
-**Database:** PostgreSQL  
+**Database:** MySQL 8.0.16+ (InnoDB, utf8mb4)  
 **Arsitektur:** Modular Monolith  
-**Backend:** Django + Django REST Framework + Django ORM (lihat `AGENTS.md` §1 untuk catatan migrasi dari FastAPI)
+**Backend:** Laravel + Eloquent (lihat `AGENTS.md` §1 untuk catatan migrasi dari FastAPI/Django)
+
+> **Catatan tipe data (MySQL):** notasi tipe di dokumen ini bersifat logis.
+> Pemetaan ke MySQL: `TIMESTAMPTZ` → `DATETIME`/`TIMESTAMP` (disimpan UTC),
+> `JSONB` → `JSON`, `UUID` → `CHAR(36)`, `BOOLEAN` → `TINYINT(1)`.
+> Perbedaan implementasi yang disengaja: kolom `users.password`/`last_login`
+> (menggantikan `password_hash`/`last_login_at`), dan `soft delete` belum
+> diterapkan pada tabel yang sudah dibangun.
 
 ---
 
@@ -41,11 +48,15 @@ Semua tabel utama menggunakan:
 id UUID PRIMARY KEY
 ```
 
-Rekomendasi PostgreSQL:
+Pada MySQL, UUID disimpan sebagai `CHAR(36)` dan dibangkitkan di aplikasi
+(Eloquent `HasUuids`; di migration: `$table->uuid('id')->primary()`).
 
-```sql
-gen_random_uuid()
-```
+Catatan implementasi MySQL:
+
+- partial/conditional unique index (mis. satu tahun ajaran aktif) tidak
+  didukung; aturan tersebut ditegakkan di service layer di dalam transaksi;
+- `CHECK` constraint domain dipasang pada MySQL 8.0.16+ (lihat migration
+  `add_check_constraints`).
 
 ---
 
@@ -54,8 +65,8 @@ gen_random_uuid()
 Semua tabel utama minimal memiliki:
 
 ```text
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Untuk data yang perlu soft delete:
@@ -98,7 +109,7 @@ payment_status
 attendance_status
 ```
 
-Boleh disimpan sebagai PostgreSQL ENUM atau VARCHAR + constraint.
+Pada implementasi saat ini disimpan sebagai VARCHAR dan divalidasi di aplikasi (vocabulary di `app/Support`).
 
 ---
 
@@ -172,8 +183,8 @@ email_verified_at TIMESTAMPTZ NULL
 phone_verified_at TIMESTAMPTZ NULL
 is_active BOOLEAN DEFAULT TRUE
 last_login_at TIMESTAMPTZ NULL
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Catatan:
@@ -194,8 +205,8 @@ name VARCHAR(100) UNIQUE
 code VARCHAR(100) UNIQUE
 description TEXT NULL
 is_system BOOLEAN DEFAULT FALSE
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Contoh:
@@ -222,8 +233,8 @@ id UUID PK
 code VARCHAR(150) UNIQUE
 name VARCHAR(150)
 description TEXT NULL
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Contoh:
@@ -327,8 +338,8 @@ name VARCHAR(50)
 start_date DATE
 end_date DATE
 is_active BOOLEAN DEFAULT FALSE
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Contoh:
@@ -362,8 +373,8 @@ announcement_at TIMESTAMPTZ NULL
 quota INTEGER NULL
 is_active BOOLEAN DEFAULT TRUE
 settings JSONB NULL
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Contoh:
@@ -441,8 +452,8 @@ previous_school_name VARCHAR(200) NULL
 previous_school_npsn VARCHAR(30) NULL
 previous_school_address TEXT NULL
 
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Catatan:
@@ -471,8 +482,8 @@ education VARCHAR(100) NULL
 monthly_income NUMERIC(15,2) NULL
 address TEXT NULL
 is_primary_contact BOOLEAN DEFAULT FALSE
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Nilai `relationship`:
@@ -545,8 +556,8 @@ enrolled_at TIMESTAMPTZ NULL
 current_step INTEGER DEFAULT 1
 completion_percentage INTEGER DEFAULT 0
 
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Status:
@@ -658,8 +669,8 @@ max_file_size_bytes BIGINT
 is_active BOOLEAN DEFAULT TRUE
 sort_order INTEGER DEFAULT 0
 
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Jika `admission_period_id = NULL`, requirement dapat dianggap global.
@@ -689,8 +700,8 @@ verification_note TEXT NULL
 
 version INTEGER DEFAULT 1
 
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Status:
@@ -777,8 +788,8 @@ status VARCHAR(30)
 notes TEXT NULL
 started_at TIMESTAMPTZ NULL
 completed_at TIMESTAMPTZ NULL
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Status:
@@ -861,8 +872,8 @@ minimum_score NUMERIC(8,2) NULL
 sort_order INTEGER DEFAULT 0
 is_active BOOLEAN DEFAULT TRUE
 
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Constraint:
@@ -888,8 +899,8 @@ location VARCHAR(255) NULL
 room VARCHAR(100) NULL
 notes TEXT NULL
 status VARCHAR(30)
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 ---
@@ -909,8 +920,8 @@ weighted_score NUMERIC(10,4) NULL
 notes TEXT NULL
 
 assessed_at TIMESTAMPTZ
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Constraint:
@@ -935,8 +946,8 @@ raw_score NUMERIC(12,4)
 final_score NUMERIC(12,4)
 rank INTEGER NULL
 calculated_at TIMESTAMPTZ
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Ranking sebaiknya dapat dihitung ulang.
@@ -999,8 +1010,8 @@ rank INTEGER NULL
 decided_by UUID FK -> users.id
 reason TEXT NULL
 published_at TIMESTAMPTZ NULL
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Decision:
@@ -1025,8 +1036,8 @@ score NUMERIC(12,4)
 status VARCHAR(30)
 promoted_at TIMESTAMPTZ NULL
 promoted_by UUID FK -> users.id NULL
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Status:
@@ -1088,8 +1099,8 @@ status VARCHAR(30)
 confirmed_at TIMESTAMPTZ NULL
 completed_at TIMESTAMPTZ NULL
 notes TEXT NULL
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Status:
@@ -1115,8 +1126,8 @@ name VARCHAR(150)
 code VARCHAR(100)
 is_required BOOLEAN DEFAULT TRUE
 sort_order INTEGER DEFAULT 0
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 ---
@@ -1132,8 +1143,8 @@ requirement_id UUID FK -> re_registration_requirements.id
 status VARCHAR(30)
 notes TEXT NULL
 completed_at TIMESTAMPTZ NULL
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 ---
@@ -1153,8 +1164,8 @@ amount NUMERIC(15,2)
 due_date TIMESTAMPTZ NULL
 status VARCHAR(30)
 description TEXT NULL
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Status:
@@ -1188,8 +1199,8 @@ verified_at TIMESTAMPTZ NULL
 verified_by UUID FK -> users.id NULL
 verification_note TEXT NULL
 
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Status:
@@ -1264,8 +1275,8 @@ status VARCHAR(30)
 enrolled_at TIMESTAMPTZ
 enrolled_by UUID FK -> users.id NULL
 notes TEXT NULL
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Status:
@@ -1293,8 +1304,8 @@ birth_date DATE
 
 status VARCHAR(30)
 
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Catatan:
@@ -1346,8 +1357,8 @@ code VARCHAR(50)
 capacity INTEGER NULL
 mentor_name VARCHAR(200) NULL
 description TEXT NULL
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 ---
@@ -1363,8 +1374,8 @@ group_id UUID FK -> mpls_groups.id
 qr_token VARCHAR(255) UNIQUE
 status VARCHAR(30)
 joined_at TIMESTAMPTZ
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Status:
@@ -1390,8 +1401,8 @@ start_at TIMESTAMPTZ
 end_at TIMESTAMPTZ
 location VARCHAR(255) NULL
 is_mandatory BOOLEAN DEFAULT TRUE
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Jika `group_id = NULL`, event berlaku untuk seluruh kelompok.
@@ -1410,8 +1421,8 @@ status VARCHAR(30)
 checked_at TIMESTAMPTZ NULL
 checked_by UUID FK -> users.id NULL
 notes TEXT NULL
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Status:
@@ -1497,8 +1508,8 @@ sent_at TIMESTAMPTZ NULL
 read_at TIMESTAMPTZ NULL
 failed_at TIMESTAMPTZ NULL
 failure_reason TEXT NULL
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Channel:
@@ -1531,8 +1542,8 @@ channel VARCHAR(30)
 subject VARCHAR(255) NULL
 body TEXT
 is_active BOOLEAN DEFAULT TRUE
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 ---
@@ -1609,8 +1620,8 @@ key VARCHAR(150) UNIQUE
 value JSONB
 description TEXT NULL
 is_public BOOLEAN DEFAULT FALSE
-created_at TIMESTAMPTZ
-updated_at TIMESTAMPTZ
+created_at TIMESTAMP (UTC)
+updated_at TIMESTAMP (UTC)
 ```
 
 Contoh:
@@ -1763,11 +1774,7 @@ CREATE INDEX idx_notifications_user_status
 ON notifications(user_id, status);
 ```
 
-Untuk pencarian nama, pertimbangkan trigram index PostgreSQL:
-
-```sql
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-```
+Untuk pencarian nama, pertimbangkan FULLTEXT index MySQL (`ALTER TABLE applicants ADD FULLTEXT (full_name)`).
 
 ---
 
