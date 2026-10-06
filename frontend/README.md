@@ -1,28 +1,38 @@
-# Frontend
+# Frontend — React + TypeScript + Vite
 
-Belum diinisialisasi — framework frontend belum diputuskan. Backend adalah API
-JSON murni (`/api/v1`, bearer token Sanctum), sehingga frontend bebas dipilih
-dan dapat diganti tanpa menyentuh backend.
+Keputusan: SPA React + TypeScript + Vite yang mengonsumsi API Laravel (`/api/v1`,
+bearer token Sanctum). Backend tidak bergantung pada pilihan ini.
 
-## Rekomendasi
+## Menjalankan
 
-**React + TypeScript + Vite (SPA)** — tetap sesuai PRD/AGENTS (TanStack Query,
-React Hook Form + Zod, Tailwind CSS, shadcn/ui). Alasannya:
+```bash
+cd frontend
+npm install
+npm run dev          # http://localhost:5173, /api diproksikan ke http://localhost:8000
+npm run typecheck && npm run lint && npm test && npm run build
+```
 
-- backend sudah dipisah sebagai API, jadi SPA cocok dan tidak membawa
-  ketergantungan ke templating server;
-- portal orang tua (formulir panjang bertahap, unggah dokumen, status) dan
-  panel staf (antrean verifikasi, penilaian, ranking) sangat interaktif;
-- ekosistem komponen/form/tabel paling besar, dan tipe TypeScript dapat
-  dibuat dari kontrak API.
+Jalankan backend (`php artisan serve` di `backend/`) agar API tersedia. Untuk build
+produksi dengan API di origin lain, set `VITE_API_BASE_URL` dan tambahkan origin
+frontend ke `CORS_ALLOWED_ORIGINS` di `backend/.env`.
 
-## Alternatif jika tim lebih nyaman dengan ekosistem Laravel
+## Yang sudah ada
 
-| Opsi | Cocok jika | Catatan |
-| --- | --- | --- |
-| **Inertia + Vue 3 (atau React)** | ingin satu repo/deploy dan routing dari Laravel | mengubah backend: tambah controller Inertia & auth session; endpoint `/api/v1` tetap bisa dipakai |
-| **Blade + Livewire** | tim kecil, mayoritas PHP, minim JS | UI interaktif berat (tabel, wizard) lebih terbatas |
-| **Nuxt (Vue)** | tim lebih suka Vue, butuh SSR/SEO untuk halaman publik | tetap konsumsi API yang sama |
+- Klien API bertipe (`src/lib/api.ts`) dengan penanganan envelope error dan token
+  bearer (disimpan di `localStorage`).
+- Autentikasi: masuk, daftar, rute terproteksi, pengecekan permission untuk staf.
+- Publik: daftar periode + status ketersediaan, cek hasil seleksi (no. pendaftaran + tanggal lahir).
+- Portal orang tua: calon siswa, mulai pendaftaran, wali, unggah berkas per
+  persyaratan, kirim pendaftaran, riwayat status.
+- Staf: antrean verifikasi (baca-saja).
+- TanStack Query untuk data server, React Router untuk routing, Vitest + Testing Library.
+
+## Belum ada / berikutnya
+
+Aksi verifikasi (setujui/revisi berkas), penilaian, ranking, keputusan, daftar ulang,
+pembayaran, MPLS, pengelolaan data master oleh admin, dan unduh surat hasil (PDF).
+Direncanakan menyusul sesuai `docs/TODO.md` (F19). React Hook Form + Zod, Tailwind,
+dan shadcn/ui dari PRD belum dipasang; gaya saat ini CSS biasa agar ringan.
 
 ## Kontrak API yang perlu diketahui frontend
 

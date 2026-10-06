@@ -63,4 +63,4 @@ against a MySQL service container.
 
 Per `TODO.md`: finance/payment (F13), enrollment/student records beyond
 re-registration (F14), MPLS (F15), notifications (F16), dashboards/reporting
-(F17), audit log and privacy hardening (F18), and the frontend (F19).
+(F17), audit log and privacy hardening (F18), and most of the frontend (F19): a React + TypeScript + Vite foundation exists (`frontend/`).

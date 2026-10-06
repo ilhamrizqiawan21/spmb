@@ -10,7 +10,7 @@ Versi pertama menggunakan modular monolith:
 - Database: MySQL 8.0.16+ dengan Eloquent dan Laravel Migrations
 - Cache/queue: driver database Laravel (Redis opsional)
 - Dokumen: disk privat Laravel (lokal) atau object storage kompatibel S3
-- Frontend: SPA terpisah yang mengonsumsi REST API — **framework belum final**, lihat [`frontend/README.md`](frontend/README.md) untuk rekomendasi
+- Frontend: React + TypeScript + Vite (SPA) yang mengonsumsi REST API — lihat [`frontend/README.md`](frontend/README.md)
 - Deployment: Docker Compose dengan reverse proxy
 
 > **Catatan migrasi:** backend awalnya dibangun dengan FastAPI (commit
@@ -22,7 +22,7 @@ Struktur utama:
 
 ```text
 backend/   Backend Laravel (app/Services, app/Http, database/migrations, tests)
-frontend/  Frontend SPA (belum diinisialisasi)
+frontend/  Frontend React + TypeScript + Vite
 docs/      PRD, ERD, aturan agen, dan roadmap eksekusi
 ```
 
@@ -30,7 +30,7 @@ docs/      PRD, ERD, aturan agen, dan roadmap eksekusi
 
 - PHP 8.3+ (ekstensi: mbstring, intl, pdo_mysql, pdo_sqlite untuk test) dan Composer 2
 - MySQL 8.0.16+ (atau lewat Docker Compose)
-- Node.js 20+ (untuk frontend, nanti)
+- Node.js 20+ (frontend)
 - Docker dan Docker Compose (opsional)
 
 ## Setup Lokal
@@ -50,6 +50,8 @@ API tersedia di `http://localhost:8000/api/v1/...`, health check di `/health` da
 Alur autentikasi: `POST /api/v1/auth/register` → `POST /api/v1/auth/login`
 (mengembalikan `token`) → kirim header `Authorization: Bearer <token>`.
 
+Frontend (terminal lain): `cd frontend && npm install && npm run dev` → http://localhost:5173
+
 Jangan masukkan `.env` atau kredensial nyata ke repository.
 
 ## Perintah Pengembangan
@@ -60,6 +62,9 @@ php artisan test                      # PHPUnit, SQLite in-memory
 DB_CONNECTION=mysql php artisan test  # jalankan suite terhadap MySQL
 vendor/bin/pint --test                # cek code style (hapus --test untuk memperbaiki)
 php artisan migrate:fresh             # reset skema lokal
+
+# Frontend (dari direktori frontend/)
+npm run typecheck && npm run lint && npm test && npm run build
 ```
 
 ## Status Fitur
@@ -68,7 +73,7 @@ Sudah ada (portasi lengkap dari versi Django): auth/RBAC, tahun ajaran & periode
 applicant/guardian, aplikasi pendaftaran + state machine, dokumen privat,
 verifikasi, seleksi/penilaian/ranking, keputusan & daftar tunggu, pengumuman,
 daftar ulang. Belum: pembayaran, enrollment/siswa, MPLS, notifikasi, dashboard,
-audit log, dan frontend. Lihat `docs/TODO.md`.
+audit log. Frontend baru fondasi (login, periode, pendaftaran orang tua, antrean verifikasi). Lihat `docs/TODO.md`.
 
 ## Dokumen Sumber Kebenaran
 

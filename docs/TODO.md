@@ -10,7 +10,7 @@
 **Migration:** Laravel Migrations  
 **Cache / Queue:** Laravel cache + queue (database driver; Redis optional)  
 **Testing:** PHPUnit + Vitest + React Testing Library + Playwright  
-**Frontend:** React + TypeScript + Vite recommended — not final (`frontend/README.md`)
+**Frontend:** React + TypeScript + Vite (`frontend/README.md`)
 
 ## Laravel migration status (2026-10-06)
 
