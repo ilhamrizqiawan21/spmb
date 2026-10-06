@@ -52,6 +52,8 @@ class ApplicantService
     {
         self::checkModify($user, $applicant);
         $applicant->update($data);
+        // Personal data: record which fields changed, never their values.
+        AuditService::log('applicant.updated', $applicant, null, ['fields' => array_keys($data)], $user);
 
         return $applicant;
     }
@@ -59,6 +61,7 @@ class ApplicantService
     public static function delete(User $user, Applicant $applicant): void
     {
         self::checkModify($user, $applicant);
+        AuditService::log('applicant.deleted', $applicant, null, null, $user);
         $applicant->delete();
     }
 }

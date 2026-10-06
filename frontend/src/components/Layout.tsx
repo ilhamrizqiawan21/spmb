@@ -15,6 +15,7 @@ export function Layout() {
           {can('assessment.input', 'assessment.approve', 'application.override') && <Link to="/penilaian">Penilaian</Link>}
           {can('assessment.approve', 'application.override') && <Link to="/seleksi">Seleksi</Link>}
           {can('application.override', 'enrollment.manage') && <Link to="/admin">Data Master</Link>}
+          {can('audit.read') && <Link to="/audit">Audit</Link>}
           {user ? (
             <button className="link" onClick={() => void logout()}>Keluar ({user.name})</button>
           ) : (

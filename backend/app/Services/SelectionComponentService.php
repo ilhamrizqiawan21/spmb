@@ -33,6 +33,7 @@ class SelectionComponentService
             }
 
             $component = SelectionComponent::create($data);
+            AuditService::master('created', $component);
             self::validatePeriodWeights($period->id);
 
             return $component;
@@ -48,7 +49,9 @@ class SelectionComponentService
                     ->where('id', '!=', $component->id)->exists()) {
                 throw ApiException::validation(['code' => "Selection component code '{$data['code']}' already exists."]);
             }
+            $before = $component->getAttributes();
             $component->update($data);
+            AuditService::master('updated', $component, $before);
             self::validatePeriodWeights($component->admission_period_id);
 
             return $component;
@@ -58,8 +61,11 @@ class SelectionComponentService
     public static function delete(SelectionComponent $component): void
     {
         if ($component->assessments()->exists() || $component->schedules()->exists()) {
+            $before = $component->getAttributes();
             $component->update(['is_active' => false]);
+            AuditService::master('updated', $component, $before);
         } else {
+            AuditService::master('deleted', $component, $component->getAttributes());
             $component->delete();
         }
     }

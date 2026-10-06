@@ -30,7 +30,7 @@ class GuardianService
         $applicant = ApplicantService::getForUser($user, $applicantId);
         ApplicantService::checkModify($user, $applicant);
 
-        return DB::transaction(function () use ($applicant, $data) {
+        return DB::transaction(function () use ($user, $applicant, $data) {
             if (Guardian::where('applicant_id', $applicant->id)->where('relationship', $data['relationship'])->exists()) {
                 throw ApiException::validation(['relationship' => "Guardian '{$data['relationship']}' already exists."]);
             }
@@ -39,7 +39,10 @@ class GuardianService
                     ->update(['is_primary_contact' => false]);
             }
 
-            return Guardian::create($data + ['applicant_id' => $applicant->id]);
+            $guardian = Guardian::create($data + ['applicant_id' => $applicant->id]);
+            AuditService::log('guardian.created', $guardian, null, ['fields' => array_keys($data)], $user);
+
+            return $guardian;
         });
     }
 
@@ -48,7 +51,7 @@ class GuardianService
         $applicant = ApplicantService::getForUser($user, $guardian->applicant_id);
         ApplicantService::checkModify($user, $applicant);
 
-        return DB::transaction(function () use ($guardian, $applicant, $data) {
+        return DB::transaction(function () use ($user, $guardian, $applicant, $data) {
             if (isset($data['relationship']) && $data['relationship'] !== $guardian->relationship
                 && Guardian::where('applicant_id', $applicant->id)
                     ->where('relationship', $data['relationship'])->where('id', '!=', $guardian->id)->exists()) {
@@ -59,6 +62,7 @@ class GuardianService
                     ->where('id', '!=', $guardian->id)->update(['is_primary_contact' => false]);
             }
             $guardian->update($data);
+            AuditService::log('guardian.updated', $guardian, null, ['fields' => array_keys($data)], $user);
 
             return $guardian;
         });
@@ -68,6 +72,7 @@ class GuardianService
     {
         $applicant = ApplicantService::getForUser($user, $guardian->applicant_id);
         ApplicantService::checkModify($user, $applicant);
+        AuditService::log('guardian.deleted', $guardian, null, null, $user);
         $guardian->delete();
     }
 }

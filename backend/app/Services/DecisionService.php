@@ -41,6 +41,7 @@ class DecisionService
                 if ($reason === null || trim($reason) === '') {
                     throw ApiException::validation(['reason' => 'A mandatory reason is required when overriding an existing decision.']);
                 }
+                AuditService::log('decision.overridden', $existing, ['decision' => $existing->decision], ['decision' => $decision, 'reason' => $reason], $user);
                 DecisionHistory::create([
                     'application_decision_id' => $existing->id,
                     'old_decision' => $existing->decision,
@@ -67,6 +68,7 @@ class DecisionService
                     'reason' => $reason,
                     'published_at' => now(),
                 ]);
+                AuditService::log('decision.made', $appDecision, null, ['decision' => $decision, 'reason' => $reason], $user);
             }
 
             $wl = WaitingListEntry::where('application_id', $application->id)->first();

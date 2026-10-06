@@ -44,6 +44,8 @@ export interface Applicant {
   nisn: string | null
   nik: string | null
   religion: string | null
+  /** True when NIK/NISN/KK are partially hidden for this viewer. */
+  identity_masked?: boolean
 }
 
 export interface Guardian {
@@ -198,4 +200,22 @@ export interface AssessmentSchedule {
   room: string | null
   notes: string | null
   status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
+}
+
+export interface AuditLog {
+  id: string
+  user_id: string | null
+  user_name: string | null
+  action: string
+  resource_type: string | null
+  resource_id: string | null
+  old_values: Record<string, unknown> | null
+  new_values: Record<string, unknown> | null
+  ip_address: string | null
+  created_at: string
+}
+
+export interface Paginated<T> {
+  data: T[]
+  meta: { page: number; per_page: number; total: number; last_page: number }
 }

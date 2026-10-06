@@ -40,7 +40,7 @@ class DocumentService
         $content = $file->get();
         $storageKey = (new PrivateStorage)->put($content);
 
-        return DB::transaction(function () use ($application, $requirement, $file, $mime, $size, $content, $storageKey) {
+        return DB::transaction(function () use ($user, $application, $requirement, $file, $mime, $size, $content, $storageKey) {
             $existing = ApplicationDocument::where('application_id', $application->id)
                 ->where('requirement_id', $requirement->id)->orderByDesc('version')->first();
 
@@ -62,6 +62,8 @@ class DocumentService
                 'version' => $existing ? $existing->version + 1 : 1,
             ]);
 
+            AuditService::log('document.uploaded', $document, null, ['requirement_id' => $requirement->id, 'version' => $document->version], $user);
+
             [$perc, $step] = ApplicationService::completion($application);
             $application->update(['completion_percentage' => $perc, 'current_step' => $step]);
 
@@ -78,18 +80,26 @@ class DocumentService
             throw ApiException::notFound('Storage object not found.');
         }
 
+        // Reading someone else's private document is an auditable event.
+        if ($document->application->applicant->owner_user_id !== $user->id) {
+            AuditService::log('document.accessed', $document, null, ['application_id' => $document->application_id], $user);
+        }
+
         return $document;
     }
 
     public static function verify(User $user, string $id, bool $isValid, ?string $note): ApplicationDocument
     {
         $document = ApplicationDocument::find($id) ?? throw ApiException::notFound('Document not found.');
+        $oldStatus = $document->status;
         $document->update([
             'status' => $isValid ? DocumentStatus::VALID : DocumentStatus::INVALID,
             'verified_at' => now(),
             'verified_by' => $user->id,
             'verification_note' => $note,
         ]);
+
+        AuditService::log('document.verified', $document, ['status' => $oldStatus], ['status' => $document->status, 'note' => $note], $user);
 
         return $document->load(['requirement', 'verifiedBy', 'revisions.requestedBy']);
     }
@@ -99,7 +109,9 @@ class DocumentService
         return DB::transaction(function () use ($user, $id, $reason) {
             $document = ApplicationDocument::with('application')->find($id)
                 ?? throw ApiException::notFound('Document not found.');
+            $oldStatus = $document->status;
             $document->update(['status' => DocumentStatus::REVISION_REQUIRED, 'verification_note' => $reason]);
+            AuditService::log('document.revision_requested', $document, ['status' => $oldStatus], ['status' => DocumentStatus::REVISION_REQUIRED, 'reason' => $reason], $user);
 
             DocumentRevision::create([
                 'application_document_id' => $document->id,

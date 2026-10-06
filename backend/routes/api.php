@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AcademicYearController;
 use App\Http\Controllers\Api\AdmissionPeriodController;
 use App\Http\Controllers\Api\ApplicantController;
 use App\Http\Controllers\Api\ApplicationController;
+use App\Http\Controllers\Api\AuditController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EnrollmentController;
 use App\Http\Controllers\Api\SelectionController;
@@ -35,6 +36,12 @@ Route::prefix('v1')->group(function () use ($verify, $override, $approve, $asses
             Route::get('staff', [StaffController::class, 'index'])
                 ->middleware('permission:application.verify,application.override,user.manage');
         });
+    });
+
+    // ---- Audit trail ---------------------------------------------------------
+    Route::prefix('audit')->middleware(['auth:sanctum', 'permission:audit.read'])->group(function () {
+        Route::get('logs', [AuditController::class, 'index']);
+        Route::get('actions', [AuditController::class, 'actions']);
     });
 
     // ---- Admission -----------------------------------------------------------

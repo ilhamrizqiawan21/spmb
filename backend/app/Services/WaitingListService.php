@@ -34,6 +34,8 @@ class WaitingListService
                 "Promoted from waiting list (Position {$entry->position}): {$reason}"
             );
 
+            AuditService::log('waiting_list.promoted', $entry, null, ['position' => $entry->position, 'reason' => $reason], $user);
+
             return $entry->refresh()->load(['application.applicant', 'promotedBy']);
         });
     }

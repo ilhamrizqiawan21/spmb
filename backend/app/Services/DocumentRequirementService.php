@@ -31,7 +31,10 @@ class DocumentRequirementService
             throw ApiException::validation(['code' => "Document requirement '{$data['code']}' already exists for this period."]);
         }
 
-        return DocumentRequirement::create($data + ['allowed_mime_types' => []]);
+        $created = DocumentRequirement::create($data + ['allowed_mime_types' => []]);
+        AuditService::master('created', $created);
+
+        return $created;
     }
 
     public static function update(DocumentRequirement $req, array $data): DocumentRequirement
@@ -43,7 +46,9 @@ class DocumentRequirementService
                 throw ApiException::validation(['code' => "Document requirement '{$data['code']}' already exists."]);
             }
         }
+        $before = $req->getAttributes();
         $req->update($data);
+        AuditService::master('updated', $req, $before);
 
         return $req;
     }
@@ -51,8 +56,11 @@ class DocumentRequirementService
     public static function delete(DocumentRequirement $req): void
     {
         if ($req->applicationDocuments()->exists()) {
+            $before = $req->getAttributes();
             $req->update(['is_active' => false]);
+            AuditService::master('updated', $req, $before);
         } else {
+            AuditService::master('deleted', $req, $req->getAttributes());
             $req->delete();
         }
     }

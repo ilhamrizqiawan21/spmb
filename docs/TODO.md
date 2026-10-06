@@ -38,8 +38,10 @@ workflow + state machine), F7 (documents), F8 (verification), F9
 (selection/assessment/ranking), F10 (decision/waiting list), F11
 (announcement), and the backend part of F12 (re-registration).
 
-**Not started:** F13–F18 (finance, enrollment/student, MPLS, notifications,
-reporting, audit/privacy hardening), F19 (frontend), F20–F22. The checkboxes
+**Partially done (F18):** append-only audit log + viewer, identity-number masking, security headers (see `INFRASTRUCTURE.md`). Remaining: consent records, retention/erasure workflow, MFA.
+
+**Not started:** F13–F17 (finance, enrollment/student, MPLS, notifications,
+reporting). F19 (frontend) is in progress — see `frontend/README.md`. F20–F22 not started. The checkboxes
 below have **not** been re-audited against the Laravel code; verify acceptance
 criteria before ticking or un-ticking a task.
 

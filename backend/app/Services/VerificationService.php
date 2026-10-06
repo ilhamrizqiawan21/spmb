@@ -33,6 +33,8 @@ class VerificationService
                 'assigned_at' => now(),
             ]);
 
+            AuditService::log('verification.assigned', $application, null, ['verifier_id' => $verifier->id], $by);
+
             if (in_array($application->status, [S::SUBMITTED, S::RESUBMITTED], true)) {
                 ApplicationStateMachine::transition($by, $application, S::UNDER_VERIFICATION, "Assigned to verifier {$verifier->name}.");
             }
@@ -123,6 +125,8 @@ class VerificationService
 
             VerificationAssignment::where('application_id', $application->id)->whereNull('completed_at')
                 ->update(['completed_at' => now()]);
+
+            AuditService::log('verification.completed', $application, null, ['result' => $toStatus, 'notes' => $notes], $user);
 
             return $review->load('verifier');
         });

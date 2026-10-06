@@ -18,7 +18,10 @@ class AcademicYearService
                 AcademicYear::where('is_active', true)->update(['is_active' => false]);
             }
 
-            return AcademicYear::create($data);
+            $year = AcademicYear::create($data);
+            AuditService::master('created', $year);
+
+            return $year;
         });
     }
 
@@ -33,7 +36,9 @@ class AcademicYearService
             if (($data['is_active'] ?? null) === true) {
                 AcademicYear::where('is_active', true)->where('id', '!=', $year->id)->update(['is_active' => false]);
             }
+            $before = $year->getAttributes();
             $year->update($data);
+            AuditService::master('updated', $year, $before);
 
             return $year;
         });
@@ -44,6 +49,7 @@ class AcademicYearService
         if ($year->admissionPeriods()->exists()) {
             throw ApiException::validation(['detail' => 'Cannot delete academic year with existing admission periods.']);
         }
+        AuditService::master('deleted', $year, $year->getAttributes());
         $year->delete();
     }
 }

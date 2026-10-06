@@ -6,6 +6,7 @@ use App\Exceptions\ApiException;
 use App\Models\Role;
 use App\Models\User;
 use App\Models\UserRole;
+use App\Support\Privacy;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 
@@ -27,6 +28,8 @@ class AuthService
             UserRole::create(['user_id' => $user->id, 'role_id' => $role->id]);
         }
 
+        AuditService::log('auth.registered', $user, null, null, $user);
+
         return $user;
     }
 
@@ -38,12 +41,14 @@ class AuthService
         $attempts = (int) Cache::get($cacheKey, 0);
 
         if ($attempts >= config('spmb.login_max_attempts')) {
+            AuditService::log('auth.login_blocked', null, null, ['identifier' => Privacy::mask($ident)], null, 'auth');
             throw ApiException::tooManyRequests('Too many failed login attempts. Please try again in 15 minutes.');
         }
 
         $user = User::findByIdentifier($ident);
         if ($user === null || ! Hash::check($password, $user->password)) {
             Cache::put($cacheKey, $attempts + 1, config('spmb.login_window_seconds'));
+            AuditService::log('auth.login_failed', $user, null, ['identifier' => Privacy::mask($ident)], null, 'auth', $user?->id);
             throw ApiException::unauthenticated('Invalid credentials.');
         }
 
@@ -54,11 +59,14 @@ class AuthService
         Cache::forget($cacheKey);
         $user->forceFill(['last_login' => now()])->save();
 
+        AuditService::log('auth.login', $user, null, null, $user);
+
         return [$user, $user->createToken('api')->plainTextToken];
     }
 
     public static function logout(User $user): void
     {
         $user->currentAccessToken()?->delete();
+        AuditService::log('auth.logout', $user, null, null, $user);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\Privacy;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -9,12 +10,14 @@ class GuardianResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $full = Privacy::canSeeIdentity($request->user(), $this->resource->applicant->owner_user_id);
+
         return [
             'id' => $this->resource->id,
             'applicant_id' => $this->resource->applicant_id,
             'relationship' => $this->resource->relationship,
             'full_name' => $this->resource->full_name,
-            'nik' => $this->resource->nik,
+            'nik' => $full ? $this->resource->nik : Privacy::mask($this->resource->nik),
             'phone' => $this->resource->phone,
             'email' => $this->resource->email,
             'occupation' => $this->resource->occupation,

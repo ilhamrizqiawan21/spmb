@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Resources\ApplicantResource;
 use App\Http\Resources\GuardianResource;
 use App\Services\ApplicantService;
+use App\Services\AuditService;
 use App\Services\GuardianService;
 use App\Support\GuardianRelationship;
 use Illuminate\Http\JsonResponse;
@@ -56,7 +57,13 @@ class ApplicantController extends ApiController
 
     public function show(Request $request, string $id): ApplicantResource
     {
-        return new ApplicantResource(ApplicantService::getForUser($request->user(), $id));
+        $applicant = ApplicantService::getForUser($request->user(), $id);
+        // Staff opening someone else's applicant record is an auditable access.
+        if ($applicant->owner_user_id !== $request->user()->id) {
+            AuditService::log('applicant.viewed', $applicant, null, null, $request->user());
+        }
+
+        return new ApplicantResource($applicant);
     }
 
     public function update(Request $request, string $id): ApplicantResource

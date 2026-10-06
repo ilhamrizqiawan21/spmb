@@ -38,6 +38,8 @@ class AssessmentService
                 'status' => ScheduleStatus::SCHEDULED,
             ]);
 
+            AuditService::log('schedule.created', $schedule, null, ['component_id' => $component->id, 'scheduled_at' => $schedule->scheduled_at?->toIso8601String()], $user);
+
             if ($application->status === ApplicationStatus::VERIFIED) {
                 ApplicationStateMachine::transition(
                     $user, $application, ApplicationStatus::ASSESSMENT_SCHEDULED,
@@ -54,7 +56,9 @@ class AssessmentService
         $schedule = AssessmentSchedule::with(['application.applicant', 'component'])->find($id)
             ?? throw ApiException::notFound('Assessment schedule not found.');
 
+        $before = $schedule->only(array_keys($data));
         $schedule->update($data);
+        AuditService::log('schedule.updated', $schedule, $before, $schedule->only(array_keys($data)));
 
         return $schedule;
     }
@@ -95,6 +99,7 @@ class AssessmentService
             $weighted = $value->dividedBy($max, 12, RoundingMode::HalfEven)
                 ->multipliedBy($component->weight)->toScale(4, RoundingMode::HalfEven);
 
+            $previous = Assessment::where('application_id', $application->id)->where('component_id', $component->id)->value('score');
             $assessment = Assessment::updateOrCreate(
                 ['application_id' => $application->id, 'component_id' => $component->id],
                 [
@@ -105,6 +110,8 @@ class AssessmentService
                     'assessed_at' => now(),
                 ],
             );
+
+            AuditService::log('assessment.scored', $assessment, $previous === null ? null : ['score' => $previous], ['component_id' => $component->id, 'score' => $assessment->score, 'weighted_score' => $assessment->weighted_score], $user);
 
             AssessmentSchedule::where('application_id', $application->id)->where('component_id', $component->id)
                 ->update(['status' => ScheduleStatus::COMPLETED]);

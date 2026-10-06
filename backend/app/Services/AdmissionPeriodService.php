@@ -19,7 +19,10 @@ class AdmissionPeriodService
             throw ApiException::validation(['code' => 'Admission period code already exists in this academic year.']);
         }
 
-        return AdmissionPeriod::create($data);
+        $period = AdmissionPeriod::create($data);
+        AuditService::master('created', $period);
+
+        return $period;
     }
 
     public static function update(AdmissionPeriod $period, array $data): AdmissionPeriod
@@ -30,7 +33,9 @@ class AdmissionPeriodService
                 ->where('id', '!=', $period->id)->exists()) {
             throw ApiException::validation(['code' => 'Admission period code already exists in this academic year.']);
         }
+        $before = $period->getAttributes();
         $period->update($data);
+        AuditService::master('updated', $period, $before);
 
         return $period;
     }

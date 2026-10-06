@@ -21,13 +21,16 @@ class AnnouncementService
             throw ApiException::forbidden('You do not have permission to publish announcements.');
         }
 
-        return DB::transaction(function () use ($periodId, $publishedAt) {
+        return DB::transaction(function () use ($user, $periodId, $publishedAt) {
             $period = AdmissionPeriod::find($periodId) ?? throw ApiException::notFound('Admission period not found.');
             $time = $publishedAt ?? now();
             $period->update(['announcement_at' => $time]);
 
-            return ApplicationDecision::whereHas('application', fn ($q) => $q->where('admission_period_id', $period->id))
+            $count = ApplicationDecision::whereHas('application', fn ($q) => $q->where('admission_period_id', $period->id))
                 ->update(['published_at' => $time]);
+            AuditService::log('announcement.published', $period, null, ['published_at' => $time->toIso8601String(), 'count' => $count], $user);
+
+            return $count;
         });
     }
 

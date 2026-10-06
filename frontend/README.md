@@ -27,6 +27,7 @@ frontend ke `CORS_ALLOWED_ORIGINS` di `backend/.env`.
 - **Kepala sekolah / admin** (`/seleksi`): hitung peringkat, keputusan (terima / daftar tunggu / tolak, alasan wajib saat mengubah), promosi daftar tunggu, umumkan hasil.
 - **Orang tua, setelah seleksi**: kartu hasil seleksi (keputusan, langkah berikutnya, unduh surat PDF) dan **daftar ulang** (mulai, centang persyaratan, selesaikan; tombol selesai aktif setelah semua persyaratan wajib terpenuhi).
 - **Admin** (`/admin`, menu *Data Master*): tambah/ubah/hapus tahun ajaran, periode (waktu mengikuti zona waktu browser), persyaratan berkas, komponen seleksi (validasi total bobot ≤ 100%), dan persyaratan daftar ulang. Form dirender dari definisi kolom (`ResourceManager`), jadi master data baru cukup menambah definisi.
+- **Audit** (`/audit`, permission `audit.read`): penampil audit log dengan filter aksi / jenis data / rentang tanggal dan paginasi.
 - TanStack Query, React Router, Vitest + Testing Library.
 
 ## Belum ada / berikutnya

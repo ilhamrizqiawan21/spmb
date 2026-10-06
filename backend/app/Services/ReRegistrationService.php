@@ -36,7 +36,10 @@ class ReRegistrationService
             throw ApiException::validation(['code' => "Requirement code '{$data['code']}' already exists for this period."]);
         }
 
-        return ReRegistrationRequirement::create($data)->load('admissionPeriod');
+        $created = ReRegistrationRequirement::create($data);
+        AuditService::master('created', $created);
+
+        return $created->load('admissionPeriod');
     }
 
     public static function updateRequirement(ReRegistrationRequirement $req, array $data): ReRegistrationRequirement
@@ -46,7 +49,9 @@ class ReRegistrationService
                 ->whereRaw('LOWER(code) = ?', [mb_strtolower($data['code'])])->where('id', '!=', $req->id)->exists()) {
             throw ApiException::validation(['code' => "Requirement code '{$data['code']}' already exists."]);
         }
+        $before = $req->getAttributes();
         $req->update($data);
+        AuditService::master('updated', $req, $before);
 
         return $req->load('admissionPeriod');
     }
@@ -56,6 +61,7 @@ class ReRegistrationService
         if ($req->items()->exists()) {
             throw ApiException::validation(['detail' => 'Cannot delete requirement that has existing re-registration items.']);
         }
+        AuditService::master('deleted', $req, $req->getAttributes());
         $req->delete();
     }
 
@@ -144,6 +150,7 @@ class ReRegistrationService
             }
 
             $reReg->update(['status' => ReRegistrationStatus::COMPLETED, 'completed_at' => now()]);
+            AuditService::log('re_registration.completed', $reReg, ['status' => ReRegistrationStatus::IN_PROGRESS], ['status' => ReRegistrationStatus::COMPLETED], $user);
 
             ApplicationStateMachine::transition($user, $reReg->application, ApplicationStatus::RE_REGISTRATION_VERIFIED, 'Re-registration completed and verified.');
 

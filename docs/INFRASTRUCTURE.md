@@ -43,6 +43,24 @@ Intentional differences:
   (`SPMB_STORAGE_DISK`, default `local`; set an S3-compatible disk for
   production). Files are never served from a public path.
 
+## Audit trail and privacy (F18, partial)
+
+- `audit_logs` is append-only (the model refuses updates/deletes). It records
+  auth events (register, login, failed/blocked login, logout), every application
+  status change, verification assign/complete, document upload/verify/revision
+  and **staff access** to someone else's document or applicant record, scoring,
+  schedules, decisions (made/overridden, with old → new), waiting-list promotion,
+  announcement publishing, re-registration completion, and all master-data
+  create/update/delete. Personal data edits log **field names only**; values whose
+  key looks like a credential are dropped; failed-login identifiers are masked.
+- `GET /api/v1/audit/logs` (filters: action, resource_type, resource_id, user_id,
+  from, to; paginated) and `GET /api/v1/audit/actions`, permission `audit.read`.
+- NIK/NISN/KK are shown in full only to the owner and to holders of
+  `application.verify`, `document.verify` or `application.override`; other staff
+  (assessor, finance, MPLS) see the last 4 characters (`identity_masked: true`).
+- API responses carry `X-Content-Type-Options`, `X-Frame-Options`,
+  `Referrer-Policy`, `Cache-Control: no-store` (and HSTS in production).
+
 ## Running locally
 
 ```bash
@@ -63,4 +81,5 @@ against a MySQL service container.
 
 Per `TODO.md`: finance/payment (F13), enrollment/student records beyond
 re-registration (F14), MPLS (F15), notifications (F16), dashboards/reporting
-(F17), audit log and privacy hardening (F18), and most of the frontend (F19): a React + TypeScript + Vite foundation exists (`frontend/`).
+(F17), the remaining parts of F18 (consent records, data retention/erasure
+workflow, MFA, export-restriction rules), and most of the frontend (F19): a React + TypeScript + Vite foundation exists (`frontend/`).

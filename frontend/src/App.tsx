@@ -7,6 +7,7 @@ import { ApplicationPage } from './pages/ApplicationPage'
 import { LoginPage, RegisterPage } from './pages/AuthPages'
 import { DashboardPage } from './pages/DashboardPage'
 import { AnnouncementLookupPage, HomePage, PeriodsPage } from './pages/PublicPages'
+import { AuditPage } from './pages/AuditPage'
 import { AssessmentPage } from './pages/AssessmentPage'
 import { SelectionPage } from './pages/SelectionPage'
 import { VerificationDetailPage } from './pages/VerificationDetailPage'
@@ -39,6 +40,9 @@ export default function App() {
               </Route>
               <Route element={<RequireAuth permissions={['application.override', 'enrollment.manage']} />}>
                 <Route path="admin" element={<AdminPage />} />
+              </Route>
+              <Route element={<RequireAuth permissions={['audit.read']} />}>
+                <Route path="audit" element={<AuditPage />} />
               </Route>
               <Route element={<RequireAuth permissions={['assessment.approve', 'application.override']} />}>
                 <Route path="seleksi" element={<SelectionPage />} />
