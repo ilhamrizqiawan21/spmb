@@ -29,7 +29,7 @@ workflow → mudah dirawat → UX → performa.
 | Audit log, hardening privasi | Belum (F18) |
 | Paket deploy, E2E, go-live | Belum (F20–F22) |
 
-Test: 47 backend (PHPUnit), 20 frontend (Vitest); CI backend (SQLite + MySQL) dan frontend.
+Test: 97 backend (PHPUnit), 34 frontend (Vitest); CI backend (SQLite + MySQL) dan frontend.
 
 ---
 
@@ -37,26 +37,32 @@ Test: 47 backend (PHPUnit), 20 frontend (Vitest); CI backend (SQLite + MySQL) da
 
 ## F0 — Repo & tooling
 - [ ] Merge branch `merge-backend-frontend` ke `main` (layout satu project).
-- [ ] `phpunit.xml`: buat `tests/Unit` atau hapus suite Unit, agar `php artisan test` jalan tanpa argumen.
-- [ ] `.devcontainer/setup.sh`: `DB_DATABASE=spmb` membuat SQLite menulis ke file `spmb`; arahkan ke `database/database.sqlite`.
-- [ ] Script composer `dev` memanggil `artisan dev` yang tidak ada: ganti dengan serve + `npm run dev` bersamaan, atau hapus.
+- [x] Suite Unit kini ada (`tests/Unit/ApplicationStateMachineTest.php`); `php artisan test` jalan tanpa argumen (59 test).
+- [x] `.devcontainer/setup.sh`: `DB_DATABASE` diarahkan ke `database/database.sqlite` (sebelumnya SQLite menulis ke file `spmb`).
+- [x] `composer dev` ternyata valid (`artisan dev` bawaan Laravel 13: server, queue, logs, vite); tidak perlu diubah.
 - [ ] Verifikasi CI hijau di GitHub (backend SQLite, backend MySQL, frontend) pada layout baru.
-- [ ] Dokumentasikan variabel env wajib untuk production (tanpa nilai rahasia).
+- [x] Variabel env production didokumentasikan di `INFRASTRUCTURE.md`.
 
 ## F18 — Audit, privasi, keamanan
-- [ ] Audit log append-only: siapa mengubah apa dan kapan untuk keputusan seleksi, nilai, status berkas, status pendaftaran, dan akses dokumen privat.
-- [ ] Rate limit seluruh endpoint auth dan unggah (throttle baru ada di sebagian rute); penundaan setelah gagal login berulang.
-- [ ] Reset kata sandi lewat email; revoke token saat logout dan ganti sandi; tinjau masa berlaku token.
-- [ ] Masking data sensitif (NIK, HP, penghasilan) di respons yang tidak membutuhkannya.
-- [ ] Review akses dokumen privat: hanya pemilik dan staf berizin; URL bertanda tangan bila memakai S3.
-- [ ] Pastikan `DemoSeeder` tidak pernah jalan di production dan tidak ada kredensial default di luar demo.
+- [x] Audit log append-only (`audit_logs`, `AuditService`, `GET /api/v1/audit-logs` dengan izin `audit.read`): status pendaftaran, keputusan (termasuk override), nilai, verifikasi/revisi/akses berkas, penugasan verifikator, publikasi pengumuman. Test: `AuditLogTest`.
+- [ ] Audit log lanjutan: perubahan role/permission pengguna (belum ada endpoint-nya), konfigurasi sensitif (periode, bobot komponen), dan halaman viewer audit di frontend.
+- [x] Rate limit: login (5 gagal / 15 menit + throttle rute), register, cek hasil publik, unggah berkas, lupa/reset/ganti sandi (`throttle:*` di `routes/api.php`).
+- [x] Reset kata sandi lewat email (`POST /auth/forgot-password`, `/auth/reset-password`; tanpa membocorkan email terdaftar; email via queue; halaman `/forgot-password` dan `/reset-password`) dan ganti sandi (`POST /auth/change-password`, mencabut token lain). Reset/ganti sandi tercatat di audit log; token API dicabut saat reset.
+- [ ] Tinjau masa berlaku token Sanctum (default 7 hari) dan UI ganti sandi di halaman akun (F19). Akun yang hanya memakai nomor HP belum bisa reset sandi mandiri.
+- [x] Masking data sensitif (`App\Support\Masking`): NIK, nomor KK, serta NIK/HP/email/penghasilan wali hanya penuh untuk pemilik dan peran dengan `application.verify` / `document.verify` / `application.override`; penilai, keuangan, dan petugas MPLS menerima nilai tersamar (4 digit terakhir; penghasilan `null`). Test: `PrivacyTest`. Catatan: aturan ini keputusan desain (data minimisation), tinjau bersama PRD bila peran baru ditambahkan.
+- [x] Akses dokumen privat ditinjau: hanya pemilik dan staf berizin (`checkAccess`), setiap akses termasuk unduhan lewat token bertanda tangan masuk audit log, dan `storage_key` tidak lagi bocor di respons API.
+- [ ] Bila memakai S3: ganti unduhan streaming dengan URL bertanda tangan berumur pendek (token bertanda tangan sudah ada di `PrivateStorage::signedToken`, belum ada endpoint penerbitnya).
+- [x] `DemoSeeder` menolak jalan di production (guard + test); `DatabaseSeeder` juga melewatinya.
 - [ ] Kebijakan retensi dan penghapusan data/berkas pendaftar; catat di dokumen.
-- [ ] Header keamanan (CSP, HSTS, X-Frame-Options) dan CORS dikunci ke origin yang dipakai.
+- [x] Header keamanan (`SecurityHeaders` middleware global): `nosniff`, `X-Frame-Options: DENY`, Referrer-Policy, Permissions-Policy, CSP ketat untuk shell SPA (dilewati saat dev server Vite aktif), HSTS hanya di HTTPS production. CORS default tidak mengizinkan origin mana pun (app satu origin). Test: `SecurityHeadersTest`; CSP diuji di browser tanpa pelanggaran.
+- [ ] Di belakang reverse proxy: set trusted proxies agar `isSecure()` benar (HSTS) dan pastikan proxy meneruskan `X-Forwarded-Proto` (dicatat di F21).
 
 ## F16 — Notifikasi (minimum)
-- [ ] Email transaksional: reset sandi, status pendaftaran berubah, berkas perlu revisi, hasil seleksi, jadwal asesmen, tenggat daftar ulang.
-- [ ] Kirim lewat queue (driver `database`, tabel `jobs` sudah ada) dengan worker; bisnis hanya memicu *notification intent*, bukan memanggil provider langsung.
-- [ ] Template Bahasa Indonesia dan log pengiriman.
+- [x] Email transaksional (Indonesia, queue, `afterCommit`, mailer `log` di dev): reset sandi, pendaftaran diterima, berkas perlu revisi, pendaftaran terverifikasi, jadwal asesmen (baru/diubah/dibatalkan, waktu dalam WIB), dan hasil seleksi diumumkan. Aturan privasi: email tidak pernah memuat isi keputusan, keputusan tidak memicu email sebelum pengumuman, dan pengumuman hanya dikirim sekali (publikasi ulang atau bertanggal masa depan tidak mengirim). Test: `NotificationTest`.
+- [x] Bisnis hanya memicu *notification intent* lewat `NotificationService`; kelas notifikasi ada di `app/Notifications`. Akun tanpa email (hanya nomor HP) dilewati tanpa error.
+- [x] Log pengiriman: tabel `notification_logs` (user, jenis, channel, SENT/FAILED), diisi listener `NotificationSent`/`NotificationFailed`.
+- [ ] Email pengumuman yang dijadwalkan ke masa depan, dan pengingat tenggat daftar ulang: butuh scheduler (`schedule:run`, dikerjakan bersama F21).
+- [ ] Worker queue wajib jalan di production (`queue:work`); tanpa worker email tidak terkirim. Tampilkan/alert pengiriman FAILED (viewer log di frontend atau monitoring).
 - [ ] (Opsional) WhatsApp/SMS setelah email stabil.
 
 ---
@@ -64,11 +70,12 @@ Test: 47 backend (PHPUnit), 20 frontend (Vitest); CI backend (SQLite + MySQL) da
 # P1 — Melengkapi siklus penerimaan
 
 ## F13 — Keuangan & pembayaran
-- [ ] Skema biaya per periode (biaya pendaftaran, uang pangkal) dan tagihan per pendaftar: migrasi, model, permission `finance.*`.
-- [ ] Alur manual: orang tua unggah bukti bayar → staf keuangan verifikasi/tolak; status dihitung di server, riwayat dan audit tiap perubahan.
-- [ ] Integrasi payment gateway (Midtrans/Xendit) hanya bila diputuskan; webhook idempoten dan rekonsiliasi.
-- [ ] Daftar ulang baru bisa selesai setelah syarat pembayaran terpenuhi (sesuai PRD).
-- [ ] UI orang tua (tagihan, status, bukti) dan UI staf keuangan; test backend + frontend.
+- [x] Skema sesuai ERD 13: `invoices`, `payments`, `payment_histories` (migrasi 000203; ditambah metadata bukti: nama berkas, MIME, ukuran, checksum) dan izin `payment.read` untuk finance/admin (migrasi 000204). Tagihan dibuat manual oleh staf (`payment.verify` / `application.override`) per pendaftaran; jenis tagihan bebas (ERD tidak membakukan).
+- [x] Alur manual: orang tua unggah bukti (PDF/JPG/PNG ≤ 2 MB, MIME dideteksi server, disimpan privat) → status `PENDING` → staf keuangan setujui/tolak (alasan wajib saat menolak, tidak bisa diulang). Status tagihan (UNPAID/PARTIALLY_PAID/PAID) selalu dihitung server dari pembayaran yang disetujui; jumlah `PENDING` dicadangkan sehingga tidak bisa melebihi sisa; kedaluwarsa dihitung lazy (EXPIRED). Pembebasan = batalkan tagihan dengan alasan wajib. Riwayat (`payment_histories`) dan audit log di setiap perubahan, termasuk akses ke bukti. Test: `PaymentFlowTest`.
+- [ ] Integrasi payment gateway (Midtrans/Xendit) hanya bila diputuskan; webhook idempoten dan rekonsiliasi. (`PaymentService` dipisah dari controller agar mudah ditambah penyedia.)
+- [x] Daftar ulang tidak bisa diselesaikan selama ada tagihan belum lunas; tagihan yang dibatalkan (dibebaskan) tidak menghalangi (AGENTS §22).
+- [x] UI orang tua (`PaymentCard` di halaman pendaftaran) dan UI staf (`/keuangan`: antrean verifikasi, lihat bukti, setujui/tolak, buat/batalkan tagihan); test Vitest `payment.test.tsx`. Diuji di browser dengan alur penuh (buat tagihan → unggah bukti sebagian → setujui → PARTIALLY_PAID).
+- [ ] Keputusan produk: penetapan biaya otomatis per periode/jenis (saat ini staf mengisi nominal manual), nomor rekening/instruksi transfer yang ditampilkan ke orang tua, refund (`REFUNDED` sudah ada sebagai status, belum ada aksinya), dan email "tagihan baru"/"pembayaran diverifikasi" (F16).
 
 ## F14 — Enrollment & siswa
 - [ ] Buat record siswa (NIS, kelas) dari pendaftar ACCEPTED yang selesai daftar ulang dan lunas/dibebaskan.
@@ -97,7 +104,7 @@ Test: 47 backend (PHPUnit), 20 frontend (Vitest); CI backend (SQLite + MySQL) da
 
 ## F20 — Testing & QA
 - [ ] E2E Playwright alur utama: daftar → berkas → verifikasi → seleksi → pengumuman → daftar ulang (→ bayar).
-- [ ] Test unit `ApplicationStateMachine` dan aturan ranking (seri, bobot, daftar tunggu, promosi).
+- [-] Test unit `ApplicationStateMachine` sudah ada; tinggal aturan ranking (seri, bobot, daftar tunggu, promosi).
 - [ ] Test otorisasi per peran untuk setiap endpoint (tidak ada kebocoran lintas pendaftar).
 - [ ] Uji beban ringan masa puncak: unggah berkas dan cek hasil serentak.
 - [ ] Target cakupan logika bisnis ≥ 80%.

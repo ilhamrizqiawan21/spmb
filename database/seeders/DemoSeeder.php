@@ -19,6 +19,10 @@ class DemoSeeder extends Seeder
 
     public function run(): void
     {
+        if (app()->environment('production')) {
+            throw new \RuntimeException('DemoSeeder must not run in production: it creates accounts with a known password.');
+        }
+
         $year = AcademicYear::firstOrCreate(['name' => '2026/2027'], [
             'start_date' => '2026-07-01', 'end_date' => '2027-06-30', 'is_active' => true,
         ]);

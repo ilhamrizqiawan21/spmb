@@ -15,7 +15,6 @@ class ApplicationDocumentResource extends JsonResource
             'requirement_id' => $this->resource->requirement_id,
             'requirement_name' => $this->resource->requirement->name,
             'requirement_code' => $this->resource->requirement->code,
-            'storage_key' => $this->resource->storage_key,
             'original_filename' => $this->resource->original_filename,
             'mime_type' => $this->resource->mime_type,
             'file_size' => $this->resource->file_size,

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\Masking;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -9,6 +10,8 @@ class ApplicantResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $full = Masking::canSeeFull($request->user(), $this->resource->owner_user_id);
+
         return [
             'id' => $this->resource->id,
             'owner_user_id' => $this->resource->owner_user_id,
@@ -20,8 +23,8 @@ class ApplicantResource extends JsonResource
             'birth_date' => $this->resource->birth_date?->format('Y-m-d'),
             'religion' => $this->resource->religion,
             'nationality' => $this->resource->nationality,
-            'nik' => $this->resource->nik,
-            'family_card_number' => $this->resource->family_card_number,
+            'nik' => $full ? $this->resource->nik : Masking::value($this->resource->nik),
+            'family_card_number' => $full ? $this->resource->family_card_number : Masking::value($this->resource->family_card_number),
             'address' => $this->resource->address,
             'province' => $this->resource->province,
             'city' => $this->resource->city,

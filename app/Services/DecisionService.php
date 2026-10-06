@@ -36,6 +36,7 @@ class DecisionService
             $rank = $summary?->rank;
 
             $existing = ApplicationDecision::where('application_id', $application->id)->first();
+            $previousDecision = $existing?->decision;
 
             if ($existing) {
                 if ($reason === null || trim($reason) === '') {
@@ -68,6 +69,16 @@ class DecisionService
                     'published_at' => now(),
                 ]);
             }
+
+            AuditService::record(
+                $user,
+                $previousDecision === null ? 'decision.made' : 'decision.overridden',
+                'application_decision',
+                $appDecision->id,
+                $previousDecision === null ? null : ['decision' => $previousDecision],
+                ['decision' => $decision, 'final_score' => $finalScore, 'rank' => $rank],
+                $reason,
+            );
 
             $wl = WaitingListEntry::where('application_id', $application->id)->first();
 

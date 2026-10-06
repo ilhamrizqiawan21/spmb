@@ -4,8 +4,9 @@ import { Layout, RequireAuth } from './components/Layout'
 import { AuthProvider } from './features/auth/AuthContext'
 import { AdminPage } from './pages/admin/AdminPage'
 import { ApplicationPage } from './pages/ApplicationPage'
-import { LoginPage, RegisterPage } from './pages/AuthPages'
+import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from './pages/AuthPages'
 import { DashboardPage } from './pages/DashboardPage'
+import { FinancePage } from './pages/FinancePage'
 import { AnnouncementLookupPage, HomePage, PeriodsPage } from './pages/PublicPages'
 import { AssessmentPage } from './pages/AssessmentPage'
 import { SelectionPage } from './pages/SelectionPage'
@@ -26,6 +27,8 @@ export default function App() {
               <Route path="hasil" element={<AnnouncementLookupPage />} />
               <Route path="login" element={<LoginPage />} />
               <Route path="register" element={<RegisterPage />} />
+              <Route path="forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="reset-password" element={<ResetPasswordPage />} />
               <Route element={<RequireAuth />}>
                 <Route path="dashboard" element={<DashboardPage />} />
                 <Route path="applications/:id" element={<ApplicationPage />} />
@@ -42,6 +45,9 @@ export default function App() {
               </Route>
               <Route element={<RequireAuth permissions={['assessment.approve', 'application.override']} />}>
                 <Route path="seleksi" element={<SelectionPage />} />
+              </Route>
+              <Route element={<RequireAuth permissions={['payment.read', 'payment.verify', 'application.override']} />}>
+                <Route path="keuangan" element={<FinancePage />} />
               </Route>
               <Route path="*" element={<p>Halaman tidak ditemukan.</p>} />
             </Route>

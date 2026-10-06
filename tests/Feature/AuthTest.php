@@ -96,7 +96,8 @@ class AuthTest extends TestCase
     public function test_super_admin_has_all_permissions(): void
     {
         $user = $this->makeUser('super_admin');
-        $this->assertCount(12, $user->permissionCodes());
+        $this->assertCount(13, $user->permissionCodes());
+        $this->assertContains('payment.read', $user->permissionCodes());
         $this->assertInstanceOf(User::class, $user);
     }
 }

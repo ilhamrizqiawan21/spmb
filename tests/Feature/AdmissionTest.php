@@ -5,10 +5,18 @@ namespace Tests\Feature;
 use App\Models\AcademicYear;
 use App\Models\Application;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AdmissionTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // Uploads in these tests must never touch the real private storage.
+        Storage::fake(config('spmb.storage_disk'));
+    }
+
     private function yearPayload(array $o = []): array
     {
         return $o + ['name' => '2027/2028', 'start_date' => '2027-07-01', 'end_date' => '2028-06-30'];

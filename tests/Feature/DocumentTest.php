@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\ApplicationDocument;
+use App\Models\AuditLog;
 use App\Models\DocumentRequirement;
 use App\Models\DocumentRevision;
 use App\Support\PrivateStorage;
@@ -40,7 +42,7 @@ class DocumentTest extends TestCase
             ->assertJsonPath('version', 1)->assertJsonPath('status', 'PENDING')->assertJsonPath('mime_type', 'application/pdf')
             ->assertJsonPath('requirement_code', 'AKTA');
         $this->assertSame(hash('sha256', "%PDF-1.4\n\n%%EOF"), $v1->json('checksum'));
-        Storage::disk(config('spmb.storage_disk'))->assertExists('documents/'.$v1->json('storage_key'));
+        Storage::disk(config('spmb.storage_disk'))->assertExists('documents/'.ApplicationDocument::findOrFail($v1->json('id'))->storage_key);
 
         $this->postJson($url, ['requirement_id' => $req->id, 'file' => $this->pdf('v2.pdf')])->assertCreated()->assertJsonPath('version', 2);
         $this->getJson($url)->assertOk()->assertJsonCount(2)->assertJsonPath('0.version', 2);
@@ -80,10 +82,17 @@ class DocumentTest extends TestCase
         $this->assertSame('application/pdf', $res->headers->get('Content-Type'));
         $this->as($this->makeUser('verifier'))->get($url)->assertOk();
 
-        $token = (new PrivateStorage)->signedToken($doc['storage_key']);
+        $this->assertArrayNotHasKey('storage_key', $doc, 'storage internals must not leak through the API');
+
+        $token = (new PrivateStorage)->signedToken(ApplicationDocument::findOrFail($doc['id'])->storage_key);
         $this->app['auth']->forgetGuards();
         $this->get("{$url}?token=".urlencode($token))->assertOk();
         $this->getJson("{$url}?token=garbage")->assertForbidden();
+
+        $accessed = AuditLog::where('action', 'document.accessed')->where('resource_id', $doc['id'])->get();
+        $this->assertCount(3, $accessed, 'parent, verifier and signed-token downloads are each audited');
+        $this->assertSame(1, $accessed->whereNull('user_id')->count());
+        $this->assertSame('signed_token', $accessed->whereNull('user_id')->first()->new_values['via']);
     }
 
     public function test_verify_and_request_revision_flow(): void

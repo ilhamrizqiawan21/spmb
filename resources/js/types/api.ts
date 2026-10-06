@@ -199,3 +199,46 @@ export interface AssessmentSchedule {
   notes: string | null
   status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
 }
+
+export type PaymentStatus = 'PENDING' | 'PAID' | 'REJECTED' | 'REFUNDED'
+export type InvoiceStatus = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID' | 'EXPIRED' | 'CANCELLED'
+
+export interface Payment {
+  id: string
+  invoice_id: string
+  invoice_number: string | null
+  application_id: string | null
+  registration_number: string | null
+  applicant_name: string | null
+  amount: string
+  method: string
+  reference_number: string | null
+  status: PaymentStatus
+  paid_at: string | null
+  has_proof: boolean
+  proof_filename: string | null
+  verified_at: string | null
+  verified_by_name: string | null
+  verification_note: string | null
+  created_at: string
+}
+
+export interface Invoice {
+  id: string
+  application_id: string
+  invoice_number: string
+  type: string
+  amount: string
+  paid_amount: string
+  balance: string
+  due_date: string | null
+  status: InvoiceStatus
+  description: string | null
+  payments: Payment[]
+  created_at: string
+}
+
+export interface PaymentPage {
+  data: Payment[]
+  meta: { page: number; per_page: number; total: number }
+}

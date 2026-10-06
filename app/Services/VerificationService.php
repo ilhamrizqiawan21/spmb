@@ -33,6 +33,8 @@ class VerificationService
                 'assigned_at' => now(),
             ]);
 
+            AuditService::record($by, 'verification.assigned', 'application', $application->id, null, ['verifier_id' => $verifier->id]);
+
             if (in_array($application->status, [S::SUBMITTED, S::RESUBMITTED], true)) {
                 ApplicationStateMachine::transition($by, $application, S::UNDER_VERIFICATION, "Assigned to verifier {$verifier->name}.");
             }

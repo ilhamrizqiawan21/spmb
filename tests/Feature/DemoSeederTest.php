@@ -18,4 +18,12 @@ class DemoSeederTest extends TestCase
         $this->getJson(self::API.'/admission/periods')->assertOk()->assertJsonCount(1);
         $this->getJson(self::API.'/selection/components')->assertOk()->assertJsonCount(2);
     }
+
+    public function test_seeder_refuses_to_run_in_production(): void
+    {
+        $this->app->detectEnvironment(fn () => 'production');
+
+        $this->expectException(\RuntimeException::class);
+        (new DemoSeeder)->run();
+    }
 }

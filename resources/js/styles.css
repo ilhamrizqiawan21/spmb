@@ -26,8 +26,11 @@ button.link { background: none; border: 0; color: var(--brand); padding: 0; }
 table { width: 100%; border-collapse: collapse; } th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); }
 .card { overflow-x: auto; }
 .badge { padding: 2px 8px; border-radius: 999px; font-size: .8rem; background: var(--line); }
-.badge-verified, .badge-accepted, .badge-valid, .badge-enrolled { background: #cdeedd; color: #0b4a33; }
-.badge-rejected, .badge-invalid, .badge-revision_required { background: #f8d6d3; color: #7a1913; }
+.badge-verified, .badge-accepted, .badge-valid, .badge-enrolled, .badge-paid { background: #cdeedd; color: #0b4a33; }
+.badge-rejected, .badge-invalid, .badge-revision_required, .badge-expired { background: #f8d6d3; color: #7a1913; }
+.badge-pending, .badge-unpaid, .badge-partially_paid { background: #fdeccb; color: #6b4a07; }
+.badge-cancelled, .badge-refunded { background: #e3e3e3; color: #444; }
+.invoice { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
 .decision { font-size: 1.5rem; font-weight: 700; }
 .decision-accepted { color: var(--brand); } .decision-rejected { color: var(--danger); }
 button.secondary { background: transparent; color: var(--brand); }

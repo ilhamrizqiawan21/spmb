@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 composer install --no-interaction --prefer-dist
 cp -n .env.example .env
-sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/; s/^CACHE_STORE=.*/CACHE_STORE=file/; s/^SESSION_DRIVER=.*/SESSION_DRIVER=file/; s/^QUEUE_CONNECTION=.*/QUEUE_CONNECTION=sync/' .env
+sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=sqlite/; s#^DB_DATABASE=.*#DB_DATABASE=database/database.sqlite#; s/^CACHE_STORE=.*/CACHE_STORE=file/; s/^SESSION_DRIVER=.*/SESSION_DRIVER=file/; s/^QUEUE_CONNECTION=.*/QUEUE_CONNECTION=sync/' .env
 php artisan key:generate --force
 touch database/database.sqlite
 php artisan migrate --force --seed

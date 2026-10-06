@@ -78,18 +78,22 @@ class DocumentService
             throw ApiException::notFound('Storage object not found.');
         }
 
+        AuditService::record($user, 'document.accessed', 'application_document', $document->id, null, ['application_id' => $document->application_id]);
+
         return $document;
     }
 
     public static function verify(User $user, string $id, bool $isValid, ?string $note): ApplicationDocument
     {
         $document = ApplicationDocument::find($id) ?? throw ApiException::notFound('Document not found.');
+        $previousStatus = $document->status;
         $document->update([
             'status' => $isValid ? DocumentStatus::VALID : DocumentStatus::INVALID,
             'verified_at' => now(),
             'verified_by' => $user->id,
             'verification_note' => $note,
         ]);
+        AuditService::record($user, 'document.verified', 'application_document', $document->id, ['status' => $previousStatus], ['status' => $document->status], $note);
 
         return $document->load(['requirement', 'verifiedBy', 'revisions.requestedBy']);
     }
@@ -99,7 +103,9 @@ class DocumentService
         return DB::transaction(function () use ($user, $id, $reason) {
             $document = ApplicationDocument::with('application')->find($id)
                 ?? throw ApiException::notFound('Document not found.');
+            $previousStatus = $document->status;
             $document->update(['status' => DocumentStatus::REVISION_REQUIRED, 'verification_note' => $reason]);
+            AuditService::record($user, 'document.revision_requested', 'application_document', $document->id, ['status' => $previousStatus], ['status' => DocumentStatus::REVISION_REQUIRED], $reason);
 
             DocumentRevision::create([
                 'application_document_id' => $document->id,

@@ -70,6 +70,9 @@ class ApplicationStateMachine
                 'metadata' => $metadata ?: new \stdClass,
             ]);
 
+            AuditService::record($user, 'application.status_changed', 'application', $application->id, ['status' => $from], ['status' => $to], $reason);
+            NotificationService::applicationStatusChanged($application, $to);
+
             $application->unsetRelation('statusHistories');
 
             return $application;

@@ -143,6 +143,13 @@ class ReRegistrationService
                 ]);
             }
 
+            // Enrollment requires required payments to be complete or officially waived (cancelled invoice).
+            if (PaymentService::hasOutstandingInvoices($reReg->application->id)) {
+                throw ApiException::validation([
+                    'detail' => 'Cannot complete re-registration: outstanding invoices must be paid or waived first.',
+                ]);
+            }
+
             $reReg->update(['status' => ReRegistrationStatus::COMPLETED, 'completed_at' => now()]);
 
             ApplicationStateMachine::transition($user, $reReg->application, ApplicationStatus::RE_REGISTRATION_VERIFIED, 'Re-registration completed and verified.');

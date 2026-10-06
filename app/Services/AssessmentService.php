@@ -9,6 +9,7 @@ use App\Models\Assessment;
 use App\Models\AssessmentSchedule;
 use App\Models\SelectionComponent;
 use App\Models\User;
+use App\Notifications\AssessmentScheduleNotification;
 use App\Support\ApplicationStatus;
 use App\Support\ScheduleStatus;
 use Brick\Math\BigDecimal;
@@ -45,6 +46,8 @@ class AssessmentService
                 );
             }
 
+            NotificationService::assessmentSchedule($schedule, AssessmentScheduleNotification::SCHEDULED);
+
             return $schedule->load(['application.applicant', 'component']);
         });
     }
@@ -55,6 +58,10 @@ class AssessmentService
             ?? throw ApiException::notFound('Assessment schedule not found.');
 
         $schedule->update($data);
+
+        if ($kind = NotificationService::scheduleChangeKind($schedule)) {
+            NotificationService::assessmentSchedule($schedule, $kind);
+        }
 
         return $schedule;
     }
@@ -95,6 +102,8 @@ class AssessmentService
             $weighted = $value->dividedBy($max, 12, RoundingMode::HalfEven)
                 ->multipliedBy($component->weight)->toScale(4, RoundingMode::HalfEven);
 
+            $previousScore = Assessment::where('application_id', $application->id)->where('component_id', $component->id)->value('score');
+
             $assessment = Assessment::updateOrCreate(
                 ['application_id' => $application->id, 'component_id' => $component->id],
                 [
@@ -104,6 +113,16 @@ class AssessmentService
                     'notes' => $notes,
                     'assessed_at' => now(),
                 ],
+            );
+
+            AuditService::record(
+                $user,
+                'assessment.score_input',
+                'assessment',
+                $assessment->id,
+                $previousScore === null ? null : ['score' => $previousScore],
+                ['score' => $assessment->score, 'component_id' => $component->id, 'application_id' => $application->id],
+                $notes,
             );
 
             AssessmentSchedule::where('application_id', $application->id)->where('component_id', $component->id)

@@ -21,13 +21,27 @@ class AnnouncementService
             throw ApiException::forbidden('You do not have permission to publish announcements.');
         }
 
-        return DB::transaction(function () use ($periodId, $publishedAt) {
+        return DB::transaction(function () use ($user, $periodId, $publishedAt) {
             $period = AdmissionPeriod::find($periodId) ?? throw ApiException::notFound('Admission period not found.');
             $time = $publishedAt ?? now();
+            $previous = $period->announcement_at?->toIso8601String();
             $period->update(['announcement_at' => $time]);
 
-            return ApplicationDecision::whereHas('application', fn ($q) => $q->where('admission_period_id', $period->id))
+            $published = ApplicationDecision::whereHas('application', fn ($q) => $q->where('admission_period_id', $period->id))
                 ->update(['published_at' => $time]);
+
+            AuditService::record(
+                $user, 'announcement.published', 'admission_period', $period->id,
+                ['announcement_at' => $previous],
+                ['announcement_at' => $time->toIso8601String(), 'decisions_published' => $published],
+            );
+
+            // Email once, on the first publication that is already effective; re-publishing or a future date stays silent.
+            if ($previous === null && $time->lte(now())) {
+                NotificationService::resultsAnnounced($period);
+            }
+
+            return $published;
         });
     }
 

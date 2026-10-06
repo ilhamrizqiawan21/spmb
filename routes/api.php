@@ -4,8 +4,10 @@ use App\Http\Controllers\Api\AcademicYearController;
 use App\Http\Controllers\Api\AdmissionPeriodController;
 use App\Http\Controllers\Api\ApplicantController;
 use App\Http\Controllers\Api\ApplicationController;
+use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EnrollmentController;
+use App\Http\Controllers\Api\FinanceController;
 use App\Http\Controllers\Api\SelectionController;
 use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\VerificationController;
@@ -29,8 +31,11 @@ Route::prefix('v1')->group(function () use ($verify, $override, $approve, $asses
     Route::prefix('auth')->group(function () {
         Route::post('register', [AuthController::class, 'register'])->middleware('throttle:20,1');
         Route::post('login', [AuthController::class, 'login'])->middleware('throttle:30,1');
+        Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
+        Route::post('reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:10,1');
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('logout', [AuthController::class, 'logout']);
+            Route::post('change-password', [AuthController::class, 'changePassword'])->middleware('throttle:10,1');
             Route::get('me', [AuthController::class, 'me']);
             Route::get('staff', [StaffController::class, 'index'])
                 ->middleware('permission:application.verify,application.override,user.manage');
@@ -83,7 +88,7 @@ Route::prefix('v1')->group(function () use ($verify, $override, $approve, $asses
                 ->middleware('permission:application.verify,document.verify,application.override,assessment.input,assessment.approve');
 
             Route::get('applications/{applicationId}/documents', [ApplicationController::class, 'documents']);
-            Route::post('applications/{applicationId}/documents', [ApplicationController::class, 'upload']);
+            Route::post('applications/{applicationId}/documents', [ApplicationController::class, 'upload'])->middleware('throttle:30,1');
             Route::post('documents/{id}/verify', [ApplicationController::class, 'verifyDocument'])->middleware($verify);
             Route::post('documents/{id}/request-revision', [ApplicationController::class, 'requestRevision'])->middleware($verify);
         });
@@ -156,4 +161,20 @@ Route::prefix('v1')->group(function () use ($verify, $override, $approve, $asses
             Route::post('re-registrations/{reRegistrationId}/complete', [EnrollmentController::class, 'complete']);
         });
     });
+
+    // ---- Finance: manual invoices and payment proofs ---------------------------
+    // Authorization is enforced in PaymentService (owner or finance/admin staff).
+    Route::prefix('finance')->middleware('auth:sanctum')->group(function () {
+        Route::get('applications/{applicationId}/invoices', [FinanceController::class, 'invoices']);
+        Route::post('applications/{applicationId}/invoices', [FinanceController::class, 'storeInvoice']);
+        Route::post('invoices/{id}/cancel', [FinanceController::class, 'cancelInvoice']);
+        Route::post('invoices/{id}/payments', [FinanceController::class, 'submitPayment'])->middleware('throttle:20,1');
+        Route::get('payments', [FinanceController::class, 'payments']);
+        Route::post('payments/{id}/verify', [FinanceController::class, 'verify']);
+        Route::get('payments/{id}/proof', [FinanceController::class, 'proof']);
+    });
+
+    // ---- Audit trail (read-only) ---------------------------------------------
+    Route::get('audit-logs', [AuditLogController::class, 'index'])
+        ->middleware(['auth:sanctum', 'permission:audit.read']);
 });

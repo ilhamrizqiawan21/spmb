@@ -10,6 +10,7 @@ use App\Models\ApplicationDocument;
 use App\Models\DocumentRequirement;
 use App\Services\ApplicationService;
 use App\Services\ApplicationStateMachine;
+use App\Services\AuditService;
 use App\Services\DocumentRequirementService;
 use App\Services\DocumentService;
 use App\Support\ApplicationStatus;
@@ -158,6 +159,7 @@ class ApplicationController extends ApiController
             if ($document->storage_key !== $key) {
                 throw ApiException::forbidden('Token does not match document.');
             }
+            AuditService::record(null, 'document.accessed', 'application_document', $document->id, null, ['application_id' => $document->application_id, 'via' => 'signed_token']);
         } else {
             $user = $request->user('sanctum') ?? throw ApiException::unauthenticated();
             $document = DocumentService::findForAccess($user, $id);
