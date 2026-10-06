@@ -4,17 +4,8 @@ import { Link, useParams } from 'react-router-dom'
 import { StatusBadge } from '../components/Field'
 import { ErrorNote } from '../components/Notice'
 import { useAuth } from '../features/auth/AuthContext'
-import { ApiError, api, tokenStore } from '../lib/api'
+import { api, openBlob } from '../lib/api'
 import type { Applicant, Application, ApplicationDocument, Guardian } from '../types/api'
-
-const BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api/v1'
-
-/** Documents are private: fetch with the bearer token and open the blob. */
-async function openDocument(id: string) {
-  const res = await fetch(`${BASE_URL}/admission/documents/${id}/download`, { headers: { Authorization: `Bearer ${tokenStore.get() ?? ''}` } })
-  if (!res.ok) throw new ApiError(res.status, 'HTTP_ERROR', 'Gagal mengunduh berkas.', null)
-  window.open(URL.createObjectURL(await res.blob()), '_blank', 'noopener')
-}
 
 export function VerificationDetailPage() {
   const { id = '' } = useParams()
@@ -54,7 +45,7 @@ export function VerificationDetailPage() {
       api('/verification/applications/' + id + '/complete', { method: 'POST', body: { to_status: toStatus, notes: notes || null } }),
     onSuccess: refresh,
   })
-  const download = useMutation({ mutationFn: openDocument })
+  const download = useMutation({ mutationFn: (docId: string) => openBlob(`/admission/documents/${docId}/download`) })
 
   if (app.isPending) return <p>Memuat…</p>
   if (app.error) return <ErrorNote error={app.error} />

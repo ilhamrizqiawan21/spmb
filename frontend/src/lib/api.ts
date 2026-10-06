@@ -64,3 +64,10 @@ export function fieldErrors(err: unknown): Record<string, string> {
     Object.entries(err.details).map(([k, v]) => [k, Array.isArray(v) ? v[0] : String(v)]),
   )
 }
+
+/** Private files/PDFs need the bearer token, so fetch as a blob and open it in a new tab. */
+export async function openBlob(path: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}${path}`, { headers: { Authorization: `Bearer ${tokenStore.get() ?? ''}` } })
+  if (!res.ok) throw new ApiError(res.status, 'HTTP_ERROR', 'Gagal mengunduh berkas.', null)
+  window.open(URL.createObjectURL(await res.blob()), '_blank', 'noopener')
+}

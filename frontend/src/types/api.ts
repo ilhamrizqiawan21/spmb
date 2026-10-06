@@ -155,3 +155,27 @@ export interface WaitingListEntry {
   score: string
   status: string
 }
+
+export interface ReRegistrationItem {
+  id: string
+  requirement_name: string
+  is_required: boolean
+  status: 'PENDING' | 'COMPLETED' | 'WAIVED'
+  notes: string | null
+}
+
+export interface ReRegistration {
+  id: string
+  application_id: string
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'EXPIRED'
+  items: ReRegistrationItem[]
+}
+
+export interface AnnouncementDetail {
+  is_published: boolean
+  message?: string
+  decision?: 'ACCEPTED' | 'WAITLISTED' | 'REJECTED'
+  final_score?: string | null
+  rank?: number | null
+  next_steps?: string[]
+}

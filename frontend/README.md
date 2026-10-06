@@ -25,11 +25,12 @@ frontend ke `CORS_ALLOWED_ORIGINS` di `backend/.env`.
 - **Verifikator** (`/verifikasi`): antrean, detail pendaftar, lihat berkas privat, setujui / tolak / minta revisi berkas, nyatakan terverifikasi atau minta perbaikan, tugaskan ke diri sendiri (khusus `application.verify`).
 - **Penilai** (`/penilaian`): input nilai per komponen; status otomatis menjadi ASSESSED setelah semua komponen terisi.
 - **Kepala sekolah / admin** (`/seleksi`): hitung peringkat, keputusan (terima / daftar tunggu / tolak, alasan wajib saat mengubah), promosi daftar tunggu, umumkan hasil.
+- **Orang tua, setelah seleksi**: kartu hasil seleksi (keputusan, langkah berikutnya, unduh surat PDF) dan **daftar ulang** (mulai, centang persyaratan, selesaikan; tombol selesai aktif setelah semua persyaratan wajib terpenuhi).
 - TanStack Query, React Router, Vitest + Testing Library.
 
 ## Belum ada / berikutnya
 
-Penjadwalan asesmen, unduh surat hasil PDF, daftar ulang di UI, pembayaran, MPLS, pengelolaan
+Penjadwalan asesmen, pembayaran, MPLS, pengelolaan
 data master oleh admin (tahun ajaran, periode, persyaratan, komponen), dan pemilihan verifikator
 oleh admin. React Hook Form + Zod, Tailwind, dan shadcn/ui dari PRD belum dipasang (CSS biasa).
 
