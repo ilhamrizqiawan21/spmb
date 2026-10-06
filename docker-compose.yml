@@ -17,7 +17,7 @@ services:
       timeout: 5s
       retries: 10
 
-  # Optional: switch CACHE_STORE / QUEUE_CONNECTION to `redis` in backend/.env to use it.
+  # Optional: switch CACHE_STORE / QUEUE_CONNECTION to `redis` in .env to use it.
   redis:
     image: redis:7-alpine
     ports:

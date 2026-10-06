@@ -4,10 +4,9 @@
   "features": {
     "ghcr.io/devcontainers/features/node:1": { "version": "22" }
   },
-  "forwardPorts": [5173, 8000],
+  "forwardPorts": [8000],
   "portsAttributes": {
-    "5173": { "label": "Aplikasi (buka ini)", "onAutoForward": "openBrowser" },
-    "8000": { "label": "API Laravel", "onAutoForward": "silent" }
+    "8000": { "label": "Aplikasi (buka ini)", "onAutoForward": "openBrowser" }
   },
   "postCreateCommand": "bash .devcontainer/setup.sh",
   "postStartCommand": "bash .devcontainer/start.sh",

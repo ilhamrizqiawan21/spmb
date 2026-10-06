@@ -6,19 +6,21 @@ bearer token Sanctum). Backend tidak bergantung pada pilihan ini.
 ## Menjalankan
 
 ```bash
-cd frontend
 npm install
-npm run dev          # http://localhost:5173, /api diproksikan ke http://localhost:8000
+php artisan serve   # terminal 1: http://localhost:8000 (aplikasi + API)
+npm run dev         # terminal 2: Vite dev server (HMR untuk aset)
 npm run typecheck && npm run lint && npm test && npm run build
 ```
 
-Jalankan backend (`php artisan serve` di `backend/`) agar API tersedia. Untuk build
-produksi dengan API di origin lain, set `VITE_API_BASE_URL` dan tambahkan origin
-frontend ke `CORS_ALLOWED_ORIGINS` di `backend/.env`.
+Kode frontend ada di `resources/js/`, dilayani Laravel lewat view `resources/views/app.blade.php`
+(semua path GET selain `/api/*` jatuh ke SPA) dan dibundel oleh `laravel-vite-plugin`.
+Buka aplikasi di http://localhost:8000. Untuk produksi jalankan `npm run build`
+(hasil di `public/build/`). Bila API ada di origin lain, set `VITE_API_BASE_URL` dan
+tambahkan origin frontend ke `CORS_ALLOWED_ORIGINS` di `.env`.
 
 ## Yang sudah ada
 
-- Klien API bertipe (`src/lib/api.ts`) dengan penanganan envelope error dan token bearer.
+- Klien API bertipe (`resources/js/lib/api.ts`) dengan penanganan envelope error dan token bearer.
 - Autentikasi: masuk, daftar, rute terproteksi, menu dan rute dibatasi per permission.
 - Publik: periode + status ketersediaan, cek hasil seleksi.
 - Portal orang tua: calon siswa, mulai pendaftaran, wali, unggah berkas, kirim pendaftaran, riwayat status.
@@ -41,4 +43,4 @@ Pembayaran, MPLS. React Hook Form + Zod, Tailwind, dan shadcn/ui dari PRD belum 
 - Error: `{"error": {"code", "message", "details"}}` (400 validasi, 401, 403, 404, 429).
 - Waktu: ISO-8601 UTC (`...Z`); tanggal murni `YYYY-MM-DD`.
 - Decimal (skor, bobot, penghasilan) dikirim sebagai **string**.
-- CORS: atur `CORS_ALLOWED_ORIGINS` di `backend/.env`.
+- CORS: atur `CORS_ALLOWED_ORIGINS` di `.env` (hanya perlu bila frontend di origin lain).

@@ -1,12 +1,12 @@
 {
-  "name": "spmb-frontend",
+  "name": "spmb",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
+    "lint": "oxlint resources/js",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "test": "vitest run"
@@ -26,6 +26,7 @@
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "jsdom": "^29.1.1",
+    "laravel-vite-plugin": "^3.2.0",
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",
     "vite": "^8.3.0",

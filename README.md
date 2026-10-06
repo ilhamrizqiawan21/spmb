@@ -10,7 +10,7 @@ Versi pertama menggunakan modular monolith:
 - Database: MySQL 8.0.16+ dengan Eloquent dan Laravel Migrations
 - Cache/queue: driver database Laravel (Redis opsional)
 - Dokumen: disk privat Laravel (lokal) atau object storage kompatibel S3
-- Frontend: React + TypeScript + Vite (SPA) yang mengonsumsi REST API — lihat [`frontend/README.md`](frontend/README.md)
+- Frontend: React + TypeScript + Vite (SPA) di `resources/js/` yang mengonsumsi REST API — lihat [`docs/FRONTEND.md`](docs/FRONTEND.md)
 - Deployment: Docker Compose dengan reverse proxy
 
 > **Catatan migrasi:** backend awalnya dibangun dengan FastAPI (commit
@@ -18,13 +18,18 @@ Versi pertama menggunakan modular monolith:
 > ditulis ulang di atas **Laravel + MySQL**. Implementasi sebelumnya tersimpan
 > di riwayat git sebagai referensi perilaku. Lihat `docs/INFRASTRUCTURE.md`.
 
-Struktur utama:
+Satu project Laravel standar; frontend React hidup di dalamnya:
 
 ```text
-backend/   Backend Laravel (app/Services, app/Http, database/migrations, tests)
-frontend/  Frontend React + TypeScript + Vite
-docs/      PRD, ERD, aturan agen, dan roadmap eksekusi
+app/ routes/ database/ tests/   Backend Laravel (app/Services, app/Http, migrations)
+resources/js/                   Frontend React + TypeScript (dibundel Vite)
+resources/views/app.blade.php   Shell SPA
+docs/                           PRD, ERD, aturan agen, dan roadmap eksekusi
 ```
+
+Layout backend: `app/Services` (business rules) → `app/Http/Controllers/Api` (controller tipis)
+→ `app/Http/Resources` (kontrak respons); rute di `routes/api.php` (`/api/v1`), probe
+infrastruktur dan shell SPA di `routes/web.php` (`/health`, `/ready`, sisanya SPA).
 
 ## Prasyarat
 
@@ -36,7 +41,7 @@ docs/      PRD, ERD, aturan agen, dan roadmap eksekusi
 ## Coba Cepat (tanpa instalasi): GitHub Codespaces
 
 Buka repo di GitHub → **Code** → **Codespaces** → **Create codespace** (bisa dari browser HP).
-Setelah setup selesai (± 3–5 menit), buka port **5173** di tab *Ports*. Database memakai
+Setelah setup selesai (± 3–5 menit), buka port **8000** di tab *Ports*. Database memakai
 SQLite dan data demo sudah terisi (tanpa MySQL). Akun demo (kata sandi `Rahasia-123`):
 `parent@demo.test`, `verifier@demo.test`, `admission_admin@demo.test`, `assessor@demo.test`,
 `principal@demo.test`, `super_admin@demo.test`. Atau daftar akun orang tua baru lewat halaman *Daftar*.
@@ -46,12 +51,13 @@ SQLite dan data demo sudah terisi (tanpa MySQL). Akun demo (kata sandi `Rahasia-
 ```bash
 docker compose up -d mysql        # MySQL 8.4 di 127.0.0.1:3306 (opsional jika MySQL sudah ada)
 
-cd backend
 cp .env.example .env              # sesuaikan DB_* bila perlu
 composer install
+npm install
 php artisan key:generate
 php artisan migrate               # skema + seed role/permission baseline
-php artisan serve                 # http://localhost:8000
+php artisan serve                 # http://localhost:8000 (aplikasi + API)
+npm run dev                       # terminal lain: Vite dev server (HMR)
 ```
 
 Data demo: `php artisan db:seed` (hanya di luar production).
@@ -60,20 +66,20 @@ API tersedia di `http://localhost:8000/api/v1/...`, health check di `/health` da
 Alur autentikasi: `POST /api/v1/auth/register` → `POST /api/v1/auth/login`
 (mengembalikan `token`) → kirim header `Authorization: Bearer <token>`.
 
-Frontend (terminal lain): `cd frontend && npm install && npm run dev` → http://localhost:5173
+Buka aplikasi di http://localhost:8000. Untuk build produksi: `npm run build` (hasil di `public/build/`).
 
 Jangan masukkan `.env` atau kredensial nyata ke repository.
 
 ## Perintah Pengembangan
 
 ```bash
-# Backend (dari direktori backend/)
+# Backend
 php artisan test                      # PHPUnit, SQLite in-memory
 DB_CONNECTION=mysql php artisan test  # jalankan suite terhadap MySQL
 vendor/bin/pint --test                # cek code style (hapus --test untuk memperbaiki)
 php artisan migrate:fresh             # reset skema lokal
 
-# Frontend (dari direktori frontend/)
+# Frontend
 npm run typecheck && npm run lint && npm test && npm run build
 ```
 
@@ -83,7 +89,8 @@ Sudah ada (portasi lengkap dari versi Django): auth/RBAC, tahun ajaran & periode
 applicant/guardian, aplikasi pendaftaran + state machine, dokumen privat,
 verifikasi, seleksi/penilaian/ranking, keputusan & daftar tunggu, pengumuman,
 daftar ulang. Belum: pembayaran, enrollment/siswa, MPLS, notifikasi, dashboard,
-audit log. Frontend baru fondasi (login, periode, pendaftaran orang tua, antrean verifikasi). Lihat `docs/TODO.md`.
+audit log. Frontend sudah mencakup alur di atas (orang tua, verifikator, penilai, kepala sekolah, data master admin) tetapi belum dipoles.
+Roadmap menuju siap pakai: `docs/TODO.md`.
 
 ## Dokumen Sumber Kebenaran
 

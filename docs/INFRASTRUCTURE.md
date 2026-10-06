@@ -10,7 +10,7 @@ replaced the original FastAPI implementation).
 | --- | --- |
 | FastAPI + SQLAlchemy + Alembic (F0–F5) | git commit `b984024` |
 | Django + DRF + PostgreSQL (F1–F9, F12 partial) | git commit `e781905` |
-| Laravel 13 + MySQL (current) | `backend/` |
+| Laravel 13 + MySQL (current) | repository root (`app/`, `resources/js/`) |
 
 Earlier stacks are kept in git history purely as a behavioral reference.
 
@@ -47,7 +47,6 @@ Intentional differences:
 
 ```bash
 docker compose up -d mysql          # MySQL 8.4 on 127.0.0.1:3306
-cd backend
 cp .env.example .env
 composer install
 php artisan key:generate
@@ -63,4 +62,4 @@ against a MySQL service container.
 
 Per `TODO.md`: finance/payment (F13), enrollment/student records beyond
 re-registration (F14), MPLS (F15), notifications (F16), dashboards/reporting
-(F17), audit log and privacy hardening (F18), and most of the frontend (F19): a React + TypeScript + Vite foundation exists (`frontend/`).
+(F17), audit log and privacy hardening (F18), and most of the frontend (F19): a React + TypeScript + Vite foundation exists (`resources/js/`).

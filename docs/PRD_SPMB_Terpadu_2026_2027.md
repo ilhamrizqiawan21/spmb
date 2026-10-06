@@ -1749,7 +1749,7 @@ Alasan:
 
 Go tidak digunakan pada versi pertama.
 
-Laravel + MySQL dipilih untuk backend karena ekosistemnya matang (migration, validation, queue, auth via Sanctum) dan mudah dioperasikan di hosting umum. Frontend dibangun sebagai SPA terpisah yang mengonsumsi REST API; pilihan framework frontend belum final (lihat `frontend/README.md`).
+Laravel + MySQL dipilih untuk backend karena ekosistemnya matang (migration, validation, queue, auth via Sanctum) dan mudah dioperasikan di hosting umum. Frontend dibangun sebagai SPA terpisah yang mengonsumsi REST API; pilihan framework frontend belum final (lihat `docs/FRONTEND.md`).
 
 ---
 
