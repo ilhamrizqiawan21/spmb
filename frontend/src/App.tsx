@@ -6,6 +6,9 @@ import { ApplicationPage } from './pages/ApplicationPage'
 import { LoginPage, RegisterPage } from './pages/AuthPages'
 import { DashboardPage } from './pages/DashboardPage'
 import { AnnouncementLookupPage, HomePage, PeriodsPage } from './pages/PublicPages'
+import { AssessmentPage } from './pages/AssessmentPage'
+import { SelectionPage } from './pages/SelectionPage'
+import { VerificationDetailPage } from './pages/VerificationDetailPage'
 import { VerificationPage } from './pages/VerificationPage'
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } })
@@ -28,6 +31,13 @@ export default function App() {
               </Route>
               <Route element={<RequireAuth permissions={['document.verify', 'application.verify', 'application.override']} />}>
                 <Route path="verifikasi" element={<VerificationPage />} />
+                <Route path="verifikasi/:id" element={<VerificationDetailPage />} />
+              </Route>
+              <Route element={<RequireAuth permissions={['assessment.input', 'assessment.approve', 'application.override']} />}>
+                <Route path="penilaian" element={<AssessmentPage />} />
+              </Route>
+              <Route element={<RequireAuth permissions={['assessment.approve', 'application.override']} />}>
+                <Route path="seleksi" element={<SelectionPage />} />
               </Route>
               <Route path="*" element={<p>Halaman tidak ditemukan.</p>} />
             </Route>

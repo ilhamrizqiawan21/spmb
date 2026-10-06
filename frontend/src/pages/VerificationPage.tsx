@@ -1,17 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { StatusBadge } from '../components/Field'
 import { api } from '../lib/api'
-
-interface QueueItem {
-  id: string
-  applicant_name: string
-  period_name: string
-  registration_number: string | null
-  status: string
-  assigned_verifier_name: string | null
-  document_counts: { total: number; pending: number; valid: number; invalid: number; revision_required: number }
-}
+import type { QueueItem } from '../types/api'
 
 export function VerificationPage() {
   const [assignment, setAssignment] = useState('')
@@ -41,7 +33,7 @@ export function VerificationPage() {
           <tbody>
             {data?.map((i) => (
               <tr key={i.id}>
-                <td>{i.registration_number}</td>
+                <td><Link to={`/verifikasi/${i.id}`}>{i.registration_number}</Link></td>
                 <td>{i.applicant_name}</td>
                 <td><StatusBadge status={i.status} /></td>
                 <td>{i.assigned_verifier_name ?? '—'}</td>
@@ -51,6 +43,7 @@ export function VerificationPage() {
           </tbody>
         </table>
       )}
+      {data?.length === 0 && <p>Tidak ada pendaftaran di antrean.</p>}
     </section>
   )
 }

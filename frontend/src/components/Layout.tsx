@@ -12,6 +12,8 @@ export function Layout() {
           <Link to="/hasil">Cek Hasil</Link>
           {user && <Link to="/dashboard">Pendaftaran</Link>}
           {can('document.verify', 'application.verify', 'application.override') && <Link to="/verifikasi">Verifikasi</Link>}
+          {can('assessment.input', 'assessment.approve', 'application.override') && <Link to="/penilaian">Penilaian</Link>}
+          {can('assessment.approve', 'application.override') && <Link to="/seleksi">Seleksi</Link>}
           {user ? (
             <button className="link" onClick={() => void logout()}>Keluar ({user.name})</button>
           ) : (

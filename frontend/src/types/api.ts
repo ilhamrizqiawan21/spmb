@@ -103,3 +103,55 @@ export interface AnnouncementResult {
   decision?: 'ACCEPTED' | 'WAITLISTED' | 'REJECTED'
   next_steps?: string[]
 }
+
+export interface QueueItem {
+  id: string
+  applicant_id: string
+  applicant_name: string
+  period_id: string
+  period_name: string
+  registration_number: string | null
+  status: string
+  assigned_verifier_id: string | null
+  assigned_verifier_name: string | null
+  document_counts: { total: number; pending: number; valid: number; invalid: number; revision_required: number }
+}
+
+export interface SelectionComponent {
+  id: string
+  admission_period_id: string
+  name: string
+  code: string
+  weight: string
+  max_score: string
+}
+
+export interface ApplicationScore {
+  id: string
+  application_id: string
+  registration_number: string | null
+  applicant_name: string
+  raw_score: string
+  final_score: string
+  rank: number | null
+  assessments: { id: string; component_id: string; component_name: string; score: string; weighted_score: string | null }[]
+}
+
+export interface Decision {
+  id: string
+  decision: 'ACCEPTED' | 'WAITLISTED' | 'REJECTED'
+  final_score: string | null
+  rank: number | null
+  reason: string | null
+  published_at: string | null
+}
+
+export interface WaitingListEntry {
+  id: string
+  application_id: string
+  registration_number: string | null
+  applicant_name: string
+  position: number
+  score: string
+  status: string
+}

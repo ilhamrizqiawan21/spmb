@@ -30,3 +30,7 @@ table { width: 100%; border-collapse: collapse; } th, td { text-align: left; pad
 .badge-rejected, .badge-invalid, .badge-revision_required { background: #f8d6d3; color: #7a1913; }
 .decision { font-size: 1.5rem; font-weight: 700; }
 .decision-accepted { color: var(--brand); } .decision-rejected { color: var(--danger); }
+button.secondary { background: transparent; color: var(--brand); }
+button.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.details { display: grid; grid-template-columns: max-content 1fr; gap: 4px 16px; }
+.details dt { color: var(--muted); } .details dd { margin: 0; }
