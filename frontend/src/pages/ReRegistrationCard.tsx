@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { StatusBadge } from '../components/Field'
 import { ErrorNote } from '../components/Notice'
 import { api, openBlob } from '../lib/api'
-import type { AnnouncementDetail, Application, ReRegistration, ReRegistrationItem } from '../types/api'
+import type { AnnouncementDetail, Application, AssessmentSchedule, ReRegistration, ReRegistrationItem } from '../types/api'
 
 const DECIDED = ['ACCEPTED', 'WAITLISTED', 'REJECTED', 'RE_REGISTRATION', 'RE_REGISTRATION_VERIFIED', 'ENROLLED', 'MPLS_ACTIVE', 'MPLS_COMPLETED', 'COMPLETED']
 const RE_REG = ['RE_REGISTRATION', 'RE_REGISTRATION_VERIFIED', 'ENROLLED', 'MPLS_ACTIVE', 'MPLS_COMPLETED', 'COMPLETED']
@@ -98,6 +98,34 @@ export function ReRegistrationCard({ application }: { application: Application }
       )}
       <ErrorNote error={toggle.error ?? complete.error} />
       {rr.status === 'COMPLETED' && <p>Daftar ulang selesai. Menunggu proses enrollment oleh sekolah.</p>}
+    </section>
+  )
+}
+
+/** Assessment schedule shown to the parent (hidden when nothing is scheduled). */
+export function ScheduleCard({ application }: { application: Application }) {
+  const list = useQuery({
+    queryKey: ['app-schedules', application.id],
+    enabled: ['VERIFIED', 'ASSESSMENT_SCHEDULED', 'ASSESSED'].includes(application.status),
+    queryFn: () => api<AssessmentSchedule[]>(`/selection/applications/${application.id}/schedules`),
+  })
+  if (!list.data || list.data.length === 0) return null
+  return (
+    <section className="card">
+      <h2>Jadwal Asesmen</h2>
+      <table>
+        <thead><tr><th>Komponen</th><th>Waktu</th><th>Tempat</th><th>Status</th></tr></thead>
+        <tbody>
+          {list.data.map((s) => (
+            <tr key={s.id}>
+              <td>{s.component_name}</td>
+              <td>{new Date(s.scheduled_at).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })}</td>
+              <td>{[s.location, s.room].filter(Boolean).join(' / ') || '—'}{s.notes && <><br /><small>{s.notes}</small></>}</td>
+              <td><StatusBadge status={s.status} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </section>
   )
 }

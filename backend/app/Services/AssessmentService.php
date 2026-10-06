@@ -49,6 +49,16 @@ class AssessmentService
         });
     }
 
+    public static function updateSchedule(string $id, array $data): AssessmentSchedule
+    {
+        $schedule = AssessmentSchedule::with(['application.applicant', 'component'])->find($id)
+            ?? throw ApiException::notFound('Assessment schedule not found.');
+
+        $schedule->update($data);
+
+        return $schedule;
+    }
+
     public static function calculateScore(Application $application): ApplicationScore
     {
         $assessments = Assessment::where('application_id', $application->id)->get();

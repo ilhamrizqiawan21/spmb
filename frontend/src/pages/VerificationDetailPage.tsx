@@ -5,19 +5,29 @@ import { StatusBadge } from '../components/Field'
 import { ErrorNote } from '../components/Notice'
 import { useAuth } from '../features/auth/AuthContext'
 import { api, openBlob } from '../lib/api'
-import type { Applicant, Application, ApplicationDocument, Guardian } from '../types/api'
+import type { Applicant, Application, ApplicationDocument, Guardian, QueueItem, StaffMember } from '../types/api'
 
 export function VerificationDetailPage() {
   const { id = '' } = useParams()
   const { user, can } = useAuth()
   const qc = useQueryClient()
   const [notes, setNotes] = useState('')
+  const [verifierId, setVerifierId] = useState('')
+  const canAssign = can('application.verify', 'application.override')
 
   const app = useQuery({ queryKey: ['application', id], queryFn: () => api<Application>(`/admission/applications/${id}`) })
   const applicantId = app.data?.applicant_id
   const applicant = useQuery({ queryKey: ['applicant', applicantId], enabled: !!applicantId, queryFn: () => api<Applicant>(`/admission/applicants/${applicantId}`) })
   const guardians = useQuery({ queryKey: ['guardians', applicantId], enabled: !!applicantId, queryFn: () => api<Guardian[]>(`/admission/applicants/${applicantId}/guardians`) })
   const docs = useQuery({ queryKey: ['documents', id], queryFn: () => api<ApplicationDocument[]>(`/admission/applications/${id}/documents`) })
+
+  const regNo = app.data?.registration_number
+  const verifiers = useQuery({ queryKey: ['staff', 'verifier'], enabled: canAssign, queryFn: () => api<StaffMember[]>('/auth/staff?role=verifier') })
+  const queueItem = useQuery({
+    queryKey: ['verification-queue', 'item', id, regNo],
+    enabled: !!regNo,
+    queryFn: async () => (await api<QueueItem[]>(`/verification/queue?search=${encodeURIComponent(regNo ?? '')}`)).find((i) => i.id === id) ?? null,
+  })
 
   const refresh = async () => {
     await Promise.all([
@@ -37,7 +47,7 @@ export function VerificationDetailPage() {
     onSuccess: refresh,
   })
   const assign = useMutation({
-    mutationFn: () => api('/verification/assignments', { method: 'POST', body: { application_id: id, verifier_id: user?.id } }),
+    mutationFn: (verifier: string) => api('/verification/assignments', { method: 'POST', body: { application_id: id, verifier_id: verifier } }),
     onSuccess: refresh,
   })
   const complete = useMutation({
@@ -68,8 +78,18 @@ export function VerificationDetailPage() {
             <dt>Wali</dt><dd>{guardians.data?.map((g) => `${g.full_name} (${g.relationship})`).join(', ') || '—'}</dd>
           </dl>
         )}
-        {can('application.verify', 'application.override') && ['SUBMITTED', 'RESUBMITTED'].includes(a.status) && (
-          <button onClick={() => assign.mutate()} disabled={assign.isPending}>Tugaskan ke saya</button>
+        <p>Verifikator: <strong>{queueItem.data?.assigned_verifier_name ?? 'belum ditugaskan'}</strong></p>
+        {canAssign && !finished && (
+          <div className="row">
+            <label className="field">
+              <span>Tugaskan ke</span>
+              <select value={verifierId} onChange={(e) => setVerifierId(e.target.value)}>
+                <option value="">Pilih verifikator…</option>
+                {verifiers.data?.map((v) => <option key={v.id} value={v.id}>{v.name}{v.id === user?.id ? ' (saya)' : ''}</option>)}
+              </select>
+            </label>
+            <button onClick={() => assign.mutate(verifierId)} disabled={!verifierId || assign.isPending}>Tugaskan</button>
+          </div>
         )}
         <ErrorNote error={assign.error} />
       </section>

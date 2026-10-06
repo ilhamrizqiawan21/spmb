@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { StatusBadge } from '../components/Field'
 import { ErrorNote } from '../components/Notice'
 import { api } from '../lib/api'
+import { ScheduleSection } from './ScheduleSection'
 import type { Application, ApplicationScore, SelectionComponent } from '../types/api'
 
 const ASSESSABLE = ['VERIFIED', 'ASSESSMENT_SCHEDULED', 'ASSESSED']
@@ -54,19 +55,24 @@ export function AssessmentPage() {
   const list = apps.data?.filter((a) => a.admission_period_id === pid && ASSESSABLE.includes(a.status)) ?? []
 
   return (
-    <section className="card">
-      <h1>Penilaian</h1>
-      <select value={pid} onChange={(e) => setPeriodId(e.target.value)} aria-label="Periode">
-        {periods.data?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-      </select>
-      <p><small>Nilai akhir = Σ (nilai ÷ nilai maks × bobot). Status berpindah ke ASSESSED setelah semua komponen terisi.</small></p>
-      <table>
-        <thead>
-          <tr><th>Pendaftar</th><th>Status</th>{components.data?.map((c) => <th key={c.id}>{c.name} ({c.weight}%)</th>)}<th>Nilai akhir</th></tr>
-        </thead>
-        <tbody>{components.data && list.map((a) => <ScoreRow key={a.id} app={a} components={components.data} />)}</tbody>
-      </table>
-      {list.length === 0 && <p>Belum ada pendaftar terverifikasi di periode ini.</p>}
-    </section>
+    <>
+      <section className="card">
+        <h1>Penilaian</h1>
+        <select value={pid} onChange={(e) => setPeriodId(e.target.value)} aria-label="Periode">
+          {periods.data?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <p><small>Nilai akhir = Σ (nilai ÷ nilai maks × bobot). Status berpindah ke ASSESSED setelah semua komponen terisi.</small></p>
+        <table>
+          <thead>
+            <tr><th>Pendaftar</th><th>Status</th>{components.data?.map((c) => <th key={c.id}>{c.name} ({c.weight}%)</th>)}<th>Nilai akhir</th></tr>
+          </thead>
+          <tbody>{components.data && list.map((a) => <ScoreRow key={a.id} app={a} components={components.data} />)}</tbody>
+        </table>
+        {list.length === 0 && <p>Belum ada pendaftar terverifikasi di periode ini.</p>}
+      </section>
+      {components.data && (
+        <ScheduleSection periodId={pid} applications={list.filter((a) => a.status !== 'ASSESSED')} components={components.data} />
+      )}
+    </>
   )
 }

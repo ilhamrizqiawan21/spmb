@@ -22,8 +22,8 @@ frontend ke `CORS_ALLOWED_ORIGINS` di `backend/.env`.
 - Autentikasi: masuk, daftar, rute terproteksi, menu dan rute dibatasi per permission.
 - Publik: periode + status ketersediaan, cek hasil seleksi.
 - Portal orang tua: calon siswa, mulai pendaftaran, wali, unggah berkas, kirim pendaftaran, riwayat status.
-- **Verifikator** (`/verifikasi`): antrean, detail pendaftar, lihat berkas privat, setujui / tolak / minta revisi berkas, nyatakan terverifikasi atau minta perbaikan, tugaskan ke diri sendiri (khusus `application.verify`).
-- **Penilai** (`/penilaian`): input nilai per komponen; status otomatis menjadi ASSESSED setelah semua komponen terisi.
+- **Verifikator** (`/verifikasi`): antrean, detail pendaftar, lihat berkas privat, setujui / tolak / minta revisi berkas, nyatakan terverifikasi atau minta perbaikan, penugasan verifikator oleh admin/pemegang `application.verify` (pilih dari daftar staf berperan verifier) dengan nama verifikator yang sedang bertugas tampil di detail.
+- **Penilai** (`/penilaian`): input nilai per komponen (status otomatis ASSESSED setelah semua komponen terisi) dan **jadwal asesmen** (buat, jadwal ulang, batalkan, tandai tidak hadir). Orang tua melihat jadwalnya di halaman pendaftar.
 - **Kepala sekolah / admin** (`/seleksi`): hitung peringkat, keputusan (terima / daftar tunggu / tolak, alasan wajib saat mengubah), promosi daftar tunggu, umumkan hasil.
 - **Orang tua, setelah seleksi**: kartu hasil seleksi (keputusan, langkah berikutnya, unduh surat PDF) dan **daftar ulang** (mulai, centang persyaratan, selesaikan; tombol selesai aktif setelah semua persyaratan wajib terpenuhi).
 - **Admin** (`/admin`, menu *Data Master*): tambah/ubah/hapus tahun ajaran, periode (waktu mengikuti zona waktu browser), persyaratan berkas, komponen seleksi (validasi total bobot ≤ 100%), dan persyaratan daftar ulang. Form dirender dari definisi kolom (`ResourceManager`), jadi master data baru cukup menambah definisi.
@@ -31,8 +31,7 @@ frontend ke `CORS_ALLOWED_ORIGINS` di `backend/.env`.
 
 ## Belum ada / berikutnya
 
-Penjadwalan asesmen, pembayaran, MPLS, dan pemilihan
-verifikator oleh admin. React Hook Form + Zod, Tailwind, dan shadcn/ui dari PRD belum dipasang (CSS biasa).
+Pembayaran, MPLS. React Hook Form + Zod, Tailwind, dan shadcn/ui dari PRD belum dipasang (CSS biasa).
 
 ## Kontrak API yang perlu diketahui frontend
 

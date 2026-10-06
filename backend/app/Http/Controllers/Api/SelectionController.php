@@ -20,6 +20,7 @@ use App\Services\DecisionService;
 use App\Services\SelectionComponentService;
 use App\Services\WaitingListService;
 use App\Support\DecisionType;
+use App\Support\ScheduleStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -106,6 +107,32 @@ class SelectionController extends ApiController
         $data['scheduled_at'] = $this->dt($data['scheduled_at']);
 
         return $this->created(new AssessmentScheduleResource(AssessmentService::createSchedule($request->user(), $data)));
+    }
+
+    public function updateSchedule(Request $request, string $id): AssessmentScheduleResource
+    {
+        $data = $request->validate([
+            'scheduled_at' => ['sometimes', 'date'],
+            'location' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'room' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'notes' => ['sometimes', 'nullable', 'string'],
+            'status' => ['sometimes', Rule::in([ScheduleStatus::SCHEDULED, ScheduleStatus::CANCELLED, ScheduleStatus::NO_SHOW])],
+        ]);
+        if (isset($data['scheduled_at'])) {
+            $data['scheduled_at'] = $this->dt($data['scheduled_at']);
+        }
+
+        return new AssessmentScheduleResource(AssessmentService::updateSchedule($id, $data));
+    }
+
+    public function applicationSchedules(Request $request, string $applicationId)
+    {
+        $application = ApplicationService::getForUser($request->user(), $applicationId);
+
+        return AssessmentScheduleResource::collection(
+            AssessmentSchedule::with(['application.applicant', 'component'])
+                ->where('application_id', $application->id)->orderBy('scheduled_at')->get()
+        );
     }
 
     public function inputScore(Request $request): JsonResponse

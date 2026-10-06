@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ApplicationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EnrollmentController;
 use App\Http\Controllers\Api\SelectionController;
+use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\VerificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +32,8 @@ Route::prefix('v1')->group(function () use ($verify, $override, $approve, $asses
         Route::middleware('auth:sanctum')->group(function () {
             Route::post('logout', [AuthController::class, 'logout']);
             Route::get('me', [AuthController::class, 'me']);
+            Route::get('staff', [StaffController::class, 'index'])
+                ->middleware('permission:application.verify,application.override,user.manage');
         });
     });
 
@@ -112,7 +115,10 @@ Route::prefix('v1')->group(function () use ($verify, $override, $approve, $asses
                 Route::get('schedules', [SelectionController::class, 'schedules']);
                 Route::post('schedules', [SelectionController::class, 'storeSchedule']);
                 Route::post('assessments/input', [SelectionController::class, 'inputScore']);
+                Route::patch('schedules/{id}', [SelectionController::class, 'updateSchedule']);
             });
+            // Owner (or staff with read access) can see the schedule of an application.
+            Route::get('applications/{applicationId}/schedules', [SelectionController::class, 'applicationSchedules']);
 
             Route::get('applications/{applicationId}/scores', [SelectionController::class, 'applicationScore']);
             Route::get('applications/{applicationId}/decision', [SelectionController::class, 'decision']);

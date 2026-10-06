@@ -179,3 +179,23 @@ export interface AnnouncementDetail {
   rank?: number | null
   next_steps?: string[]
 }
+
+export interface StaffMember {
+  id: string
+  name: string
+  roles: string[]
+}
+
+export interface AssessmentSchedule {
+  id: string
+  application_id: string
+  registration_number: string | null
+  applicant_name: string
+  component_id: string
+  component_name: string
+  scheduled_at: string
+  location: string | null
+  room: string | null
+  notes: string | null
+  status: 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW'
+}
