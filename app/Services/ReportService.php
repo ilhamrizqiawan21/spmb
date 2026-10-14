@@ -59,6 +59,8 @@ class ReportService
                 ['key' => 'accepted', 'label' => 'Diterima', 'total' => $apps()->whereHas('decision', fn ($d) => $d->where('decision', DecisionType::ACCEPTED))->count()],
                 ['key' => 're_registered', 'label' => 'Daftar ulang', 'total' => $apps()->whereHas('reRegistration', fn ($r) => $r->where('status', ReRegistrationStatus::COMPLETED))->count()],
                 ['key' => 'enrolled', 'label' => 'Enrolled', 'total' => $apps()->whereHas('enrollment')->count()],
+                ['key' => 'mpls', 'label' => 'Peserta MPLS', 'total' => $apps()->whereHas('enrollment.student.mplsParticipant')->count()],
+                ['key' => 'completed', 'label' => 'Selesai', 'total' => $apps()->where('status', S::COMPLETED)->count()],
             ],
             'work_queue' => [
                 'awaiting_verification' => $apps()->whereIn('status', self::AWAITING_VERIFICATION)->count(),

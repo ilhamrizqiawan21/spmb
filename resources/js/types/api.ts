@@ -299,3 +299,72 @@ export interface ReportSummary {
   top_cities: { value: string; total: number }[]
   finance: { pending_payments: number; outstanding_invoices: number; paid_invoices: number; verified_amount: string } | null
 }
+
+export type MplsAttendanceStatus = 'PRESENT' | 'SICK' | 'PERMITTED' | 'ABSENT'
+
+export interface MplsGroup {
+  id: string
+  academic_year_id: string
+  academic_year_name: string | null
+  name: string
+  code: string
+  capacity: number | null
+  participant_count: number
+  mentor_name: string | null
+  description: string | null
+}
+
+export interface MplsEvent {
+  id: string
+  academic_year_id: string
+  group_id: string | null
+  group_name: string | null
+  title: string
+  description: string | null
+  start_at: string
+  end_at: string
+  location: string | null
+  is_mandatory: boolean
+}
+
+export interface MplsParticipant {
+  id: string
+  student_id: string
+  student_number: string
+  full_name: string
+  group_id: string
+  group_name: string
+  group_code: string
+  mentor_name: string | null
+  status: 'ACTIVE' | 'COMPLETED' | 'WITHDRAWN'
+  joined_at: string
+  completed_at: string | null
+  attendance: { present: number; sick: number; permitted: number; absent: number }
+  qr_token?: string
+}
+
+export interface MplsParticipantPage {
+  data: MplsParticipant[]
+  meta: { page: number; per_page: number; total: number }
+}
+
+export interface MplsAttendance {
+  id: string
+  event_id: string
+  participant_id: string
+  full_name: string | null
+  status: MplsAttendanceStatus
+  checked_at: string | null
+  checked_by_name: string | null
+  notes: string | null
+}
+
+export interface MplsRoster {
+  event: MplsEvent
+  rows: { participant_id: string; student_number: string; full_name: string; group_name: string; attendance: MplsAttendance | null }[]
+}
+
+export interface MplsPortal {
+  participant: MplsParticipant
+  events: (MplsEvent & { attendance_status: MplsAttendanceStatus | null })[]
+}

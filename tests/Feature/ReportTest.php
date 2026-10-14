@@ -57,7 +57,7 @@ class ReportTest extends TestCase
             ->assertJsonPath('work_queue.revision_required', 1)
             ->assertJsonPath('top_schools.0', ['value' => 'SD Negeri 1', 'total' => 1]);
         $funnel = collect($res->json('funnel'))->pluck('total', 'key')->all();
-        $this->assertSame(['registered' => 5, 'submitted' => 4, 'verified' => 2, 'assessed' => 2, 'accepted' => 2, 're_registered' => 1, 'enrolled' => 1], $funnel);
+        $this->assertSame(['registered' => 5, 'submitted' => 4, 'verified' => 2, 'assessed' => 2, 'accepted' => 2, 're_registered' => 1, 'enrolled' => 1, 'mpls' => 0, 'completed' => 0], $funnel);
 
         $period = collect($res->json('periods'))->firstWhere('id', $p1->id);
         $this->assertSame(['quota' => 2, 'applications' => 4, 'accepted' => 1, 'enrolled' => 1, 'remaining_quota' => 1],

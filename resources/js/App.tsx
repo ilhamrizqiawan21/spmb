@@ -9,6 +9,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { FinancePage } from './pages/FinancePage'
 import { AnnouncementLookupPage, HomePage, PeriodsPage } from './pages/PublicPages'
 import { AssessmentPage } from './pages/AssessmentPage'
+import { MplsPage } from './pages/mpls/MplsPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { SelectionPage } from './pages/SelectionPage'
 import { StudentsPage } from './pages/StudentsPage'
@@ -56,6 +57,9 @@ export default function App() {
               </Route>
               <Route element={<RequireAuth permissions={['enrollment.manage', 'application.override', 'mpls.manage']} />}>
                 <Route path="siswa" element={<StudentsPage />} />
+              </Route>
+              <Route element={<RequireAuth permissions={['mpls.manage', 'application.override']} />}>
+                <Route path="mpls" element={<MplsPage />} />
               </Route>
               <Route path="*" element={<p>Halaman tidak ditemukan.</p>} />
             </Route>

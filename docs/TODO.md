@@ -13,7 +13,7 @@ Jangan centang bila test atau kriteria selesai belum terpenuhi (lihat *Definitio
 `AGENTS.md`). Prioritas bila ada konflik: benar → aman → integritas data → integritas
 workflow → mudah dirawat → UX → performa.
 
-## Status saat ini (2026-10-06)
+## Status saat ini (2026-10-14)
 
 | Area | Status |
 | --- | --- |
@@ -24,12 +24,12 @@ workflow → mudah dirawat → UX → performa.
 | Penilaian, ranking, keputusan, daftar tunggu | Selesai (F9–F10) |
 | Pengumuman + surat PDF, daftar ulang | Selesai (F11–F12) |
 | Frontend: semua alur di atas + data master admin | Ada, belum dipoles (F19) |
-| Pembayaran, enrollment/siswa, MPLS | Belum (F13–F15) |
-| Notifikasi, dashboard/laporan | Belum (F16–F17) |
-| Audit log, hardening privasi | Belum (F18) |
+| Pembayaran manual (F13), enrollment/siswa (F14), MPLS (F15) | Selesai |
+| Notifikasi email (F16), dashboard + laporan CSV (F17) | Selesai (inti) |
+| Audit log, hardening privasi | Sebagian besar (F18) |
 | Paket deploy, E2E, go-live | Belum (F20–F22) |
 
-Test: 97 backend (PHPUnit), 34 frontend (Vitest); CI backend (SQLite + MySQL) dan frontend.
+Test: 115 backend (PHPUnit, lulus di SQLite dan MySQL 8), 48 frontend (Vitest); CI backend (SQLite + MySQL) dan frontend.
 
 ---
 
@@ -85,8 +85,11 @@ Test: 97 backend (PHPUnit), 34 frontend (Vitest); CI backend (SQLite + MySQL) da
 - [ ] Pembatalan enrollment (status `CANCELLED` ada di ERD) belum ada aksinya; state machine tidak mengizinkan mundur dari `ENROLLED`.
 
 ## F15 — MPLS
-- [ ] Jadwal, kelompok, peserta (hanya siswa enrolled), dan kehadiran QR (token unik, tanpa data pribadi, bisa dirotasi).
-- [ ] Informasi MPLS untuk orang tua di portal.
+- [x] Skema ERD 15 (migrasi 000206; tambahan `mpls_events.academic_year_id` dan `mpls_participants.completed_at`, dicatat di ERD). Halaman `/mpls` (izin `mpls.manage` / `application.override`): kelompok (kode unik per tahun ajaran, kapasitas, pendamping), kegiatan (untuk semua atau satu kelompok), penempatan manual/pindah kelompok dan **bagi otomatis merata** (PRD 10.15) dengan batas kapasitas.
+- [x] Hanya siswa ACTIVE dengan aplikasi `ENROLLED` dan tahun ajaran yang sama yang bisa jadi peserta; penempatan → `MPLS_ACTIVE`. Penyelesaian oleh petugas → `MPLS_COMPLETED` → `COMPLETED` (PRD tidak menetapkan syarat kehadiran minimum, jadi tidak dipaksakan).
+- [x] Presensi unik per (kegiatan, peserta): manual 4 status (koreksi diaudit beserta status lama) atau scan QR. QR hanya berisi token acak 40 karakter (tanpa data pribadi), unik, bisa dirotasi; scan ganda idempoten; token tidak pernah muncul di daftar staf. Scanner genggam cukup mengetik token ke kolom input (tanpa kamera).
+- [x] Portal orang tua (`MplsCard`): kelompok, pendamping, QR presensi, jadwal + status kehadiran sendiri. Ekspor CSV peserta + rekap kehadiran; funnel dashboard menampilkan peserta MPLS dan selesai. Test: `MplsTest` (8), `mpls.test.tsx` (5). Dependensi baru: `qrcode-generator` 2.0.4 (MIT, tanpa dependensi).
+- [ ] Belum: status `WITHDRAWN` (mengundurkan diri) tanpa aksi, materi/pengumuman MPLS (PRD 10.14), scan via kamera ponsel, email "informasi MPLS" (F16).
 
 ## F17 — Dashboard & laporan
 - [x] Dashboard staf `/ringkasan` (`GET /reports/summary`, izin `application.read`/`application.override`): total dan per status, funnel PRD §11 (registrasi → submit → verifikasi → dinilai → diterima → daftar ulang → enrolled), antrean kerja (verifikasi, revisi, keputusan, daftar ulang, enrollment), kuota vs diterima/enrolled per gelombang, 10 asal sekolah dan kota terbanyak; blok keuangan hanya untuk pemegang izin pembayaran. Filter tahun ajaran/gelombang.

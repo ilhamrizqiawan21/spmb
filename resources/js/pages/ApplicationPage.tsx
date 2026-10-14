@@ -3,6 +3,7 @@ import { useState, type FormEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { Field, StatusBadge } from '../components/Field'
 import { ApiError, api, fieldErrors } from '../lib/api'
+import { MplsCard } from './mpls/MplsCard'
 import { PaymentCard } from './PaymentCard'
 import { ReRegistrationCard, ResultCard, ScheduleCard, StudentCard } from './ReRegistrationCard'
 import type { Application, ApplicationDocument, DocumentRequirement, Guardian } from '../types/api'
@@ -143,6 +144,7 @@ export function ApplicationPage() {
       <ReRegistrationCard application={a} />
       <PaymentCard application={a} />
       <StudentCard application={a} />
+      <MplsCard application={a} />
       <Guardians applicantId={a.applicant_id} />
       <Documents application={a} editable={editable} />
       <section className="card">

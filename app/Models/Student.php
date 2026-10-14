@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Student extends BaseModel
 {
@@ -14,5 +15,10 @@ class Student extends BaseModel
     public function enrollment(): BelongsTo
     {
         return $this->belongsTo(Enrollment::class);
+    }
+
+    public function mplsParticipant(): HasOne
+    {
+        return $this->hasOne(MplsParticipant::class);
     }
 }

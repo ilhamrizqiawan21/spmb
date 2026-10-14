@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EnrollmentController;
 use App\Http\Controllers\Api\FinanceController;
+use App\Http\Controllers\Api\MplsController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SelectionController;
 use App\Http\Controllers\Api\StaffController;
@@ -186,6 +187,33 @@ Route::prefix('v1')->group(function () use ($verify, $override, $approve, $asses
         Route::get('payments', [FinanceController::class, 'payments']);
         Route::post('payments/{id}/verify', [FinanceController::class, 'verify']);
         Route::get('payments/{id}/proof', [FinanceController::class, 'proof']);
+    });
+
+    // ---- MPLS ------------------------------------------------------------------
+    Route::prefix('mpls')->middleware('auth:sanctum')->group(function () {
+        // Owner (parent) or MPLS staff; checked in MplsService.
+        Route::get('applications/{applicationId}', [MplsController::class, 'forApplication']);
+
+        Route::middleware('permission:mpls.manage,application.override')->group(function () {
+            Route::get('groups', [MplsController::class, 'groups']);
+            Route::post('groups', [MplsController::class, 'storeGroup']);
+            Route::patch('groups/{id}', [MplsController::class, 'updateGroup']);
+            Route::delete('groups/{id}', [MplsController::class, 'destroyGroup']);
+            Route::get('events', [MplsController::class, 'events']);
+            Route::post('events', [MplsController::class, 'storeEvent']);
+            Route::patch('events/{id}', [MplsController::class, 'updateEvent']);
+            Route::delete('events/{id}', [MplsController::class, 'destroyEvent']);
+            Route::get('events/{id}/attendance', [MplsController::class, 'roster']);
+            Route::get('participants', [MplsController::class, 'participants']);
+            Route::get('participants/unassigned', [MplsController::class, 'unassigned']);
+            Route::get('participants/export', [MplsController::class, 'export']);
+            Route::post('participants', [MplsController::class, 'assign']);
+            Route::post('participants/auto-assign', [MplsController::class, 'autoAssign']);
+            Route::post('participants/{id}/rotate-qr', [MplsController::class, 'rotateToken']);
+            Route::post('participants/{id}/complete', [MplsController::class, 'complete']);
+            Route::post('attendance', [MplsController::class, 'record']);
+            Route::post('attendance/scan', [MplsController::class, 'scan'])->middleware('throttle:120,1');
+        });
     });
 
     // ---- Dashboard & reports (read-only) -------------------------------------
