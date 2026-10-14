@@ -6,10 +6,10 @@ use App\Http\Resources\EnrollmentCandidateResource;
 use App\Http\Resources\StudentResource;
 use App\Models\Student;
 use App\Services\EnrollmentService;
-use App\Support\CsvExport;
+use App\Support\TableExport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 /** Enrollment of re-registered applicants and the official student list (ERD §14). */
 class StudentController extends ApiController
@@ -68,7 +68,7 @@ class StudentController extends ApiController
         return response()->json(['data' => $student ? (new StudentResource($student))->resolve($request) : null]);
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request): Response
     {
         $rows = EnrollmentService::studentsQuery($this->filters($request))->lazy(500)->map(fn (Student $s) => [
             $s->student_number, $s->nisn, $s->full_name, $s->gender, $s->birth_place, $s->birth_date?->toDateString(),
@@ -77,7 +77,7 @@ class StudentController extends ApiController
             $s->enrollment->enrolled_at,
         ]);
 
-        return CsvExport::download('siswa-'.now()->format('Ymd-His').'.csv', [
+        return TableExport::download($this->exportFormat($request), 'siswa', 'Data Siswa Baru', [
             'NIS', 'NISN', 'Nama Lengkap', 'Jenis Kelamin', 'Tempat Lahir', 'Tanggal Lahir',
             'Status', 'No. Pendaftaran', 'Gelombang', 'Tahun Ajaran', 'Tanggal Enrollment',
         ], $rows);

@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Services\ReportService;
-use App\Support\CsvExport;
+use App\Support\TableExport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
-/** Staff dashboard (PRD §11) and CSV reports (PRD §14); permissions are set per route. */
+/** Staff dashboard (PRD §11) and CSV/XLSX/PDF reports (PRD §14); permissions are set per route. */
 class ReportController extends ApiController
 {
     public function summary(Request $request): JsonResponse
@@ -16,24 +16,22 @@ class ReportController extends ApiController
         return response()->json(ReportService::summary($request->user(), $this->filters($request)));
     }
 
-    public function applications(Request $request): StreamedResponse
+    public function applications(Request $request): Response
     {
-        return $this->csv('pendaftar', ReportService::APPLICATION_HEADERS, ReportService::applicationRows($this->filters($request)));
+        return TableExport::download($this->exportFormat($request), 'pendaftar', 'Laporan Pendaftar',
+            ReportService::APPLICATION_HEADERS, ReportService::applicationRows($this->filters($request)));
     }
 
-    public function selection(Request $request): StreamedResponse
+    public function selection(Request $request): Response
     {
-        return $this->csv('hasil-seleksi', ReportService::SELECTION_HEADERS, ReportService::selectionRows($this->filters($request)));
+        return TableExport::download($this->exportFormat($request), 'hasil-seleksi', 'Laporan Hasil Seleksi',
+            ReportService::SELECTION_HEADERS, ReportService::selectionRows($this->filters($request)), [3, 4]);
     }
 
-    public function payments(Request $request): StreamedResponse
+    public function payments(Request $request): Response
     {
-        return $this->csv('pembayaran', ReportService::PAYMENT_HEADERS, ReportService::paymentRows($this->filters($request)));
-    }
-
-    private function csv(string $name, array $headers, iterable $rows): StreamedResponse
-    {
-        return CsvExport::download("{$name}-".now()->format('Ymd-His').'.csv', $headers, $rows);
+        return TableExport::download($this->exportFormat($request), 'pembayaran', 'Laporan Pembayaran',
+            ReportService::PAYMENT_HEADERS, ReportService::paymentRows($this->filters($request)), [4, 6]);
     }
 
     /** @return array{academic_year_id:?string,admission_period_id:?string} */

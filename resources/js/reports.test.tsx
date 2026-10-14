@@ -57,8 +57,8 @@ describe('staff dashboard', () => {
     expect(await screen.findByText('Menunggu verifikasi')).toBeInTheDocument()
     expect(screen.getByLabelText('Funnel pendaftaran')).toHaveTextContent('Registrasi12')
     expect(screen.getByText('SD Negeri 1')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Ekspor Pendaftar (CSV)' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Ekspor Pembayaran (CSV)' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Ekspor Pendaftar' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Ekspor Pembayaran' })).not.toBeInTheDocument()
     expect(screen.queryByText('Tagihan belum lunas')).not.toBeInTheDocument()
   })
 
@@ -74,5 +74,17 @@ describe('staff dashboard', () => {
     expect(await screen.findByText('Tagihan belum lunas')).toBeInTheDocument()
     await userEvent.selectOptions(await screen.findByLabelText('Gelombang'), 'p1')
     await waitFor(() => expect(calls.some((c) => c.url.endsWith('/reports/summary?admission_period_id=p1'))).toBe(true))
+  })
+
+  it('downloads the report in the chosen format', async () => {
+    const calls = mockApi({ '/auth/me': user(['application.read']), '/reports/summary': summary(), '/admission/periods': [] })
+    URL.createObjectURL = vi.fn(() => 'blob:x')
+    URL.revokeObjectURL = vi.fn()
+    window.history.pushState({}, '', '/ringkasan')
+    render(<App />)
+
+    await userEvent.selectOptions(await screen.findByLabelText('Format ekspor'), 'pdf')
+    await userEvent.click(screen.getByRole('button', { name: 'Ekspor Pendaftar' }))
+    await waitFor(() => expect(calls.some((c) => c.url.endsWith('/reports/applications/export?format=pdf'))).toBe(true))
   })
 })

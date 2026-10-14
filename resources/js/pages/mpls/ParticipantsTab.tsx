@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Field, StatusBadge } from '../../components/Field'
+import { ExportFormatSelect, type ExportFormat } from '../../components/ExportFormat'
 import { ErrorNote } from '../../components/Notice'
 import { api, downloadFile } from '../../lib/api'
+import { exportUrl } from '../../lib/exportUrl'
 import type { MplsGroup, MplsParticipant, MplsParticipantPage } from '../../types/api'
 import { QrImage } from './QrImage'
 
@@ -11,6 +13,7 @@ export function ParticipantsTab({ yearId }: { yearId: string }) {
   const [groupId, setGroupId] = useState('')
   const [search, setSearch] = useState('')
   const [qr, setQr] = useState<MplsParticipant | null>(null)
+  const [format, setFormat] = useState<ExportFormat>('xlsx')
   const params = new URLSearchParams({ academic_year_id: yearId, per_page: '200', ...(groupId ? { group_id: groupId } : {}), ...(search ? { search } : {}) })
   const groups = useQuery({ queryKey: ['mpls-groups', yearId], queryFn: () => api<MplsGroup[]>(`/mpls/groups?academic_year_id=${yearId}`) })
   const list = useQuery({ queryKey: ['mpls-participants', yearId, groupId, search], queryFn: () => api<MplsParticipantPage>(`/mpls/participants?${params}`) })
@@ -20,7 +23,9 @@ export function ParticipantsTab({ yearId }: { yearId: string }) {
     mutationFn: (id: string) => api<MplsParticipant>(`/mpls/participants/${id}/rotate-qr`, { method: 'POST' }),
     onSuccess: (p) => setQr(p),
   })
-  const exportCsv = useMutation({ mutationFn: () => downloadFile(`/mpls/participants/export?academic_year_id=${yearId}${groupId ? `&group_id=${groupId}` : ''}`, 'peserta-mpls.csv') })
+  const exportFile = useMutation({
+    mutationFn: () => downloadFile(exportUrl(`/mpls/participants/export?academic_year_id=${yearId}${groupId ? `&group_id=${groupId}` : ''}`, format), `peserta-mpls.${format}`),
+  })
 
   return (
     <section className="card">
@@ -34,7 +39,8 @@ export function ParticipantsTab({ yearId }: { yearId: string }) {
           </select>
         </label>
         <Field label="Cari nama / NIS" value={search} onChange={(e) => setSearch(e.target.value)} />
-        <button className="secondary field" onClick={() => exportCsv.mutate()} disabled={exportCsv.isPending}>Ekspor CSV</button>
+        <ExportFormatSelect value={format} onChange={setFormat} />
+        <button className="secondary field" onClick={() => exportFile.mutate()} disabled={exportFile.isPending}>Ekspor</button>
       </div>
       {list.isLoading && <p>Memuat…</p>}
       {list.data?.data.length === 0 && <p>Belum ada peserta.</p>}
@@ -69,7 +75,7 @@ export function ParticipantsTab({ yearId }: { yearId: string }) {
           <p><button className="secondary" onClick={() => setQr(null)}>Tutup</button></p>
         </div>
       )}
-      <ErrorNote error={list.error ?? complete.error ?? rotate.error ?? exportCsv.error} />
+      <ErrorNote error={list.error ?? complete.error ?? rotate.error ?? exportFile.error} />
     </section>
   )
 }

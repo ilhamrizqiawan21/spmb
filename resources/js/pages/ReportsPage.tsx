@@ -1,9 +1,11 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { ExportFormatSelect, type ExportFormat } from '../components/ExportFormat'
 import { ErrorNote } from '../components/Notice'
 import { useAuth } from '../features/auth/AuthContext'
 import { api, downloadFile } from '../lib/api'
+import { exportUrl } from '../lib/exportUrl'
 import { rupiah } from '../lib/money'
 import type { AdmissionPeriod, ReportSummary } from '../types/api'
 
@@ -55,19 +57,20 @@ function TopList({ title, rows }: { title: string; rows: ReportSummary['top_scho
 }
 
 const EXPORTS = [
-  { path: '/reports/applications/export', file: 'pendaftar.csv', label: 'Pendaftar', perms: ['application.read', 'application.override'] },
-  { path: '/reports/selection/export', file: 'hasil-seleksi.csv', label: 'Hasil seleksi', perms: ['assessment.approve', 'announcement.publish', 'application.override'] },
-  { path: '/reports/payments/export', file: 'pembayaran.csv', label: 'Pembayaran', perms: ['payment.read', 'payment.verify', 'application.override'] },
-  { path: '/enrollment/students/export', file: 'data-siswa.csv', label: 'Siswa', perms: ['enrollment.manage', 'application.override', 'mpls.manage'] },
+  { path: '/reports/applications/export', file: 'pendaftar', label: 'Pendaftar', perms: ['application.read', 'application.override'] },
+  { path: '/reports/selection/export', file: 'hasil-seleksi', label: 'Hasil seleksi', perms: ['assessment.approve', 'announcement.publish', 'application.override'] },
+  { path: '/reports/payments/export', file: 'pembayaran', label: 'Pembayaran', perms: ['payment.read', 'payment.verify', 'application.override'] },
+  { path: '/enrollment/students/export', file: 'data-siswa', label: 'Siswa', perms: ['enrollment.manage', 'application.override', 'mpls.manage'] },
 ]
 
 export function ReportsPage() {
   const { can } = useAuth()
   const [periodId, setPeriodId] = useState('')
+  const [format, setFormat] = useState<ExportFormat>('xlsx')
   const filter = periodId ? `?admission_period_id=${periodId}` : ''
   const periods = useQuery({ queryKey: ['periods'], queryFn: () => api<AdmissionPeriod[]>('/admission/periods') })
   const summary = useQuery({ queryKey: ['report-summary', periodId], queryFn: () => api<ReportSummary>(`/reports/summary${filter}`) })
-  const download = useMutation({ mutationFn: (e: (typeof EXPORTS)[number]) => downloadFile(`${e.path}${filter}`, e.file) })
+  const download = useMutation({ mutationFn: (e: (typeof EXPORTS)[number]) => downloadFile(exportUrl(`${e.path}${filter}`, format), `${e.file}.${format}`) })
   const s = summary.data
 
   return (
@@ -81,9 +84,10 @@ export function ReportsPage() {
             {periods.data?.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </label>
+        <ExportFormatSelect value={format} onChange={setFormat} />
         {EXPORTS.filter((e) => can(...e.perms)).map((e) => (
           <button key={e.path} className="secondary" onClick={() => download.mutate(e)} disabled={download.isPending}>
-            Ekspor {e.label} (CSV)
+            Ekspor {e.label}
           </button>
         ))}
       </section>

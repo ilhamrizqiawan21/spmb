@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { Field, StatusBadge } from '../components/Field'
+import { ExportFormatSelect, type ExportFormat } from '../components/ExportFormat'
 import { ErrorNote } from '../components/Notice'
 import { useAuth } from '../features/auth/AuthContext'
 import { api, downloadFile, fieldErrors } from '../lib/api'
+import { exportUrl } from '../lib/exportUrl'
 import type { EnrollmentCandidate, StudentPage } from '../types/api'
 
 /** Applicants that finished re-registration; staff type the NIS to enroll them. */
@@ -74,10 +76,13 @@ function StudentList({ canManage }: { canManage: boolean }) {
   const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [format, setFormat] = useState<ExportFormat>('xlsx')
   const [editing, setEditing] = useState<{ id: string; nis: string; reason: string } | null>(null)
   const query = new URLSearchParams({ page: String(page), per_page: '50', ...(search ? { search } : {}) })
   const students = useQuery({ queryKey: ['students', search, page], queryFn: () => api<StudentPage>(`/enrollment/students?${query}`) })
-  const exportCsv = useMutation({ mutationFn: () => downloadFile(`/enrollment/students/export${search ? `?search=${encodeURIComponent(search)}` : ''}`, 'data-siswa.csv') })
+  const exportFile = useMutation({
+    mutationFn: () => downloadFile(exportUrl(`/enrollment/students/export${search ? `?search=${encodeURIComponent(search)}` : ''}`, format), `data-siswa.${format}`),
+  })
   const update = useMutation({
     mutationFn: (v: NonNullable<typeof editing>) => api(`/enrollment/students/${v.id}`, { method: 'PATCH', body: { student_number: v.nis, reason: v.reason } }),
     onSuccess: async () => {
@@ -93,7 +98,8 @@ function StudentList({ canManage }: { canManage: boolean }) {
       <h2>Daftar Siswa {meta && <small>({meta.total})</small>}</h2>
       <div className="row">
         <Field label="Cari nama / NIS" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1) }} />
-        <button className="secondary" onClick={() => exportCsv.mutate()} disabled={exportCsv.isPending}>Ekspor CSV</button>
+        <ExportFormatSelect value={format} onChange={setFormat} />
+        <button className="secondary field" onClick={() => exportFile.mutate()} disabled={exportFile.isPending}>Ekspor</button>
       </div>
       {students.isLoading && <p>Memuat…</p>}
       {students.data?.data.length === 0 && <p>Belum ada siswa.</p>}
@@ -134,7 +140,7 @@ function StudentList({ canManage }: { canManage: boolean }) {
           <button type="button" className="secondary" onClick={() => setEditing(null)}>Batal</button>
         </form>
       )}
-      <ErrorNote error={students.error ?? update.error ?? exportCsv.error} />
+      <ErrorNote error={students.error ?? update.error ?? exportFile.error} />
     </section>
   )
 }

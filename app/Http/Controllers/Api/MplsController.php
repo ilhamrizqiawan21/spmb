@@ -10,12 +10,12 @@ use App\Http\Resources\StudentResource;
 use App\Models\MplsParticipant;
 use App\Services\MplsAttendanceService;
 use App\Services\MplsService;
-use App\Support\CsvExport;
 use App\Support\MplsAttendanceStatus;
+use App\Support\TableExport;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 /** MPLS groups, events, participants and attendance (ERD §15). Staff routes need `mpls.manage`. */
 class MplsController extends ApiController
@@ -223,7 +223,7 @@ class MplsController extends ApiController
         ]]);
     }
 
-    public function export(Request $request): StreamedResponse
+    public function export(Request $request): Response
     {
         $rows = MplsService::participantsQuery($this->year($request), $this->uuidQuery($request->query('group_id'), 'group_id'), null)
             ->lazy(500)->map(fn (MplsParticipant $p) => [
@@ -231,9 +231,9 @@ class MplsController extends ApiController
                 $p->present_count, $p->sick_count, $p->permitted_count, $p->absent_count, $p->completed_at,
             ]);
 
-        return CsvExport::download('peserta-mpls-'.now()->format('Ymd-His').'.csv', [
+        return TableExport::download($this->exportFormat($request), 'peserta-mpls', 'Peserta MPLS', [
             'NIS', 'Nama', 'Kode Kelompok', 'Kelompok', 'Status', 'Hadir', 'Sakit', 'Izin', 'Alpa', 'Selesai',
-        ], $rows);
+        ], $rows, [5, 6, 7, 8]);
     }
 
     private function year(Request $request): ?string

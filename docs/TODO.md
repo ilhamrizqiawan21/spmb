@@ -94,7 +94,8 @@ Test: 115 backend (PHPUnit, lulus di SQLite dan MySQL 8), 48 frontend (Vitest); 
 ## F17 — Dashboard & laporan
 - [x] Dashboard staf `/ringkasan` (`GET /reports/summary`, izin `application.read`/`application.override`): total dan per status, funnel PRD §11 (registrasi → submit → verifikasi → dinilai → diterima → daftar ulang → enrolled), antrean kerja (verifikasi, revisi, keputusan, daftar ulang, enrollment), kuota vs diterima/enrolled per gelombang, 10 asal sekolah dan kota terbanyak; blok keuangan hanya untuk pemegang izin pembayaran. Filter tahun ajaran/gelombang.
 - [x] Ekspor CSV: pendaftar (tanpa NIK/kontak), hasil seleksi (izin approve/publish/override), pembayaran (izin keuangan), siswa (F14). Test: `ReportTest`, `reports.test.tsx`.
-- [ ] XLSX/PDF (PRD §14 menyebut ketiganya) dan laporan dokumen belum lengkap, waiting list, presensi MPLS: belum. XLSX/PDF butuh dependensi baru; putuskan dulu apakah CSV cukup.
+- [x] Semua laporan (pendaftar, hasil seleksi, pembayaran, siswa, peserta MPLS) bisa diunduh sebagai CSV, XLSX, atau PDF lewat `?format=` (`App\Support\TableExport`; keputusan 2026-10-14: openspout untuk XLSX, dompdf untuk PDF). XLSX hanya memakai sel teks (tidak ada formula), kolom angka ditandai eksplisit; PDF A4 landscape, remote/PHP dimatikan, maksimal `SPMB_EXPORT_PDF_MAX_ROWS` (default 1000) baris; lebih dari itu ditolak dengan saran pakai XLSX. Test: `ExportFormatTest`.
+- [ ] Laporan dokumen belum lengkap dan waiting list (PRD §14) belum ada sebagai ekspor tersendiri.
 
 ---
 
