@@ -2,23 +2,14 @@ name: Backend CI
 
 on:
   pull_request:
-    paths:
-      - "backend/**"
-      - ".github/workflows/backend.yml"
   push:
     branches: [main]
-    paths:
-      - "backend/**"
-      - ".github/workflows/backend.yml"
   workflow_dispatch:
 
 jobs:
   backend:
     name: Lint and test (SQLite)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,9 +33,6 @@ jobs:
   backend-mysql:
     name: Test (MySQL 8.4)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     services:
       mysql:
         image: mysql:8.4

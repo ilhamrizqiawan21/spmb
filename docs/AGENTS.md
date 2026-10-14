@@ -17,7 +17,7 @@ This file defines how AI coding agents must work inside this repository.
 **Migration:** Laravel Migrations  
 **Cache / Queue:** Laravel cache + queue (database driver by default, Redis optional)  
 **Testing:** PHPUnit (Laravel feature tests) + Vitest + React Testing Library + Playwright  
-**Frontend:** React + TypeScript + Vite (see `frontend/README.md`)
+**Frontend:** React + TypeScript + Vite (see `docs/FRONTEND.md`)
 
 > **Migration note:** the backend was first built on FastAPI + SQLAlchemy +
 > Alembic (git commit `b984024`), then on Django + DRF + PostgreSQL (git
@@ -124,7 +124,7 @@ Do not start from UI and then invent backend behavior later.
 Laravel project structure should follow:
 
 ```text
-backend/
+/
 ├── app/
 │   ├── Exceptions/          # ApiException (standard error envelope)
 │   ├── Http/

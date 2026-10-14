@@ -1,12 +1,22 @@
-# PHP / Laravel (backend/.gitignore holds the framework-specific rules)
-backend/vendor/
-backend/.phpunit.cache/
+# PHP / Laravel
+/vendor/
+/.phpunit.cache/
+.phpunit.result.cache
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/auth.json
+_ide_helper.php
+Homestead.json
+Homestead.yaml
+*.log
 
 # Node / frontend
 node_modules/
-frontend/dist/
-frontend/.vite/
-frontend/coverage/
+coverage/
+dist-ssr
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
