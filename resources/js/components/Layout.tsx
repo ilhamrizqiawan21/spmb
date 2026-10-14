@@ -11,6 +11,7 @@ export function Layout() {
           <Link to="/periods">Periode</Link>
           <Link to="/hasil">Cek Hasil</Link>
           {user && <Link to="/dashboard">Pendaftaran</Link>}
+          {can('application.read', 'application.override') && <Link to="/ringkasan">Dashboard</Link>}
           {can('document.verify', 'application.verify', 'application.override') && <Link to="/verifikasi">Verifikasi</Link>}
           {can('assessment.input', 'assessment.approve', 'application.override') && <Link to="/penilaian">Penilaian</Link>}
           {can('assessment.approve', 'application.override') && <Link to="/seleksi">Seleksi</Link>}

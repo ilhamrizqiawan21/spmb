@@ -151,7 +151,7 @@ class EnrollmentService
             $q->whereHas('enrollment.application.admissionPeriod', fn ($p) => $p->where('academic_year_id', $yearId));
         }
         if ($search = trim((string) ($filters['search'] ?? ''))) {
-            $like = '%'.mb_strtolower($search).'%';
+            $like = '%'.addcslashes(mb_strtolower($search), '%_\\').'%';
             $q->where(fn ($s) => $s->whereRaw('LOWER(full_name) LIKE ?', [$like])->orWhereRaw('LOWER(student_number) LIKE ?', [$like]));
         }
 

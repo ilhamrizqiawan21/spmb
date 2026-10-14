@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EnrollmentController;
 use App\Http\Controllers\Api\FinanceController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SelectionController;
 use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\StudentController;
@@ -185,6 +186,16 @@ Route::prefix('v1')->group(function () use ($verify, $override, $approve, $asses
         Route::get('payments', [FinanceController::class, 'payments']);
         Route::post('payments/{id}/verify', [FinanceController::class, 'verify']);
         Route::get('payments/{id}/proof', [FinanceController::class, 'proof']);
+    });
+
+    // ---- Dashboard & reports (read-only) -------------------------------------
+    Route::prefix('reports')->middleware('auth:sanctum')->group(function () {
+        Route::get('summary', [ReportController::class, 'summary'])->middleware('permission:application.read,application.override');
+        Route::get('applications/export', [ReportController::class, 'applications'])->middleware('permission:application.read,application.override');
+        Route::get('selection/export', [ReportController::class, 'selection'])
+            ->middleware('permission:assessment.approve,announcement.publish,application.override');
+        Route::get('payments/export', [ReportController::class, 'payments'])
+            ->middleware('permission:payment.read,payment.verify,application.override');
     });
 
     // ---- Audit trail (read-only) ---------------------------------------------

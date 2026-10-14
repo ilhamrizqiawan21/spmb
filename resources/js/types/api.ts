@@ -273,3 +273,29 @@ export interface EnrollmentCandidate {
   admission_period_name: string | null
   status: string
 }
+
+export interface ReportSummary {
+  total: number
+  by_status: Record<string, number>
+  funnel: { key: string; label: string; total: number }[]
+  work_queue: {
+    awaiting_verification: number
+    revision_required: number
+    awaiting_decision: number
+    re_registration_in_progress: number
+    awaiting_enrollment: number
+  }
+  periods: {
+    id: string
+    name: string
+    academic_year_name: string | null
+    quota: number | null
+    applications: number
+    accepted: number
+    enrolled: number
+    remaining_quota: number | null
+  }[]
+  top_schools: { value: string; total: number }[]
+  top_cities: { value: string; total: number }[]
+  finance: { pending_payments: number; outstanding_invoices: number; paid_invoices: number; verified_amount: string } | null
+}

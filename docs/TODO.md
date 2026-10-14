@@ -89,8 +89,9 @@ Test: 97 backend (PHPUnit), 34 frontend (Vitest); CI backend (SQLite + MySQL) da
 - [ ] Informasi MPLS untuk orang tua di portal.
 
 ## F17 — Dashboard & laporan
-- [ ] Dashboard staf: pendaftar per status, kuota vs terisi, antrean verifikasi, progres seleksi dan daftar ulang.
-- [ ] Laporan ekspor CSV/XLSX: pendaftar, hasil seleksi, keuangan, siswa; filter per tahun ajaran/periode.
+- [x] Dashboard staf `/ringkasan` (`GET /reports/summary`, izin `application.read`/`application.override`): total dan per status, funnel PRD §11 (registrasi → submit → verifikasi → dinilai → diterima → daftar ulang → enrolled), antrean kerja (verifikasi, revisi, keputusan, daftar ulang, enrollment), kuota vs diterima/enrolled per gelombang, 10 asal sekolah dan kota terbanyak; blok keuangan hanya untuk pemegang izin pembayaran. Filter tahun ajaran/gelombang.
+- [x] Ekspor CSV: pendaftar (tanpa NIK/kontak), hasil seleksi (izin approve/publish/override), pembayaran (izin keuangan), siswa (F14). Test: `ReportTest`, `reports.test.tsx`.
+- [ ] XLSX/PDF (PRD §14 menyebut ketiganya) dan laporan dokumen belum lengkap, waiting list, presensi MPLS: belum. XLSX/PDF butuh dependensi baru; putuskan dulu apakah CSV cukup.
 
 ---
 
