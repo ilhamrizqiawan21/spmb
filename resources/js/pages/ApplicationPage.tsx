@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom'
 import { Field, StatusBadge } from '../components/Field'
 import { ApiError, api, fieldErrors } from '../lib/api'
 import { PaymentCard } from './PaymentCard'
-import { ReRegistrationCard, ResultCard, ScheduleCard } from './ReRegistrationCard'
+import { ReRegistrationCard, ResultCard, ScheduleCard, StudentCard } from './ReRegistrationCard'
 import type { Application, ApplicationDocument, DocumentRequirement, Guardian } from '../types/api'
 
 const RELATIONS = { FATHER: 'Ayah', MOTHER: 'Ibu', GUARDIAN: 'Wali' } as const
@@ -142,6 +142,7 @@ export function ApplicationPage() {
       <ResultCard application={a} />
       <ReRegistrationCard application={a} />
       <PaymentCard application={a} />
+      <StudentCard application={a} />
       <Guardians applicantId={a.applicant_id} />
       <Documents application={a} editable={editable} />
       <section className="card">

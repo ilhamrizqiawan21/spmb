@@ -36,7 +36,7 @@ Test: 97 backend (PHPUnit), 34 frontend (Vitest); CI backend (SQLite + MySQL) da
 # P0 — Fondasi dan keamanan (kerjakan lebih dulu)
 
 ## F0 — Repo & tooling
-- [ ] Merge branch `merge-backend-frontend` ke `main` (layout satu project).
+- [x] Merge branch `merge-backend-frontend` ke `main` (PR #2).
 - [x] Suite Unit kini ada (`tests/Unit/ApplicationStateMachineTest.php`); `php artisan test` jalan tanpa argumen (59 test).
 - [x] `.devcontainer/setup.sh`: `DB_DATABASE` diarahkan ke `database/database.sqlite` (sebelumnya SQLite menulis ke file `spmb`).
 - [x] `composer dev` ternyata valid (`artisan dev` bawaan Laravel 13: server, queue, logs, vite); tidak perlu diubah.
@@ -78,9 +78,11 @@ Test: 97 backend (PHPUnit), 34 frontend (Vitest); CI backend (SQLite + MySQL) da
 - [ ] Keputusan produk: penetapan biaya otomatis per periode/jenis (saat ini staf mengisi nominal manual), nomor rekening/instruksi transfer yang ditampilkan ke orang tua, refund (`REFUNDED` sudah ada sebagai status, belum ada aksinya), dan email "tagihan baru"/"pembayaran diverifikasi" (F16).
 
 ## F14 — Enrollment & siswa
-- [ ] Buat record siswa (NIS, kelas) dari pendaftar ACCEPTED yang selesai daftar ulang dan lunas/dibebaskan.
-- [ ] Penempatan kelas dan tahun ajaran aktif; riwayat pendaftaran asli tidak diubah.
-- [ ] Ekspor data siswa (CSV/XLSX) untuk sistem sekolah/Dapodik.
+- [x] Skema ERD 14 (`enrollments`, `students`; migrasi 000205). Enrollment dipicu **manual** oleh staf (`enrollment.manage` / `application.override`) di halaman `/siswa`; **NIS diketik staf** (huruf/angka/`.`/`/`/`-`, unik tanpa beda huruf besar-kecil). Semua prasyarat AGENTS §22 dicek ulang saat enroll: status `RE_REGISTRATION_VERIFIED`, keputusan ACCEPTED, daftar ulang COMPLETED, tidak ada tagihan terbuka (tagihan dibatalkan = dibebaskan), tidak ada berkas PENDING/INVALID/REVISION_REQUIRED. Data inti disalin sebagai snapshot; status aplikasi → `ENROLLED` lewat state machine; audit `enrollment.created`. Koreksi NIS/NISN wajib alasan dan tercatat (`student.updated`). Test: `EnrollmentTest`, `enrollment.test.tsx`.
+- [x] Orang tua melihat NIS di portal (`StudentCard`); petugas MPLS boleh membaca daftar siswa (untuk F15) tanpa aksi enrollment.
+- [x] Ekspor CSV (UTF-8 + BOM, aman dari formula injection) dengan filter tahun ajaran/periode/pencarian: `GET /enrollment/students/export`. XLSX tidak dibuat (butuh dependensi baru; CSV terbuka di Excel).
+- [ ] Penempatan kelas: **ditunda** (keputusan 2026-10-14) — ERD tidak punya kolom kelas; kelas diatur di sistem sekolah/Dapodik dari ekspor.
+- [ ] Pembatalan enrollment (status `CANCELLED` ada di ERD) belum ada aksinya; state machine tidak mengizinkan mundur dari `ENROLLED`.
 
 ## F15 — MPLS
 - [ ] Jadwal, kelompok, peserta (hanya siswa enrolled), dan kehadiran QR (token unik, tanpa data pribadi, bisa dirotasi).

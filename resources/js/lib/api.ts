@@ -71,3 +71,15 @@ export async function openBlob(path: string): Promise<void> {
   if (!res.ok) throw new ApiError(res.status, 'HTTP_ERROR', 'Gagal mengunduh berkas.', null)
   window.open(URL.createObjectURL(await res.blob()), '_blank', 'noopener')
 }
+
+/** Authenticated download (e.g. CSV export) saved under `filename`. */
+export async function downloadFile(path: string, filename: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}${path}`, { headers: { Authorization: `Bearer ${tokenStore.get() ?? ''}` } })
+  if (!res.ok) throw new ApiError(res.status, 'HTTP_ERROR', 'Gagal mengunduh berkas.', null)
+  const url = URL.createObjectURL(await res.blob())
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}

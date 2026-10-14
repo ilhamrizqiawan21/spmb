@@ -10,6 +10,7 @@ import { FinancePage } from './pages/FinancePage'
 import { AnnouncementLookupPage, HomePage, PeriodsPage } from './pages/PublicPages'
 import { AssessmentPage } from './pages/AssessmentPage'
 import { SelectionPage } from './pages/SelectionPage'
+import { StudentsPage } from './pages/StudentsPage'
 import { VerificationDetailPage } from './pages/VerificationDetailPage'
 import { VerificationPage } from './pages/VerificationPage'
 
@@ -48,6 +49,9 @@ export default function App() {
               </Route>
               <Route element={<RequireAuth permissions={['payment.read', 'payment.verify', 'application.override']} />}>
                 <Route path="keuangan" element={<FinancePage />} />
+              </Route>
+              <Route element={<RequireAuth permissions={['enrollment.manage', 'application.override', 'mpls.manage']} />}>
+                <Route path="siswa" element={<StudentsPage />} />
               </Route>
               <Route path="*" element={<p>Halaman tidak ditemukan.</p>} />
             </Route>

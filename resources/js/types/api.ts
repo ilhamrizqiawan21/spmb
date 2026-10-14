@@ -242,3 +242,34 @@ export interface PaymentPage {
   data: Payment[]
   meta: { page: number; per_page: number; total: number }
 }
+
+export interface Student {
+  id: string
+  student_number: string
+  nisn: string | null
+  full_name: string
+  gender: string
+  birth_place: string
+  birth_date: string
+  status: 'ACTIVE' | 'INACTIVE'
+  enrollment: { id: string; status: 'ACTIVE' | 'CANCELLED'; enrolled_at: string; enrolled_by_name: string | null; notes: string | null }
+  application_id: string
+  registration_number: string
+  admission_period_name: string | null
+  academic_year_name: string | null
+  created_at: string
+}
+
+export interface StudentPage {
+  data: Student[]
+  meta: { page: number; per_page: number; total: number }
+}
+
+export interface EnrollmentCandidate {
+  application_id: string
+  registration_number: string
+  applicant_name: string
+  nisn: string | null
+  admission_period_name: string | null
+  status: string
+}

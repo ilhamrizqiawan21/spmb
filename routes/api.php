@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\EnrollmentController;
 use App\Http\Controllers\Api\FinanceController;
 use App\Http\Controllers\Api\SelectionController;
 use App\Http\Controllers\Api\StaffController;
+use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\VerificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -159,6 +160,18 @@ Route::prefix('v1')->group(function () use ($verify, $override, $approve, $asses
             Route::get('applications/{applicationId}/re-registration', [EnrollmentController::class, 'show']);
             Route::patch('re-registration-items/{itemId}', [EnrollmentController::class, 'updateItem']);
             Route::post('re-registrations/{reRegistrationId}/complete', [EnrollmentController::class, 'complete']);
+
+            // Enrollment into official students (ERD §14); owner or staff may read the result.
+            Route::get('applications/{applicationId}/student', [StudentController::class, 'forApplication']);
+            Route::middleware($enrollment)->group(function () {
+                Route::get('eligible', [StudentController::class, 'eligible']);
+                Route::post('applications/{applicationId}/enroll', [StudentController::class, 'enroll']);
+                Route::patch('students/{id}', [StudentController::class, 'update']);
+            });
+            Route::middleware('permission:enrollment.manage,application.override,mpls.manage')->group(function () {
+                Route::get('students', [StudentController::class, 'index']);
+                Route::get('students/export', [StudentController::class, 'export']);
+            });
         });
     });
 
