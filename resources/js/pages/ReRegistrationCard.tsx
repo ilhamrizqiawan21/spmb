@@ -97,7 +97,9 @@ export function ReRegistrationCard({ application }: { application: Application }
         </p>
       )}
       <ErrorNote error={toggle.error ?? complete.error} />
-      {rr.status === 'COMPLETED' && <p>Daftar ulang selesai. Menunggu proses enrollment oleh sekolah.</p>}
+      {rr.status === 'COMPLETED' && (
+        <p>Daftar ulang selesai.{application.status === 'RE_REGISTRATION_VERIFIED' && ' Menunggu proses enrollment oleh sekolah.'}</p>
+      )}
     </section>
   )
 }
