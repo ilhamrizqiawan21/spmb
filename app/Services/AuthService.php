@@ -110,4 +110,32 @@ class AuthService
 
         AuditService::record($user, 'auth.password_changed', 'user', $user->id);
     }
+
+    /**
+     * Update the account's own name/phone. Email is not editable here: changing a login identity
+     * needs a verification flow that does not exist yet. The account must keep an email or a phone.
+     *
+     * @param  array{name?:string, phone?:?string}  $data
+     */
+    public static function updateProfile(User $user, array $data): User
+    {
+        if (array_key_exists('phone', $data)) {
+            $data['phone'] = ($phone = trim((string) $data['phone'])) === '' ? null : $phone;
+            if ($data['phone'] === null && ! $user->email) {
+                throw ApiException::validation(['phone' => 'Phone number is required for an account without email.']);
+            }
+            if ($data['phone'] && User::where('phone', $data['phone'])->where('id', '!=', $user->id)->exists()) {
+                throw ApiException::validation(['phone' => 'Phone number is already registered.']);
+            }
+        }
+        if (isset($data['name'])) {
+            $data['name'] = trim($data['name']);
+        }
+
+        $old = array_intersect_key($user->only(['name', 'phone']), $data);
+        $user->update($data);
+        AuditService::record($user, 'auth.profile_updated', 'user', $user->id, $old, $data);
+
+        return $user;
+    }
 }

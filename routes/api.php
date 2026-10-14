@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SelectionController;
 use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\StudentController;
+use App\Http\Controllers\Api\SystemController;
 use App\Http\Controllers\Api\VerificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -30,6 +31,8 @@ $enrollment = 'permission:enrollment.manage,application.override';
 // Routes are served under /api/v1 (Laravel's default `api` prefix + `v1`).
 Route::prefix('v1')->group(function () use ($verify, $override, $approve, $assess, $enrollment) {
 
+    Route::get('public/school', [SystemController::class, 'school']);
+
     // ---- Auth ----------------------------------------------------------------
     Route::prefix('auth')->group(function () {
         Route::post('register', [AuthController::class, 'register'])->middleware('throttle:20,1');
@@ -40,6 +43,7 @@ Route::prefix('v1')->group(function () use ($verify, $override, $approve, $asses
             Route::post('logout', [AuthController::class, 'logout']);
             Route::post('change-password', [AuthController::class, 'changePassword'])->middleware('throttle:10,1');
             Route::get('me', [AuthController::class, 'me']);
+            Route::patch('me', [AuthController::class, 'updateMe'])->middleware('throttle:20,1');
             Route::get('staff', [StaffController::class, 'index'])
                 ->middleware('permission:application.verify,application.override,user.manage');
         });

@@ -1,50 +1,74 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, type FormEvent } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { Link } from 'react-router-dom'
+import { z } from 'zod'
 import { Field, StatusBadge } from '../components/Field'
-import { ApiError, api, fieldErrors } from '../lib/api'
+import { FormError } from '../components/Notice'
+import { ApiError, api } from '../lib/api'
+import { applyServerErrors, emptyToNull, isoDate, optionalDigits, optionalText, requiredText } from '../lib/validation'
 import type { AdmissionPeriod, Applicant, Application } from '../types/api'
+
+const applicantSchema = z.object({
+  full_name: requiredText(200),
+  gender: z.enum(['MALE', 'FEMALE'], { message: 'Pilih jenis kelamin.' }),
+  birth_place: requiredText(150),
+  birth_date: isoDate,
+  religion: optionalText(50),
+  nisn: optionalDigits(10, 'NISN'),
+  nik: optionalDigits(16, 'NIK'),
+  address: z.string().trim().min(1, 'Wajib diisi.'),
+  city: optionalText(100),
+  previous_school_name: optionalText(200),
+})
+type ApplicantInput = z.input<typeof applicantSchema>
+const APPLICANT_FIELDS = Object.keys(applicantSchema.shape)
 
 function NewApplicantForm({ onDone }: { onDone: () => void }) {
   const qc = useQueryClient()
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const create = useMutation({
-    mutationFn: (body: Record<string, string>) => api<Applicant>('/admission/applicants', { method: 'POST', body }),
-    onSuccess: async () => {
+  const [error, setError] = useState<string | null>(null)
+  const { register, handleSubmit, formState, setError: setFieldError } = useForm<ApplicantInput>({
+    resolver: zodResolver(applicantSchema),
+    defaultValues: { full_name: '', birth_place: '', birth_date: '', religion: '', nisn: '', nik: '', address: '', city: '', previous_school_name: '' },
+  })
+  const e = formState.errors
+
+  const onSubmit = handleSubmit(async (v) => {
+    setError(null)
+    try {
+      await api<Applicant>('/admission/applicants', { method: 'POST', body: emptyToNull(v) })
       await qc.invalidateQueries({ queryKey: ['applicants'] })
       onDone()
-    },
-    onError: (e) => setErrors(fieldErrors(e)),
+    } catch (err) {
+      setError(applyServerErrors(err, setFieldError, APPLICANT_FIELDS))
+    }
   })
 
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setErrors({})
-    const body = Object.fromEntries(
-      [...new FormData(e.currentTarget).entries()].filter(([, v]) => String(v) !== '').map(([k, v]) => [k, String(v)]),
-    )
-    create.mutate(body)
-  }
-
   return (
-    <form className="card" onSubmit={onSubmit}>
-      <h2>Data Calon Siswa</h2>
-      <Field label="Nama lengkap" name="full_name" required error={errors.full_name} />
-      <label className="field">
+    <form className="card" onSubmit={onSubmit} noValidate aria-labelledby="applicant-title">
+      <h2 id="applicant-title">Data Calon Siswa</h2>
+      <Field label="Nama lengkap" required {...register('full_name')} error={e.full_name?.message} />
+      <label className="field required">
         <span>Jenis kelamin</span>
-        <select name="gender" required defaultValue="">
+        <select {...register('gender')} defaultValue="" aria-invalid={!!e.gender}>
           <option value="" disabled>Pilih…</option>
           <option value="MALE">Laki-laki</option>
           <option value="FEMALE">Perempuan</option>
         </select>
+        {e.gender && <small className="error">{e.gender.message}</small>}
       </label>
-      <Field label="Tempat lahir" name="birth_place" required error={errors.birth_place} />
-      <Field label="Tanggal lahir" name="birth_date" type="date" required error={errors.birth_date} />
-      <Field label="Agama" name="religion" error={errors.religion} />
-      <Field label="NISN" name="nisn" error={errors.nisn} />
-      <Field label="NIK" name="nik" error={errors.nik} />
-      <Field label="Alamat" name="address" required error={errors.address} />
-      <button disabled={create.isPending}>Simpan</button>
+      <Field label="Tempat lahir" required {...register('birth_place')} error={e.birth_place?.message} />
+      <Field label="Tanggal lahir" type="date" required {...register('birth_date')} error={e.birth_date?.message} />
+      <Field label="Agama" {...register('religion')} error={e.religion?.message} />
+      <Field label="NISN" inputMode="numeric" maxLength={10} {...register('nisn')} error={e.nisn?.message} hint="10 digit, lihat di nisn.data.kemdikbud.go.id" />
+      <Field label="NIK" inputMode="numeric" maxLength={16} {...register('nik')} error={e.nik?.message} hint="16 digit sesuai Kartu Keluarga" />
+      <Field label="Alamat" required {...register('address')} error={e.address?.message} />
+      <Field label="Kota/Kabupaten" {...register('city')} error={e.city?.message} />
+      <Field label="Sekolah asal" {...register('previous_school_name')} error={e.previous_school_name?.message} />
+      <FormError message={error} />
+      <button disabled={formState.isSubmitting}>{formState.isSubmitting ? 'Menyimpan…' : 'Simpan'}</button>{' '}
+      <button type="button" className="secondary" onClick={onDone}>Batal</button>
     </form>
   )
 }

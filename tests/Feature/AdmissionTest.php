@@ -120,7 +120,11 @@ class AdmissionTest extends TestCase
         $m = $this->postJson(self::API."/admission/applicants/{$id}/guardians", ['relationship' => 'MOTHER', 'full_name' => 'Ibu', 'is_primary_contact' => true])->assertCreated()->json('id');
 
         $this->getJson(self::API."/admission/applicants/{$id}/guardians/{$g}")->assertJsonPath('is_primary_contact', false);
-        $this->patchJson(self::API."/admission/applicants/{$id}/guardians/{$m}", ['phone' => '0811'])->assertOk();
+        $this->patchJson(self::API."/admission/applicants/{$id}/guardians/{$m}", ['phone' => '0811'])->assertStatus(400);
+        $this->patchJson(self::API."/admission/applicants/{$id}/guardians/{$m}", ['phone' => '0811-2233-4455'])->assertOk();
+        $this->patchJson(self::API."/admission/applicants/{$id}", ['nisn' => '123'])->assertStatus(400);
+        $this->patchJson(self::API."/admission/applicants/{$id}", ['nik' => '32730101011400011'])->assertStatus(400);
+        $this->patchJson(self::API."/admission/applicants/{$id}", ['nisn' => '0141234567', 'nik' => '3273010101140001'])->assertOk();
         $this->deleteJson(self::API."/admission/applicants/{$id}/guardians/{$g}")->assertNoContent();
         $this->getJson(self::API."/admission/applicants/{$id}/guardians")->assertJsonCount(1);
         $this->deleteJson(self::API."/admission/applicants/{$id}")->assertNoContent();

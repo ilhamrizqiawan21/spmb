@@ -368,3 +368,13 @@ export interface MplsPortal {
   participant: MplsParticipant
   events: (MplsEvent & { attendance_status: MplsAttendanceStatus | null })[]
 }
+
+export interface SchoolInfo {
+  name: string | null
+  address: string | null
+  phone: string | null
+  whatsapp: string | null
+  email: string | null
+  website: string | null
+  office_hours: string | null
+}

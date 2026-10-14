@@ -1,0 +1,53 @@
+- generic [ref=f2e2]:
+  - banner [ref=f2e3]:
+    - link "SPMB Terpadu 2026/2027" [ref=f2e4] [cursor=pointer]:
+      - /url: /
+    - navigation [ref=f2e5]:
+      - link "Periode" [ref=f2e6] [cursor=pointer]:
+        - /url: /periods
+      - link "Cek Hasil" [ref=f2e7] [cursor=pointer]:
+        - /url: /hasil
+      - link "Pendaftaran" [ref=f2e8] [cursor=pointer]:
+        - /url: /dashboard
+      - link "Dashboard" [ref=f2e9] [cursor=pointer]:
+        - /url: /ringkasan
+      - link "Verifikasi" [ref=f2e10] [cursor=pointer]:
+        - /url: /verifikasi
+      - link "Penilaian" [ref=f2e11] [cursor=pointer]:
+        - /url: /penilaian
+      - link "Seleksi" [ref=f2e12] [cursor=pointer]:
+        - /url: /seleksi
+      - link "Keuangan" [ref=f2e13] [cursor=pointer]:
+        - /url: /keuangan
+      - link "Siswa" [ref=f2e14] [cursor=pointer]:
+        - /url: /siswa
+      - link "MPLS" [ref=f2e15] [cursor=pointer]:
+        - /url: /mpls
+      - link "Data Master" [ref=f2e16] [cursor=pointer]:
+        - /url: /admin
+      - button "Keluar (Super Admin Demo)" [ref=f2e17] [cursor=pointer]
+  - main [ref=f2e18]:
+    - heading "MPLS" [level=1] [ref=f2e19]
+    - generic [ref=f2e20]:
+      - generic [ref=f2e21]:
+        - generic [ref=f2e22]: Tahun ajaran
+        - combobox "Tahun ajaran" [ref=f2e23]:
+          - option "2026/2027" [selected]
+      - navigation "Menu MPLS" [ref=f2e24]:
+        - button "Kelompok" [ref=f2e25] [cursor=pointer]
+        - button "Kegiatan" [ref=f2e26] [cursor=pointer]
+        - button "Presensi" [pressed] [ref=f2e27] [cursor=pointer]
+        - button "Peserta" [ref=f2e28] [cursor=pointer]
+    - generic [ref=f2e132]:
+      - heading "Presensi" [level=2] [ref=f2e133]
+      - generic [ref=f2e134]:
+        - generic [ref=f2e135]: Kegiatan
+        - combobox "Kegiatan" [ref=f2e136]:
+          - option "Pilih kegiatan…"
+          - option "13 Jul 2026, 07.00 — Upacara pembukaan" [selected]
+      - form "Scan QR" [ref=f2e137]:
+        - generic [ref=f2e138]:
+          - generic [ref=f2e139]: Scan / tempel kode QR
+          - textbox "Scan / tempel kode QR" [active] [ref=f2e140]
+        - button "Catat hadir" [ref=f2e141] [cursor=pointer]
+      - paragraph [ref=f2e142]: Memuat…

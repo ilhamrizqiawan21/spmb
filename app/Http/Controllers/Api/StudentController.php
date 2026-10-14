@@ -52,7 +52,7 @@ class StudentController extends ApiController
     {
         $data = $request->validate([
             'student_number' => ['sometimes', ...self::STUDENT_NUMBER],
-            'nisn' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'nisn' => ['sometimes', 'nullable', 'string', 'regex:/^\d{10}$/'],
             'reason' => ['required', 'string', 'max:500'],
         ]);
         $reason = $data['reason'];

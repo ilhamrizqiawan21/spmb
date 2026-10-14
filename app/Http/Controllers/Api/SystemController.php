@@ -18,6 +18,12 @@ class SystemController extends ApiController
         ]);
     }
 
+    /** Public school identity/contact for the home page (configured via SPMB_SCHOOL_*). */
+    public function school(): JsonResponse
+    {
+        return response()->json(array_map(fn ($v) => $v === '' ? null : $v, config('spmb.school')));
+    }
+
     /** Verifies required infrastructure (database, cache) is reachable. */
     public function ready(): JsonResponse
     {

@@ -7,6 +7,8 @@ interface AuthState {
   loading: boolean
   login: (identifier: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  /** Replace the cached user after a profile change. */
+  setCurrentUser: (user: User) => void
   can: (...codes: string[]) => boolean
 }
 
@@ -45,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       login,
       logout,
+      setCurrentUser: setUser,
       can: (...codes) => !!user && codes.some((c) => user.permissions.includes(c)),
     }),
     [user, loading, login, logout],

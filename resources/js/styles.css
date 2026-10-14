@@ -56,3 +56,27 @@ button.danger { background: var(--danger); border-color: var(--danger); color: #
 .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
 .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .qr { display: block; max-width: 100%; height: auto; background: #fff; padding: 8px; border-radius: 8px; image-rendering: pixelated; }
+.field.required > span:first-child::after { content: ' *'; color: var(--danger); }
+.hint { color: var(--muted); }
+/* Accessibility & small screens (F19) */
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+.skip-link { position: absolute; left: 8px; top: -48px; padding: 8px 12px; background: var(--card); border: 1px solid var(--line); border-radius: 6px; z-index: 10; }
+.skip-link:focus { top: 8px; }
+main:focus { outline: none; }
+.topbar nav a.active { font-weight: 700; text-decoration: none; }
+.menu-toggle { display: none; }
+@media (max-width: 720px) {
+  .menu-toggle { display: inline-block; }
+  .topbar nav { display: none; width: 100%; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .topbar nav.open { display: flex; }
+  .topbar nav a, .topbar nav button.link { padding: 8px 0; }
+  .row > .field { flex: 1 1 100%; }
+  button, select, input { min-height: 44px; }
+  .details { grid-template-columns: 1fr; gap: 0 8px; }
+  .details dd { margin-bottom: 8px; }
+}
+a.button { display: inline-block; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--brand); background: var(--brand); color: #fff; text-decoration: none; }
+a.button.secondary { background: transparent; color: var(--brand); }
+.steps { padding-left: 1.25rem; display: grid; gap: 8px; }
+.steps span { color: var(--muted); }
+.period + .period { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 8px; }

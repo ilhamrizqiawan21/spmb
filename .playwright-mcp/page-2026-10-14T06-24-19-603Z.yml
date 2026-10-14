@@ -1,0 +1,58 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - link "SPMB Terpadu 2026/2027" [ref=e4] [cursor=pointer]:
+      - /url: /
+    - navigation [ref=e5]:
+      - link "Periode" [ref=e6] [cursor=pointer]:
+        - /url: /periods
+      - link "Cek Hasil" [ref=e7] [cursor=pointer]:
+        - /url: /hasil
+      - link "Pendaftaran" [ref=e24] [cursor=pointer]:
+        - /url: /dashboard
+      - link "Dashboard" [ref=e25] [cursor=pointer]:
+        - /url: /ringkasan
+      - link "Verifikasi" [ref=e26] [cursor=pointer]:
+        - /url: /verifikasi
+      - link "Penilaian" [ref=e27] [cursor=pointer]:
+        - /url: /penilaian
+      - link "Seleksi" [ref=e28] [cursor=pointer]:
+        - /url: /seleksi
+      - link "Keuangan" [ref=e29] [cursor=pointer]:
+        - /url: /keuangan
+      - link "Siswa" [ref=e30] [cursor=pointer]:
+        - /url: /siswa
+      - link "MPLS" [ref=e31] [cursor=pointer]:
+        - /url: /mpls
+      - link "Data Master" [ref=e32] [cursor=pointer]:
+        - /url: /admin
+      - button "Keluar (Super Admin Demo)" [ref=e33] [cursor=pointer]
+  - main [ref=e10]:
+    - generic [ref=e34]:
+      - heading "Pendaftaran Saya" [level=1] [ref=e35]
+      - list [ref=e36]:
+        - listitem [ref=e37]:
+          - link "Siti Aminah — Gelombang 1" [ref=e38] [cursor=pointer]:
+            - /url: /applications/01a13914-ee5b-720f-b23b-79d15df07690
+          - generic [ref=e39]: RE REGISTRATION VERIFIED
+          - generic [ref=e40]: REG-2026-900000
+        - listitem [ref=e41]:
+          - link "Rudi Hartono — Gelombang 1" [ref=e42] [cursor=pointer]:
+            - /url: /applications/01a13914-ee84-72ca-8a14-84ce01a02b70
+          - generic [ref=e43]: RE REGISTRATION VERIFIED
+          - generic [ref=e44]: REG-2026-900001
+    - generic [ref=e45]:
+      - heading "Calon Siswa" [level=2] [ref=e46]
+      - list [ref=e47]:
+        - listitem [ref=e48]:
+          - strong [ref=e49]: Siti Aminah
+          - generic [ref=e50]:
+            - combobox "Periode" [ref=e51]:
+              - option "Gelombang 1" [selected]
+            - button "Mulai pendaftaran" [ref=e52] [cursor=pointer]
+        - listitem [ref=e53]:
+          - strong [ref=e54]: Rudi Hartono
+          - generic [ref=e55]:
+            - combobox "Periode" [ref=e56]:
+              - option "Gelombang 1" [selected]
+            - button "Mulai pendaftaran" [ref=e57] [cursor=pointer]
+      - button "Tambah calon siswa" [ref=e58] [cursor=pointer]

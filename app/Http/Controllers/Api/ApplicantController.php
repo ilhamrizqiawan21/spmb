@@ -14,7 +14,7 @@ use Illuminate\Validation\Rule;
 class ApplicantController extends ApiController
 {
     private const FIELDS = [
-        'nisn' => ['nullable', 'string', 'max:20'],
+        'nisn' => ['nullable', 'string', 'regex:/^\d{10}$/'],
         'full_name' => ['string', 'max:200'],
         'nickname' => ['nullable', 'string', 'max:100'],
         'gender' => ['string', 'max:20'],
@@ -22,8 +22,8 @@ class ApplicantController extends ApiController
         'birth_date' => ['date_format:Y-m-d'],
         'religion' => ['nullable', 'string', 'max:50'],
         'nationality' => ['string', 'max:50'],
-        'nik' => ['nullable', 'string', 'max:30'],
-        'family_card_number' => ['nullable', 'string', 'max:30'],
+        'nik' => ['nullable', 'string', 'regex:/^\d{16}$/'],
+        'family_card_number' => ['nullable', 'string', 'regex:/^\d{16}$/'],
         'address' => ['string'],
         'province' => ['nullable', 'string', 'max:100'],
         'city' => ['nullable', 'string', 'max:100'],
@@ -120,8 +120,8 @@ class ApplicantController extends ApiController
         return [
             'relationship' => [...$req, Rule::in(GuardianRelationship::ALL)],
             'full_name' => [...$req, 'string', 'max:200'],
-            'nik' => ['sometimes', 'nullable', 'string', 'max:30'],
-            'phone' => ['sometimes', 'nullable', 'string', 'max:30'],
+            'nik' => ['sometimes', 'nullable', 'string', 'regex:/^\d{16}$/'],
+            'phone' => ['sometimes', 'nullable', 'string', 'regex:/^\+?[0-9 ()-]{6,30}$/'],
             'email' => ['sometimes', 'nullable', 'email', 'max:255'],
             'occupation' => ['sometimes', 'nullable', 'string', 'max:150'],
             'education' => ['sometimes', 'nullable', 'string', 'max:100'],

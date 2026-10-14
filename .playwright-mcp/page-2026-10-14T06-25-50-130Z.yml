@@ -1,0 +1,14 @@
+- generic [ref=f4e2]:
+  - banner [ref=f4e3]:
+    - link "SPMB Terpadu 2026/2027" [ref=f4e4] [cursor=pointer]:
+      - /url: /
+    - navigation [ref=f4e5]:
+      - link "Periode" [ref=f4e6] [cursor=pointer]:
+        - /url: /periods
+      - link "Cek Hasil" [ref=f4e7] [cursor=pointer]:
+        - /url: /hasil
+      - link "Pendaftaran" [ref=f4e24] [cursor=pointer]:
+        - /url: /dashboard
+      - button "Keluar (Parent Demo)" [ref=f4e25] [cursor=pointer]
+  - main [ref=f4e10]:
+    - paragraph [ref=f4e26]: Anda tidak memiliki akses ke halaman ini.

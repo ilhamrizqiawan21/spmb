@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Layout, RequireAuth } from './components/Layout'
 import { AuthProvider } from './features/auth/AuthContext'
+import { AccountPage } from './pages/AccountPage'
 import { AdminPage } from './pages/admin/AdminPage'
 import { ApplicationPage } from './pages/ApplicationPage'
 import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from './pages/AuthPages'
@@ -34,6 +35,7 @@ export default function App() {
               <Route path="reset-password" element={<ResetPasswordPage />} />
               <Route element={<RequireAuth />}>
                 <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="akun" element={<AccountPage />} />
                 <Route path="applications/:id" element={<ApplicationPage />} />
               </Route>
               <Route element={<RequireAuth permissions={['document.verify', 'application.verify', 'application.override']} />}>
