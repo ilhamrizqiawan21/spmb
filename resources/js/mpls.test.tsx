@@ -1,11 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { tokenStore } from './lib/api'
 import { MplsCard } from './pages/mpls/MplsCard'
-import type { Application, MplsEvent, MplsParticipant, MplsRoster, User } from './types/api'
+import type { Application, MplsEvent, MplsParticipant, User } from './types/api'
 
 const user = (permissions: string[]): User => ({ id: 'u1', name: 'Staf', email: 's@x.test', phone: null, is_active: true, roles: [], permissions })
 
@@ -18,11 +17,6 @@ const participant: MplsParticipant = {
 const event: MplsEvent = {
   id: 'e1', academic_year_id: 'y1', group_id: null, group_name: null, title: 'Pengenalan sekolah', description: null,
   start_at: '2026-07-13T00:00:00Z', end_at: '2026-07-13T03:00:00Z', location: 'Aula', is_mandatory: true,
-}
-
-const roster: MplsRoster = {
-  event,
-  rows: [{ participant_id: 'mp1', student_number: '2026.001', full_name: 'Budi', group_name: 'Kelompok A', attendance: null }],
 }
 
 type Call = { url: string; init?: RequestInit }
@@ -50,9 +44,11 @@ describe('MPLS staff page', () => {
     '/admission/academic-years': [{ id: 'y1', name: '2026/2027', is_active: true }],
     '/mpls/groups': [{ id: 'g1', academic_year_id: 'y1', academic_year_name: '2026/2027', name: 'Kelompok A', code: 'A', capacity: 30, participant_count: 1, mentor_name: 'Bu Sari', description: null }],
     '/mpls/participants/unassigned': [],
-    '/mpls/events/e1/attendance': roster,
+    '/mpls/participants': {
+      data: [participant],
+      meta: { page: 1, per_page: 50, total: 1 },
+    },
     '/mpls/events': [event],
-    '/mpls/attendance': { attendance: { id: 'at1', event_id: 'e1', participant_id: 'mp1', full_name: 'Budi', status: 'PRESENT', checked_at: null, checked_by_name: null, notes: null }, already_recorded: false },
   }
 
   it('is hidden from users without mpls.manage', async () => {
@@ -62,32 +58,34 @@ describe('MPLS staff page', () => {
     expect(await screen.findByText(/tidak memiliki akses/)).toBeInTheDocument()
   })
 
-  it('lists groups of the active academic year', async () => {
+  it('lists groups of the active academic year at the top', async () => {
     const calls = mockApi(routes)
     window.history.pushState({}, '', '/mpls')
     render(<App />)
+    expect(await screen.findByText('Daftar Kelompok Siswa')).toBeInTheDocument()
     expect(await screen.findByText('Bu Sari')).toBeInTheDocument()
     expect(screen.getByText('1 / 30')).toBeInTheDocument()
     expect(calls.some((c) => c.url.includes('/mpls/groups?academic_year_id=y1'))).toBe(true)
   })
 
-  it('records attendance by scanned QR token and manually', async () => {
-    const calls = mockApi(routes)
+  it('displays candidate students below with group code and mentor, without attendance menu', async () => {
+    mockApi(routes)
     window.history.pushState({}, '', '/mpls')
     render(<App />)
 
-    await userEvent.click(await screen.findByRole('button', { name: 'Presensi' }))
-    await userEvent.selectOptions(await screen.findByLabelText('Kegiatan'), 'e1')
-    await userEvent.type(await screen.findByLabelText('Scan / tempel kode QR'), 'TOKEN123{Enter}')
-    await waitFor(() => expect(calls.some((c) => c.url.endsWith('/mpls/attendance/scan'))).toBe(true))
-    const scan = calls.find((c) => c.url.endsWith('/scan'))!
-    expect(JSON.parse(String(scan.init!.body))).toEqual({ event_id: 'e1', qr_token: 'TOKEN123' })
-    expect(await screen.findByText(/Budi: hadir/)).toBeInTheDocument()
+    // Presensi menu does not exist
+    expect(screen.queryByRole('button', { name: 'Presensi' })).not.toBeInTheDocument()
 
-    await userEvent.selectOptions(await screen.findByLabelText('Presensi Budi'), 'SICK')
-    await waitFor(() => expect(calls.some((c) => c.url.endsWith('/mpls/attendance') && c.init?.method === 'POST')).toBe(true))
-    const manual = calls.find((c) => c.url.endsWith('/mpls/attendance'))!
-    expect(JSON.parse(String(manual.init!.body))).toEqual({ event_id: 'e1', participant_id: 'mp1', status: 'SICK' })
+    // Candidate students section is rendered below groups
+    expect(await screen.findByText('Daftar Calon Siswa Baru MPLS')).toBeInTheDocument()
+    expect(await screen.findByText('Budi')).toBeInTheDocument()
+    expect(screen.getByText('2026.001')).toBeInTheDocument()
+
+    // Candidate student row displays group code and mentor name
+    const codeBadges = screen.getAllByText('A')
+    expect(codeBadges.length).toBeGreaterThanOrEqual(1)
+    const mentorCells = screen.getAllByText('Bu Sari')
+    expect(mentorCells.length).toBeGreaterThanOrEqual(2) // 1 in groups table, 1 in students table
   })
 })
 
