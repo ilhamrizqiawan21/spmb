@@ -42,9 +42,8 @@ infrastruktur dan shell SPA di `routes/web.php` (`/health`, `/ready`, sisanya SP
 
 Buka repo di GitHub → **Code** → **Codespaces** → **Create codespace** (bisa dari browser HP).
 Setelah setup selesai (± 3–5 menit), buka port **8000** di tab *Ports*. Database memakai
-SQLite dan data demo sudah terisi (tanpa MySQL). Akun demo (kata sandi `Rahasia-123`):
-`parent@demo.test`, `verifier@demo.test`, `admission_admin@demo.test`, `assessor@demo.test`,
-`principal@demo.test`, `super_admin@demo.test`. Atau daftar akun orang tua baru lewat halaman *Daftar*.
+SQLite dan data demo sudah terisi (tanpa MySQL). Seluruh akun demo menggunakan kata sandi `Rahasia-123`.
+Daftar lengkap akun staf (`super_admin@demo.test`, `verifier@demo.test`, dll.) dan akun orang tua berdasarkan skenario dapat dilihat di [`docs/DEMO_USERS.md`](docs/DEMO_USERS.md). Atau daftar akun orang tua baru lewat halaman *Daftar*.
 
 ## Setup Lokal
 
@@ -94,6 +93,7 @@ Roadmap menuju siap pakai: `docs/TODO.md`.
 
 ## Dokumen Sumber Kebenaran
 
+- [Akun Pengguna Demo](docs/DEMO_USERS.md)
 - [PRD](docs/PRD_SPMB_Terpadu_2026_2027.md)
 - [ERD](docs/ERD_SPMB_Terpadu_2026_2027.md)
 - [Aturan AI](docs/AI_RULES.md)
