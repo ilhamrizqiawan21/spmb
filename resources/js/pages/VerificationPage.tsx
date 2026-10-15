@@ -171,8 +171,10 @@ export function VerificationPage() {
         {/* Panel Filter Antrean */}
         <div
           style={{
-            display: 'flex',
-            flexWrap: 'wrap',
+            display: 'grid',
+            gridTemplateColumns: hasFilter
+              ? 'repeat(auto-fit, minmax(200px, 1fr)) auto'
+              : 'repeat(auto-fit, minmax(200px, 1fr))',
             gap: 12,
             alignItems: 'center',
             marginBottom: 20,
@@ -182,7 +184,7 @@ export function VerificationPage() {
             border: '1px solid var(--line)',
           }}
         >
-          <div style={{ flex: '1 1 240px', minWidth: 200 }}>
+          <div>
             <input
               placeholder="Cari nama siswa atau no. pendaftaran…"
               value={search}
@@ -192,7 +194,7 @@ export function VerificationPage() {
             />
           </div>
 
-          <div style={{ flex: '1 1 180px', minWidth: 160 }}>
+          <div>
             <select
               value={periodId}
               onChange={(e) => setPeriodId(e.target.value)}
@@ -208,7 +210,7 @@ export function VerificationPage() {
             </select>
           </div>
 
-          <div style={{ flex: '1 1 180px', minWidth: 160 }}>
+          <div>
             <select
               value={assignment}
               onChange={(e) => setAssignment(e.target.value)}
@@ -222,37 +224,38 @@ export function VerificationPage() {
           </div>
 
           {hasFilter && (
-            <button
-              type="button"
-              className="button secondary"
-              style={{ fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              onClick={() => {
-                setSearch('')
-                setPeriodId('')
-                setAssignment('')
-              }}
-              title="Kembalikan semua filter ke awal"
-            >
-              <Icon name="refresh-cw" size={13} /> Reset Filter
-            </button>
+            <div>
+              <button
+                type="button"
+                className="button secondary"
+                style={{ fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center' }}
+                onClick={() => {
+                  setSearch('')
+                  setPeriodId('')
+                  setAssignment('')
+                }}
+                title="Kembalikan semua filter ke awal"
+              >
+                <Icon name="refresh-cw" size={13} /> Reset Filter
+              </button>
+            </div>
           )}
         </div>
 
         {isPending ? (
           <p className="loading-indicator">Memuat data antrean…</p>
         ) : data && data.length > 0 ? (
-          <div className="table-wrapper">
-            <table>
+          <div className="table-wrapper" style={{ overflowX: 'auto', marginBottom: 0 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  <th>No. Pendaftaran</th>
-                  <th>Nama Calon Siswa</th>
-                  <th>Gelombang</th>
-                  <th>Tgl Daftar / Submit</th>
-                  <th>Status Pendaftaran</th>
-                  <th>Verifikator</th>
-                  <th>Kelengkapan Berkas</th>
-                  <th style={{ textAlign: 'center' }}>Aksi</th>
+                  <th style={{ minWidth: 200 }}>Calon Siswa & No. Pendaftaran</th>
+                  <th style={{ width: 130 }}>Gelombang</th>
+                  <th style={{ width: 130 }}>Tgl Submit</th>
+                  <th style={{ width: 140 }}>Status Pendaftaran</th>
+                  <th style={{ width: 140 }}>Verifikator</th>
+                  <th style={{ width: 140 }}>Kelengkapan Berkas</th>
+                  <th style={{ width: 100, textAlign: 'center' }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -264,37 +267,17 @@ export function VerificationPage() {
 
                   return (
                     <tr key={i.id}>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        <Link
-                          to={`/verifikasi/${i.id}`}
-                          style={{
-                            fontFamily: 'monospace',
-                            fontWeight: 700,
-                            fontSize: '0.85rem',
-                            color: 'var(--brand)',
-                            textDecoration: 'none',
-                            display: 'inline-block',
-                            padding: '3px 8px',
-                            borderRadius: 'var(--radius-sm)',
-                            background: 'var(--brand-light)',
-                            border: '1px solid var(--line)',
-                          }}
-                        >
-                          {i.registration_number ?? 'DRAF'}
-                        </Link>
-                      </td>
-
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div
                             style={{
-                              width: 32,
-                              height: 32,
+                              width: 34,
+                              height: 34,
                               borderRadius: '50%',
                               background: 'var(--brand-light)',
                               color: 'var(--brand)',
                               fontWeight: 700,
-                              fontSize: '0.75rem',
+                              fontSize: '0.78rem',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
@@ -306,7 +289,24 @@ export function VerificationPage() {
                             {getInitials(i.applicant_name)}
                           </div>
                           <div>
-                            <strong style={{ display: 'block', fontSize: '0.9rem' }}>{i.applicant_name}</strong>
+                            <strong style={{ display: 'block', fontSize: '0.92rem', color: 'var(--fg)', lineHeight: 1.3 }}>
+                              {i.applicant_name}
+                            </strong>
+                            <Link
+                              to={`/verifikasi/${i.id}`}
+                              style={{
+                                fontFamily: 'monospace',
+                                fontWeight: 600,
+                                fontSize: '0.78rem',
+                                color: 'var(--brand)',
+                                textDecoration: 'none',
+                                display: 'inline-block',
+                                marginTop: 2,
+                              }}
+                              title="Buka detail verifikasi"
+                            >
+                              {i.registration_number ?? 'DRAF'}
+                            </Link>
                           </div>
                         </div>
                       </td>
@@ -331,7 +331,7 @@ export function VerificationPage() {
                             <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>
                               {new Date(i.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </span>
-                            <div className="hint" style={{ fontSize: '0.75rem', marginTop: 2 }}>
+                            <div className="hint" style={{ fontSize: '0.75rem', marginTop: 1 }}>
                               {new Date(i.submitted_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
                             </div>
                           </div>
@@ -361,7 +361,7 @@ export function VerificationPage() {
                       </td>
 
                       <td>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
                           <span
                             className={`badge ${
                               isAllValid
@@ -381,8 +381,8 @@ export function VerificationPage() {
                             type="button"
                             className="button secondary"
                             style={{
-                              fontSize: '0.75rem',
-                              padding: '2px 8px',
+                              fontSize: '0.72rem',
+                              padding: '2px 7px',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: 4,
@@ -391,7 +391,7 @@ export function VerificationPage() {
                             title="Rincian Berkas yang Sudah Dikirim & Status Validasi"
                             aria-label={`Rincian berkas ${i.applicant_name}`}
                           >
-                            <Icon name="eye" size={12} /> Rincian Berkas
+                            <Icon name="eye" size={11} /> Rincian Berkas
                           </button>
                         </div>
                       </td>
@@ -401,10 +401,11 @@ export function VerificationPage() {
                           to={`/verifikasi/${i.id}`}
                           className="button secondary"
                           style={{
-                            fontSize: '0.8rem',
-                            padding: '6px 14px',
+                            fontSize: '0.82rem',
+                            padding: '6px 12px',
                             display: 'inline-flex',
                             alignItems: 'center',
+                            justifyContent: 'center',
                             gap: 4,
                             fontWeight: 600,
                           }}
