@@ -85,41 +85,151 @@ export function VerificationPage() {
     queryFn: () => api<QueueItem[]>(`/verification/queue?${q}`),
   })
 
+  // Perhitungan statistik cepat dari antrean
+  const totalItems = data?.length ?? 0
+  const unassignedCount = data?.filter((i) => !i.assigned_verifier_id && !i.assigned_verifier_name).length ?? 0
+  const allValidCount = data?.filter((i) => i.document_counts.valid === i.document_counts.total && i.document_counts.total > 0).length ?? 0
+  const hasFilter = Boolean(search || periodId || assignment)
+
   return (
     <>
       <section className="card">
         <PageHeader
-          title="Antrean Verifikasi"
-          description="Daftar berkas pendaftaran calon siswa yang menunggu penugasan dan pemeriksaan oleh staf verifikator."
+          title="Antrean Verifikasi Dokumen"
+          description="Pemeriksaan berkas persyaratan pendaftaran calon siswa baru oleh tim verifikator."
         />
-        <div className="row">
-          <input
-            placeholder="Cari nama / no. pendaftaran"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Cari"
-          />
-          <select
-            value={periodId}
-            onChange={(e) => setPeriodId(e.target.value)}
-            aria-label="Filter Gelombang"
+
+        {/* Ringkasan Cepat Antrean */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: 12,
+            marginBottom: 20,
+          }}
+        >
+          <div
+            style={{
+              padding: '12px 16px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--bg)',
+              border: '1px solid var(--line)',
+            }}
           >
-            <option value="">Semua Gelombang</option>
-            {periods.data?.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={assignment}
-            onChange={(e) => setAssignment(e.target.value)}
-            aria-label="Penugasan"
+            <span className="hint" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>
+              Total Antrean
+            </span>
+            <div style={{ fontSize: '1.4rem', fontWeight: 700, marginTop: 2 }}>{totalItems} Pendaftar</div>
+          </div>
+
+          <div
+            style={{
+              padding: '12px 16px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--bg)',
+              border: '1px solid var(--line)',
+            }}
           >
-            <option value="">Semua Penugasan</option>
-            <option value="unassigned">Belum ditugaskan</option>
-            <option value="assigned_to_me">Ditugaskan ke saya</option>
-          </select>
+            <span className="hint" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>
+              Belum Ditugaskan
+            </span>
+            <div
+              style={{
+                fontSize: '1.4rem',
+                fontWeight: 700,
+                marginTop: 2,
+                color: unassignedCount > 0 ? 'var(--warning)' : 'inherit',
+              }}
+            >
+              {unassignedCount} Pendaftar
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: '12px 16px',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--bg)',
+              border: '1px solid var(--line)',
+            }}
+          >
+            <span className="hint" style={{ fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase' }}>
+              Berkas Lengkap & Valid
+            </span>
+            <div style={{ fontSize: '1.4rem', fontWeight: 700, marginTop: 2, color: 'var(--brand)' }}>
+              {allValidCount} Pendaftar
+            </div>
+          </div>
+        </div>
+
+        {/* Panel Filter Antrean */}
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 12,
+            alignItems: 'center',
+            marginBottom: 20,
+            padding: 14,
+            background: 'var(--bg)',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--line)',
+          }}
+        >
+          <div style={{ flex: '1 1 240px', minWidth: 200 }}>
+            <input
+              placeholder="Cari nama siswa atau no. pendaftaran…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Cari nama atau nomor pendaftaran"
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          <div style={{ flex: '1 1 180px', minWidth: 160 }}>
+            <select
+              value={periodId}
+              onChange={(e) => setPeriodId(e.target.value)}
+              aria-label="Filter Gelombang"
+              style={{ width: '100%' }}
+            >
+              <option value="">Semua Gelombang</option>
+              {periods.data?.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ flex: '1 1 180px', minWidth: 160 }}>
+            <select
+              value={assignment}
+              onChange={(e) => setAssignment(e.target.value)}
+              aria-label="Penugasan"
+              style={{ width: '100%' }}
+            >
+              <option value="">Semua Penugasan</option>
+              <option value="unassigned">Belum ditugaskan</option>
+              <option value="assigned_to_me">Ditugaskan ke saya</option>
+            </select>
+          </div>
+
+          {hasFilter && (
+            <button
+              type="button"
+              className="button secondary"
+              style={{ fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              onClick={() => {
+                setSearch('')
+                setPeriodId('')
+                setAssignment('')
+              }}
+              title="Kembalikan semua filter ke awal"
+            >
+              <Icon name="refresh-cw" size={13} /> Reset Filter
+            </button>
+          )}
         </div>
 
         {isPending ? (
@@ -133,10 +243,10 @@ export function VerificationPage() {
                   <th>Nama Calon Siswa</th>
                   <th>Gelombang</th>
                   <th>Tgl Daftar / Submit</th>
-                  <th>Status</th>
+                  <th>Status Pendaftaran</th>
                   <th>Verifikator</th>
-                  <th>Berkas (Valid / Total)</th>
-                  <th>Aksi</th>
+                  <th>Kelengkapan Berkas</th>
+                  <th style={{ textAlign: 'center' }}>Aksi</th>
                 </tr>
               </thead>
               <tbody>

@@ -189,3 +189,4 @@ export function Icon({ name, size = 16, className = '', style, ...props }: IconP
       return null
   }
 }
+
