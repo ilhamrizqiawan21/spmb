@@ -44,7 +44,7 @@ class SystemController extends ApiController
 
         // Storage metrics
         $totalDocs = ApplicationDocument::count();
-        $totalBytes = (int) ApplicationDocument::sum('file_size_bytes');
+        $totalBytes = (int) ApplicationDocument::sum('file_size');
 
         // Stalled documents (pending verification for more than 24 hours)
         $stalledDocs = ApplicationDocument::where('status', 'PENDING')

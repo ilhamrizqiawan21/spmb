@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\AdmissionPeriod;
+use App\Models\ApplicationDocument;
+use App\Models\DocumentRequirement;
 use Tests\TestCase;
 
 class AdminDashboardTest extends TestCase
@@ -10,7 +12,25 @@ class AdminDashboardTest extends TestCase
     public function test_super_admin_can_access_admin_dashboard_stats(): void
     {
         $admin = $this->makeUser('super_admin');
-        $this->makePeriod();
+        $period = $this->makePeriod();
+        $parent = $this->makeUser('parent');
+        $app = $this->makeApplication($parent, $period);
+        $req = DocumentRequirement::create([
+            'admission_period_id' => $period->id,
+            'name' => 'Kartu Keluarga',
+            'code' => 'KK',
+            'allowed_mime_types' => ['application/pdf'],
+            'max_file_size_bytes' => 5000000,
+        ]);
+        ApplicationDocument::create([
+            'application_id' => $app->id,
+            'requirement_id' => $req->id,
+            'storage_key' => 'docs/kk.pdf',
+            'original_filename' => 'kk.pdf',
+            'mime_type' => 'application/pdf',
+            'file_size' => 1024,
+            'status' => 'PENDING',
+        ]);
 
         $res = $this->as($admin)->getJson(self::API.'/system/admin-dashboard')->assertOk();
         $res->assertJsonStructure([
@@ -22,6 +42,8 @@ class AdminDashboardTest extends TestCase
             'recent_audits',
         ]);
         $res->assertJsonPath('health.database', 'ok');
+        $res->assertJsonPath('health.storage.total_documents', 1);
+        $res->assertJsonPath('health.storage.total_bytes', 1024);
     }
 
     public function test_non_override_users_cannot_access_admin_dashboard(): void
