@@ -16,6 +16,12 @@ function formatBytes(bytes: number | null | undefined): string {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
 }
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
 function renderDocStatusBadge(status: string) {
   switch (status) {
     case 'VALID':
@@ -258,29 +264,76 @@ export function VerificationPage() {
 
                   return (
                     <tr key={i.id}>
-                      <td>
-                        <Link to={`/verifikasi/${i.id}`}>
-                          <strong>{i.registration_number ?? 'DRAF'}</strong>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <Link
+                          to={`/verifikasi/${i.id}`}
+                          style={{
+                            fontFamily: 'monospace',
+                            fontWeight: 700,
+                            fontSize: '0.85rem',
+                            color: 'var(--brand)',
+                            textDecoration: 'none',
+                            display: 'inline-block',
+                            padding: '3px 8px',
+                            borderRadius: 'var(--radius-sm)',
+                            background: 'var(--brand-light)',
+                            border: '1px solid var(--line)',
+                          }}
+                        >
+                          {i.registration_number ?? 'DRAF'}
                         </Link>
                       </td>
+
                       <td>
-                        <strong>{i.applicant_name}</strong>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: '50%',
+                              background: 'var(--brand-light)',
+                              color: 'var(--brand)',
+                              fontWeight: 700,
+                              fontSize: '0.75rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                              border: '1px solid var(--brand)',
+                            }}
+                            aria-hidden="true"
+                          >
+                            {getInitials(i.applicant_name)}
+                          </div>
+                          <div>
+                            <strong style={{ display: 'block', fontSize: '0.9rem' }}>{i.applicant_name}</strong>
+                          </div>
+                        </div>
                       </td>
+
                       <td>
-                        <span className="badge" style={{ background: 'var(--muted-bg, rgba(0,0,0,0.06))', color: 'var(--fg)', fontSize: '0.75rem' }}>
+                        <span
+                          className="badge"
+                          style={{
+                            fontSize: '0.75rem',
+                            border: '1px solid var(--line)',
+                            background: 'var(--bg)',
+                            color: 'var(--fg)',
+                          }}
+                        >
                           {i.period_name ?? '—'}
                         </span>
                       </td>
-                      <td>
+
+                      <td style={{ whiteSpace: 'nowrap' }}>
                         {i.submitted_at ? (
-                          <div title={`Diajukan: ${new Date(i.submitted_at).toLocaleString('id-ID')}`}>
-                            <span style={{ fontWeight: 500 }}>
+                          <div style={{ lineHeight: 1.35 }} title={`Diajukan: ${new Date(i.submitted_at).toLocaleString('id-ID')}`}>
+                            <span style={{ fontWeight: 600, fontSize: '0.85rem' }}>
                               {new Date(i.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                             </span>
-                            <br />
-                            <small className="hint" style={{ fontSize: '0.75rem' }}>
+                            <div className="hint" style={{ fontSize: '0.75rem', marginTop: 2 }}>
                               {new Date(i.submitted_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
-                            </small>
+                            </div>
                           </div>
                         ) : i.created_at ? (
                           <span className="hint" style={{ fontSize: '0.8rem' }} title="Draf dibuat tapi belum resmi disubmit">
@@ -290,10 +343,25 @@ export function VerificationPage() {
                           <span className="hint">—</span>
                         )}
                       </td>
-                      <td><StatusBadge status={i.status} /></td>
-                      <td>{i.assigned_verifier_name ?? '—'}</td>
+
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <StatusBadge status={i.status} />
+                      </td>
+
+                      <td>
+                        {i.assigned_verifier_name ? (
+                          <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>
+                            {i.assigned_verifier_name}
+                          </span>
+                        ) : (
+                          <span className="badge badge-draft" style={{ fontSize: '0.7rem', opacity: 0.85 }}>
+                            Belum Ditugaskan
+                          </span>
+                        )}
+                      </td>
+
+                      <td>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
                           <span
                             className={`badge ${
                               isAllValid
@@ -304,7 +372,7 @@ export function VerificationPage() {
                                 ? 'badge-draft'
                                 : ''
                             }`}
-                            style={{ fontWeight: 600 }}
+                            style={{ fontWeight: 600, fontSize: '0.75rem' }}
                           >
                             {counts.valid} / {counts.total} Valid
                           </span>
@@ -312,20 +380,34 @@ export function VerificationPage() {
                           <button
                             type="button"
                             className="button secondary"
-                            style={{ fontSize: '0.75rem', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                            style={{
+                              fontSize: '0.75rem',
+                              padding: '2px 8px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                            }}
                             onClick={() => setSelectedItem(i)}
                             title="Rincian Berkas yang Sudah Dikirim & Status Validasi"
                             aria-label={`Rincian berkas ${i.applicant_name}`}
                           >
-                            <Icon name="eye" size={13} /> Rincian Berkas
+                            <Icon name="eye" size={12} /> Rincian Berkas
                           </button>
                         </div>
                       </td>
-                      <td>
+
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                         <Link
                           to={`/verifikasi/${i.id}`}
                           className="button secondary"
-                          style={{ fontSize: '0.8rem', padding: '4px 10px' }}
+                          style={{
+                            fontSize: '0.8rem',
+                            padding: '6px 14px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            fontWeight: 600,
+                          }}
                         >
                           Periksa →
                         </Link>
@@ -485,11 +567,11 @@ export function VerificationPage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Berkas Persyaratan</th>
-                    <th>Status Validasi</th>
-                    <th>Nama Berkas Terunggah</th>
-                    <th>Ukuran File</th>
-                    <th>Keterangan / Catatan Verifikator</th>
+                    <th style={{ width: '25%' }}>Berkas Persyaratan</th>
+                    <th style={{ width: '18%' }}>Status Validasi</th>
+                    <th style={{ width: '22%' }}>File Terunggah</th>
+                    <th style={{ width: '12%', textAlign: 'right' }}>Ukuran</th>
+                    <th style={{ width: '23%' }}>Catatan Verifikator</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -497,9 +579,17 @@ export function VerificationPage() {
                     selectedItem.documents.map((doc, idx) => (
                       <tr key={doc.requirement_id || idx}>
                         <td>
-                          <strong>{doc.requirement_name}</strong>
+                          <strong style={{ display: 'block', fontSize: '0.875rem' }}>{doc.requirement_name}</strong>
                           {doc.is_required && (
-                            <span className="badge" style={{ marginLeft: 6, fontSize: '0.7rem' }}>
+                            <span
+                              className="badge"
+                              style={{
+                                marginTop: 4,
+                                fontSize: '0.68rem',
+                                border: '1px solid var(--line)',
+                                background: 'var(--bg)',
+                              }}
+                            >
                               Wajib
                             </span>
                           )}
@@ -507,21 +597,65 @@ export function VerificationPage() {
                         <td>{renderDocStatusBadge(doc.status)}</td>
                         <td>
                           {doc.is_uploaded && doc.original_filename ? (
-                            <code style={{ fontSize: '0.8rem' }}>{doc.original_filename}</code>
+                            <code
+                              style={{
+                                fontSize: '0.8rem',
+                                maxWidth: 180,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                display: 'inline-block',
+                                background: 'var(--bg)',
+                                padding: '2px 6px',
+                                borderRadius: 'var(--radius-sm)',
+                                border: '1px solid var(--line)',
+                              }}
+                              title={doc.original_filename}
+                            >
+                              {doc.original_filename}
+                            </code>
                           ) : (
-                            <span className="hint" style={{ fontStyle: 'italic' }}>— Belum dikirim —</span>
+                            <span className="hint" style={{ fontStyle: 'italic', fontSize: '0.8rem' }}>
+                              — Belum dikirim —
+                            </span>
                           )}
                         </td>
-                        <td className="num">{formatBytes(doc.file_size)}</td>
+                        <td style={{ textAlign: 'right', fontSize: '0.825rem', whiteSpace: 'nowrap' }}>
+                          {formatBytes(doc.file_size)}
+                        </td>
                         <td>
                           {doc.verification_note ? (
-                            <span style={{ fontSize: '0.85rem', color: doc.status === 'REVISION_REQUIRED' ? 'var(--danger)' : 'inherit' }}>
+                            <div
+                              style={{
+                                fontSize: '0.8rem',
+                                padding: '4px 8px',
+                                borderRadius: 'var(--radius-sm)',
+                                background:
+                                  doc.status === 'REVISION_REQUIRED'
+                                    ? 'var(--warning-light)'
+                                    : doc.status === 'INVALID'
+                                    ? 'var(--danger-light)'
+                                    : 'var(--bg)',
+                                border: `1px solid ${
+                                  doc.status === 'REVISION_REQUIRED'
+                                    ? 'var(--warning)'
+                                    : doc.status === 'INVALID'
+                                    ? 'var(--danger)'
+                                    : 'var(--line)'
+                                }`,
+                                lineHeight: 1.3,
+                              }}
+                            >
                               {doc.verification_note}
-                            </span>
+                            </div>
                           ) : doc.is_uploaded ? (
-                            <span className="hint" style={{ fontSize: '0.8rem' }}>Telah diunggah oleh pendaftar</span>
+                            <span className="hint" style={{ fontSize: '0.8rem' }}>
+                              Sudah diunggah
+                            </span>
                           ) : (
-                            <span className="hint" style={{ fontSize: '0.8rem' }}>Menunggu unggahan pendaftar</span>
+                            <span className="hint" style={{ fontSize: '0.8rem' }}>
+                              Menunggu unggahan
+                            </span>
                           )}
                         </td>
                       </tr>

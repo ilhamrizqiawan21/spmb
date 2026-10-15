@@ -425,20 +425,27 @@ export function VerificationDetailPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Dokumen Persyaratan</th>
-                  <th>Status Validasi</th>
-                  <th>Nama Berkas Asli</th>
-                  <th>Catatan Verifikator</th>
-                  <th style={{ textAlign: 'center', minWidth: 260 }}>Aksi Pemeriksaan</th>
+                  <th style={{ width: '22%' }}>Dokumen Persyaratan</th>
+                  <th style={{ width: '16%' }}>Status Validasi</th>
+                  <th style={{ width: '22%' }}>File Terunggah</th>
+                  <th style={{ width: '20%' }}>Catatan Verifikator</th>
+                  <th style={{ width: '20%', textAlign: 'center', whiteSpace: 'nowrap' }}>Aksi Pemeriksaan</th>
                 </tr>
               </thead>
               <tbody>
                 {docList.map((d) => (
                   <tr key={d.id}>
                     <td>
-                      <strong>{d.requirement_name}</strong>
-                      <div style={{ marginTop: 2 }}>
-                        <span className="badge" style={{ fontSize: '0.7rem' }}>
+                      <strong style={{ display: 'block', fontSize: '0.9rem' }}>{d.requirement_name}</strong>
+                      <div style={{ marginTop: 4, display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <span
+                          className="badge"
+                          style={{
+                            fontSize: '0.7rem',
+                            border: '1px solid var(--line)',
+                            background: 'var(--bg)',
+                          }}
+                        >
                           Versi ke-{d.version}
                         </span>
                       </div>
@@ -447,33 +454,81 @@ export function VerificationDetailPage() {
                     <td>{renderDocStatusBadge(d.status)}</td>
 
                     <td>
-                      <code style={{ fontSize: '0.825rem' }}>{d.original_filename}</code>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <code
+                          style={{
+                            fontSize: '0.8rem',
+                            maxWidth: 220,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            display: 'inline-block',
+                            background: 'var(--bg)',
+                            padding: '3px 6px',
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--line)',
+                          }}
+                          title={d.original_filename}
+                        >
+                          {d.original_filename}
+                        </code>
+                      </div>
                     </td>
 
                     <td>
                       {d.verification_note ? (
-                        <span
+                        <div
                           style={{
-                            fontSize: '0.85rem',
-                            color: d.status === 'REVISION_REQUIRED' || d.status === 'INVALID' ? 'var(--danger)' : 'inherit',
+                            fontSize: '0.825rem',
+                            padding: '6px 10px',
+                            borderRadius: 'var(--radius-sm)',
+                            background:
+                              d.status === 'REVISION_REQUIRED'
+                                ? 'var(--warning-light)'
+                                : d.status === 'INVALID'
+                                ? 'var(--danger-light)'
+                                : 'var(--bg)',
+                            border: `1px solid ${
+                              d.status === 'REVISION_REQUIRED'
+                                ? 'var(--warning)'
+                                : d.status === 'INVALID'
+                                ? 'var(--danger)'
+                                : 'var(--line)'
+                            }`,
+                            color: 'var(--fg)',
+                            lineHeight: 1.35,
                           }}
                         >
                           {d.verification_note}
-                        </span>
+                        </div>
                       ) : (
                         <span className="hint" style={{ fontSize: '0.8rem' }}>
-                          — Tidak ada catatan khusus —
+                          — Tidak ada catatan —
                         </span>
                       )}
                     </td>
 
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          flexWrap: 'nowrap',
+                        }}
+                      >
                         {/* Tombol Lihat Berkas */}
                         <button
                           type="button"
                           className="button secondary"
-                          style={{ fontSize: '0.8rem', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                          style={{
+                            fontSize: '0.78rem',
+                            padding: '4px 8px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
                           onClick={() => download.mutate(d.id)}
                           title="Buka atau unduh berkas untuk diperiksa"
                         >
@@ -487,14 +542,15 @@ export function VerificationDetailPage() {
                               type="button"
                               className="button secondary"
                               style={{
-                                fontSize: '0.8rem',
-                                padding: '4px 10px',
+                                fontSize: '0.78rem',
+                                padding: '4px 8px',
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: 4,
                                 borderColor: 'var(--brand)',
-                                color: 'var(--brand)',
-                                fontWeight: d.status === 'VALID' ? 700 : 500,
+                                color: d.status === 'VALID' ? '#fff' : 'var(--brand)',
+                                background: d.status === 'VALID' ? 'var(--brand)' : 'transparent',
+                                fontWeight: 600,
                               }}
                               onClick={() => verifyDoc.mutate({ docId: d.id, valid: true })}
                               disabled={verifyDoc.isPending || d.status === 'VALID'}
@@ -507,8 +563,8 @@ export function VerificationDetailPage() {
                               type="button"
                               className="button secondary"
                               style={{
-                                fontSize: '0.8rem',
-                                padding: '4px 10px',
+                                fontSize: '0.78rem',
+                                padding: '4px 8px',
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: 4,
@@ -526,8 +582,8 @@ export function VerificationDetailPage() {
                               type="button"
                               className="button secondary"
                               style={{
-                                fontSize: '0.8rem',
-                                padding: '4px 10px',
+                                fontSize: '0.78rem',
+                                padding: '4px 8px',
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: 4,
@@ -538,7 +594,7 @@ export function VerificationDetailPage() {
                               disabled={verifyDoc.isPending}
                               title="Tolak dan nyatakan dokumen ini tidak memenuhi syarat"
                             >
-                              <Icon name="x" size={13} /> Tidak Valid
+                              <Icon name="x" size={13} /> Tolak
                             </button>
                           </>
                         )}
