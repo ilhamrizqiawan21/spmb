@@ -58,3 +58,4 @@ Setiap akun wali murid telah dipersiapkan dengan variasi tahapan proses pendafta
    ```
 3. Buka browser di [http://localhost:8000/masuk](http://localhost:8000/masuk).
 4. Masukkan salah satu email di atas beserta password: **`Rahasia-123`**.
+
