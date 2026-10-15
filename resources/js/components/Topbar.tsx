@@ -4,6 +4,7 @@ import { ThemeToggle } from './ThemeToggle'
 
 interface TopbarProps {
   isStaff: boolean
+  isAuthenticated?: boolean
   onToggleSidebar?: () => void
   isSidebarOpen?: boolean
 }
@@ -13,7 +14,7 @@ const PUBLIC_NAV = [
   { to: '/hasil', label: 'Cek Hasil' },
 ]
 
-export function Topbar({ isStaff, onToggleSidebar, isSidebarOpen }: TopbarProps) {
+export function Topbar({ isStaff, isAuthenticated, onToggleSidebar, isSidebarOpen }: TopbarProps) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -23,12 +24,12 @@ export function Topbar({ isStaff, onToggleSidebar, isSidebarOpen }: TopbarProps)
     navigate('/', { replace: true })
   }
 
-  // Current page label for staff breadcrumbs
-  const getStaffPageTitle = () => {
+  // Current page label for breadcrumbs
+  const getPageTitle = () => {
     const path = location.pathname
-    if (path === '/dashboard') return 'Dashboard Utama'
+    if (path === '/dashboard') return isStaff ? 'Dashboard Utama' : 'Dashboard Pendaftar'
+    if (path.startsWith('/pendaftaran')) return 'Pendaftaran Calon Siswa'
     if (path.startsWith('/ringkasan')) return 'Laporan Ringkasan SPMB'
-    if (path.startsWith('/pendaftaran')) return 'Portal Pendaftaran Calon Siswa'
     if (path.startsWith('/verifikasi')) return 'Verifikasi Dokumen & Berkas'
     if (path.startsWith('/jadwal-asesmen')) return 'Jadwal Asesmen & Ujian Seleksi'
     if (path.startsWith('/penilaian')) return 'Penilaian & Skor Seleksi'
@@ -40,11 +41,17 @@ export function Topbar({ isStaff, onToggleSidebar, isSidebarOpen }: TopbarProps)
     if (path.startsWith('/admin')) return 'Data Master Sistem'
     if (path.startsWith('/pengguna')) return 'Manajemen Pengguna & Staf'
     if (path.startsWith('/audit-logs')) return 'Jejak Audit Sistem'
+    if (path.startsWith('/periods')) return 'Informasi Gelombang & Kuota'
+    if (path.startsWith('/hasil')) return 'Pengumuman Hasil Seleksi'
+    if (path.startsWith('/applications')) return 'Detail Berkas Pendaftaran'
     if (path.startsWith('/akun')) return 'Pengaturan Akun'
-    return 'Panel Staf SPMB'
+    return isStaff ? 'Panel Staf SPMB' : 'Portal Pendaftar SPMB'
   }
 
-  if (isStaff) {
+  const isUserLoggedIn = isAuthenticated ?? !!user
+
+  // Unified topbar for all authenticated users (Staff and Parent/Applicant)
+  if (isUserLoggedIn) {
     return (
       <header className="topbar topbar-staff">
         <div className="topbar-left">
@@ -62,9 +69,11 @@ export function Topbar({ isStaff, onToggleSidebar, isSidebarOpen }: TopbarProps)
             </svg>
           </button>
           <div className="topbar-context">
-            <span className="topbar-context-badge">PANEL STAF</span>
+            <span className="topbar-context-badge">
+              {isStaff ? 'PANEL STAF' : 'PORTAL PENDAFTAR'}
+            </span>
             <span className="topbar-context-divider">/</span>
-            <span className="topbar-context-title">{getStaffPageTitle()}</span>
+            <span className="topbar-context-title">{getPageTitle()}</span>
           </div>
         </div>
 
@@ -85,7 +94,7 @@ export function Topbar({ isStaff, onToggleSidebar, isSidebarOpen }: TopbarProps)
     )
   }
 
-  // Public & Applicant portal topbar
+  // Public topbar for guests (not logged in)
   return (
     <header className="topbar topbar-public">
       <div className="topbar-public-left">
@@ -100,31 +109,12 @@ export function Topbar({ isStaff, onToggleSidebar, isSidebarOpen }: TopbarProps)
             {l.label}
           </NavLink>
         ))}
-        {user ? (
-          <>
-            <NavLink to="/dashboard" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Dashboard
-            </NavLink>
-            <NavLink to="/pendaftaran" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Pendaftaran
-            </NavLink>
-            <NavLink to="/akun" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Akun ({user.name})
-            </NavLink>
-            <button type="button" className="link" onClick={() => void signOut()}>
-              Keluar
-            </button>
-          </>
-        ) : (
-          <>
-            <NavLink to="/login" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Masuk
-            </NavLink>
-            <NavLink to="/register" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Daftar
-            </NavLink>
-          </>
-        )}
+        <NavLink to="/login" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Masuk
+        </NavLink>
+        <NavLink to="/register" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Daftar
+        </NavLink>
         <ThemeToggle />
       </nav>
     </header>

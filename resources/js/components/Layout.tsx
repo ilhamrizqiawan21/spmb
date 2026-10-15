@@ -42,6 +42,7 @@ export function Layout() {
       <div className="app-main-wrapper">
         <Topbar
           isStaff={isStaff}
+          isAuthenticated={isAuthenticated}
           onToggleSidebar={() => setOpenOn(sidebarOpen ? null : location.pathname)}
           isSidebarOpen={sidebarOpen}
         />
