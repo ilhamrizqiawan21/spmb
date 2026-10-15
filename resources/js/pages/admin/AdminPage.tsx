@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { PageHeader } from '../../components/PageHeader'
 import { useAuth } from '../../features/auth/AuthContext'
+import { PeriodsManager } from './PeriodsManager'
 import { ResourceManager, type FieldDef } from './ResourceManager'
 
 const YEAR: FieldDef[] = [
@@ -7,17 +9,6 @@ const YEAR: FieldDef[] = [
   { name: 'start_date', label: 'Mulai', type: 'date', required: true, column: true },
   { name: 'end_date', label: 'Selesai', type: 'date', required: true, column: true },
   { name: 'is_active', label: 'Aktif', type: 'checkbox', column: true, defaultChecked: false },
-]
-
-const PERIOD: FieldDef[] = [
-  { name: 'academic_year_id', label: 'Tahun ajaran', type: 'select', options: 'years', required: true, createOnly: true, column: true },
-  { name: 'name', label: 'Nama', type: 'text', required: true, column: true },
-  { name: 'code', label: 'Kode', type: 'text', required: true, column: true },
-  { name: 'registration_start', label: 'Pendaftaran dibuka', type: 'datetime', required: true, column: true },
-  { name: 'registration_end', label: 'Pendaftaran ditutup', type: 'datetime', required: true, column: true },
-  { name: 'announcement_at', label: 'Pengumuman', type: 'datetime', nullable: true },
-  { name: 'quota', label: 'Kuota', type: 'number', nullable: true, column: true },
-  { name: 'is_active', label: 'Aktif', type: 'checkbox', column: true },
 ]
 
 const DOC_REQ: FieldDef[] = [
@@ -52,7 +43,7 @@ const REREG: FieldDef[] = [
 
 const TABS = [
   { id: 'years', label: 'Tahun Ajaran', perms: ['application.override'] },
-  { id: 'periods', label: 'Periode', perms: ['application.override'] },
+  { id: 'periods', label: 'Periode Pendaftaran', perms: ['application.override'] },
   { id: 'docs', label: 'Persyaratan Berkas', perms: ['application.override'] },
   { id: 'components', label: 'Komponen Seleksi', perms: ['application.override'] },
   { id: 'rereg', label: 'Persyaratan Daftar Ulang', perms: ['enrollment.manage', 'application.override'] },
@@ -64,18 +55,59 @@ export function AdminPage() {
   const [tab, setTab] = useState<string>(tabs[0]?.id ?? '')
 
   return (
-    <>
-      <h1>Data Master</h1>
-      <div className="tabs" role="tablist">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <PageHeader
+        title="Data Master"
+        description="Pusat konfigurasi parameter SPMB: tahun ajaran, gelombang pendaftaran, persyaratan berkas, bobot seleksi, dan daftar ulang."
+      />
+
+      <div className="tabs" role="tablist" style={{ marginBottom: 0 }}>
         {tabs.map((t) => (
-          <button key={t.id} role="tab" aria-selected={tab === t.id} className={tab === t.id ? '' : 'secondary'} onClick={() => setTab(t.id)}>{t.label}</button>
+          <button
+            key={t.id}
+            role="tab"
+            aria-selected={tab === t.id}
+            className={tab === t.id ? '' : 'secondary'}
+            onClick={() => setTab(t.id)}
+          >
+            {t.label}
+          </button>
         ))}
       </div>
-      {tab === 'years' && <ResourceManager title="Tahun Ajaran" endpoint="/admission/academic-years" fields={YEAR} hint="Hanya satu tahun ajaran yang boleh aktif; mengaktifkan satu menonaktifkan yang lain." />}
-      {tab === 'periods' && <ResourceManager title="Periode Pendaftaran" endpoint="/admission/periods" fields={PERIOD} hint="Waktu ditampilkan dalam zona waktu browser Anda. Tanggal pengumuman tidak boleh sebelum penutupan." />}
-      {tab === 'docs' && <ResourceManager title="Persyaratan Berkas" endpoint="/admission/document-requirements" fields={DOC_REQ} hint="Tanpa periode = berlaku untuk semua periode. Persyaratan yang sudah dipakai hanya dinonaktifkan saat dihapus." />}
-      {tab === 'components' && <ResourceManager title="Komponen Seleksi" endpoint="/selection/components" fields={COMPONENT} hint="Total bobot komponen aktif per periode tidak boleh melebihi 100%." />}
-      {tab === 'rereg' && <ResourceManager title="Persyaratan Daftar Ulang" endpoint="/enrollment/requirements" fields={REREG} />}
-    </>
+
+      {tab === 'years' && (
+        <ResourceManager
+          title="Tahun Ajaran"
+          endpoint="/admission/academic-years"
+          fields={YEAR}
+          hint="Hanya satu tahun ajaran yang boleh aktif; mengaktifkan satu menonaktifkan yang lain."
+        />
+      )}
+      {tab === 'periods' && <PeriodsManager />}
+      {tab === 'docs' && (
+        <ResourceManager
+          title="Persyaratan Berkas"
+          endpoint="/admission/document-requirements"
+          fields={DOC_REQ}
+          hint="Tanpa periode = berlaku untuk semua periode. Persyaratan yang sudah dipakai hanya dinonaktifkan saat dihapus."
+        />
+      )}
+      {tab === 'components' && (
+        <ResourceManager
+          title="Komponen Seleksi"
+          endpoint="/selection/components"
+          fields={COMPONENT}
+          hint="Total bobot komponen aktif per periode tidak boleh melebihi 100%."
+        />
+      )}
+      {tab === 'rereg' && (
+        <ResourceManager
+          title="Persyaratan Daftar Ulang"
+          endpoint="/enrollment/requirements"
+          fields={REREG}
+        />
+      )}
+    </div>
   )
 }
+
