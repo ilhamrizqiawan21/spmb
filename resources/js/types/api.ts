@@ -190,6 +190,8 @@ export interface WaitingListEntry {
   position: number
   score: string
   status: string
+  promoted_at?: string | null
+  created_at?: string | null
 }
 
 export interface ReRegistrationItem {
