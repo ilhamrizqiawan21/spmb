@@ -26,7 +26,9 @@ export function Topbar({ isStaff, onToggleSidebar, isSidebarOpen }: TopbarProps)
   // Current page label for staff breadcrumbs
   const getStaffPageTitle = () => {
     const path = location.pathname
-    if (path.startsWith('/ringkasan')) return 'Dashboard Ringkasan'
+    if (path === '/dashboard') return 'Dashboard Utama'
+    if (path.startsWith('/ringkasan')) return 'Laporan Ringkasan SPMB'
+    if (path.startsWith('/pendaftaran')) return 'Portal Pendaftaran Calon Siswa'
     if (path.startsWith('/verifikasi')) return 'Verifikasi Dokumen & Berkas'
     if (path.startsWith('/jadwal-asesmen')) return 'Jadwal Asesmen & Ujian Seleksi'
     if (path.startsWith('/penilaian')) return 'Penilaian & Skor Seleksi'
@@ -39,7 +41,6 @@ export function Topbar({ isStaff, onToggleSidebar, isSidebarOpen }: TopbarProps)
     if (path.startsWith('/pengguna')) return 'Manajemen Pengguna & Staf'
     if (path.startsWith('/audit-logs')) return 'Jejak Audit Sistem'
     if (path.startsWith('/akun')) return 'Pengaturan Akun'
-    if (path.startsWith('/dashboard')) return 'Portal Pendaftaran Calon Siswa'
     return 'Panel Staf SPMB'
   }
 
@@ -102,6 +103,9 @@ export function Topbar({ isStaff, onToggleSidebar, isSidebarOpen }: TopbarProps)
         {user ? (
           <>
             <NavLink to="/dashboard" className={({ isActive }) => (isActive ? 'active' : '')}>
+              Dashboard
+            </NavLink>
+            <NavLink to="/pendaftaran" className={({ isActive }) => (isActive ? 'active' : '')}>
               Pendaftaran
             </NavLink>
             <NavLink to="/akun" className={({ isActive }) => (isActive ? 'active' : '')}>

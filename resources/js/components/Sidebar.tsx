@@ -18,6 +18,25 @@ const STAFF_GROUPS: NavGroup[] = [
     heading: 'Dashboard & Ringkasan',
     items: [
       {
+        to: '/dashboard',
+        label: 'Dashboard',
+        perms: [
+          'application.read',
+          'document.verify',
+          'application.verify',
+          'assessment.input',
+          'assessment.approve',
+          'payment.read',
+          'payment.verify',
+          'enrollment.manage',
+          'mpls.manage',
+          'application.override',
+          'user.manage',
+          'audit.read',
+        ],
+        iconSvg: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10',
+      },
+      {
         to: '/admin/dashboard',
         label: 'Kontrol Sistem',
         perms: ['application.override'],
@@ -25,7 +44,7 @@ const STAFF_GROUPS: NavGroup[] = [
       },
       {
         to: '/ringkasan',
-        label: 'Dashboard',
+        label: 'Laporan Ringkasan',
         perms: ['application.read', 'application.override'],
         iconSvg: 'M3 3v18h18 M9 15v4 M13 11v8 M17 7v12',
       },
@@ -125,7 +144,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       />
       <aside className={`sidebar ${isOpen ? 'open' : ''}`} aria-label="Navigasi Panel Staf">
         <div className="sidebar-header">
-          <Link to="/ringkasan" className="sidebar-brand" onClick={onClose}>
+          <Link to="/dashboard" className="sidebar-brand" onClick={onClose}>
             <span className="sidebar-brand-badge">SPMB</span>
             <div className="sidebar-brand-text">
               <strong>SPMB Terpadu</strong>
@@ -177,7 +196,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <ul className="sidebar-menu">
               <li>
                 <NavLink
-                  to="/dashboard"
+                  to="/pendaftaran"
                   className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
                   onClick={onClose}
                 >

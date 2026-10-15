@@ -9,6 +9,7 @@ import { AdminPage } from './pages/admin/AdminPage'
 import { ApplicationPage } from './pages/ApplicationPage'
 import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from './pages/AuthPages'
 import { DashboardPage } from './pages/DashboardPage'
+import { RegistrationPage } from './pages/RegistrationPage'
 import { FinancePage } from './pages/FinancePage'
 import { AnnouncementLookupPage, HomePage, PeriodsPage } from './pages/PublicPages'
 import { AssessmentPage } from './pages/AssessmentPage'
@@ -41,6 +42,7 @@ export default function App() {
               <Route path="reset-password" element={<ResetPasswordPage />} />
               <Route element={<RequireAuth />}>
                 <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="pendaftaran" element={<RegistrationPage />} />
                 <Route path="akun" element={<AccountPage />} />
                 <Route path="applications/:id" element={<ApplicationPage />} />
               </Route>

@@ -1,569 +1,864 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { z } from 'zod'
-import { Field, StatusBadge } from '../components/Field'
-import { FormError } from '../components/Notice'
-import { PageHeader } from '../components/PageHeader'
-import { ApiError, api } from '../lib/api'
-import { applyServerErrors, emptyToNull, isoDate, optionalDigits, optionalText, requiredText } from '../lib/validation'
-import type { AdmissionPeriod, Applicant, Application } from '../types/api'
+import { StatusBadge } from '../components/Field'
+import { Icon } from '../components/Icon'
+import { useAuth } from '../features/auth/AuthContext'
+import { api } from '../lib/api'
+import type { AdmissionPeriod, Applicant, Application, ReportSummary } from '../types/api'
 
-const applicantSchema = z.object({
-  full_name: requiredText(200),
-  gender: z.enum(['MALE', 'FEMALE'], { message: 'Pilih jenis kelamin.' }),
-  birth_place: requiredText(150),
-  birth_date: isoDate,
-  religion: optionalText(50),
-  nisn: optionalDigits(10, 'NISN'),
-  nik: optionalDigits(16, 'NIK'),
-  address: z.string().trim().min(1, 'Wajib diisi.'),
-  city: optionalText(100),
-  previous_school_name: optionalText(200),
-})
-type ApplicantInput = z.input<typeof applicantSchema>
-const APPLICANT_FIELDS = Object.keys(applicantSchema.shape)
+const STAFF_PERMISSIONS = [
+  'application.read',
+  'document.verify',
+  'application.verify',
+  'assessment.input',
+  'assessment.approve',
+  'payment.read',
+  'payment.verify',
+  'enrollment.manage',
+  'mpls.manage',
+  'application.override',
+  'user.manage',
+  'audit.read',
+]
 
 /**
- * Formulir Tambah Data Calon Siswa Baru
+ * Dashboard Khusus Staf / Panitia SPMB
  */
-function NewApplicantForm({ onDone }: { onDone: () => void }) {
-  const qc = useQueryClient()
-  const [error, setError] = useState<string | null>(null)
-  const { register, handleSubmit, formState, setError: setFieldError } = useForm<ApplicantInput>({
-    resolver: zodResolver(applicantSchema),
-    defaultValues: { full_name: '', birth_place: '', birth_date: '', religion: '', nisn: '', nik: '', address: '', city: '', previous_school_name: '' },
-  })
-  const e = formState.errors
+function StaffDashboard() {
+  const { user, can } = useAuth()
+  const canReadReports = can('application.read', 'application.override')
 
-  const onSubmit = handleSubmit(async (v) => {
-    setError(null)
-    try {
-      await api<Applicant>('/admission/applicants', { method: 'POST', body: emptyToNull(v) })
-      await qc.invalidateQueries({ queryKey: ['applicants'] })
-      onDone()
-    } catch (err) {
-      setError(applyServerErrors(err, setFieldError, APPLICANT_FIELDS))
-    }
+  const summary = useQuery({
+    queryKey: ['report-summary', 'dashboard'],
+    queryFn: () => api<ReportSummary>('/reports/summary'),
+    enabled: canReadReports,
   })
+
+  const s = summary.data
 
   return (
-    <form
-      className="card"
-      onSubmit={onSubmit}
-      noValidate
-      aria-labelledby="applicant-title"
-      style={{
-        marginTop: 16,
-        padding: 20,
-        background: 'var(--bg)',
-        border: '1px solid var(--line)',
-        borderRadius: 'var(--radius-md)',
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid var(--line)', paddingBottom: 10 }}>
-        <h3 id="applicant-title" style={{ margin: 0, fontSize: '1.05rem', color: 'var(--brand)' }}>
-          Formulir Biodata Calon Siswa Baru
-        </h3>
-        <button type="button" className="link" onClick={onDone} style={{ fontSize: '0.85rem' }}>
-          Tutup Formulir ✕
-        </button>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* 1. Header Sambutan Staf */}
+      <div
+        className="card"
+        style={{
+          margin: 0,
+          padding: '24px 28px',
+          background: 'linear-gradient(135deg, var(--card) 0%, var(--surface) 100%)',
+          borderLeft: '5px solid var(--brand)',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  padding: '3px 10px',
+                  borderRadius: 12,
+                  background: 'var(--brand-light)',
+                  color: 'var(--brand-dark)',
+                }}
+              >
+                Panel Operasional SPMB
+              </span>
+              <span className="hint" style={{ fontSize: '0.85rem' }}>
+                T.A. 2026/2027
+              </span>
+            </div>
+            <h1 style={{ margin: '0 0 6px 0', fontSize: '1.45rem', color: 'var(--brand)' }}>
+              Selamat Datang Kembali, {user?.name}
+            </h1>
+            <p className="hint" style={{ margin: 0, fontSize: '0.9rem', maxWidth: 650, lineHeight: 1.5 }}>
+              Pusat kendali dan navigasi kerja penerimaan murid baru. Pantau metrik penerimaan, tindak lanjuti antrean verifikasi, asesmen, seleksi, hingga peresmian siswa baru.
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            {canReadReports && (
+              <Link to="/ringkasan" className="button secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <Icon name="bar-chart" size={16} /> Laporan Detail
+              </Link>
+            )}
+            <Link to="/pendaftaran" className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="file-text" size={16} /> Menu Pendaftaran
+            </Link>
+          </div>
+        </div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div className="row">
-          <div style={{ flex: 2, minWidth: 260 }}>
-            <Field label="Nama Lengkap Calon Siswa" required {...register('full_name')} error={e.full_name?.message} placeholder="Nama sesuai akta kelahiran" />
+      {/* 2. Metrik Ringkasan Utama (KPI Operasional) */}
+      {canReadReports && s && (
+        <section>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h2 style={{ margin: 0, fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="activity" size={18} />
+              Ringkasan Operasional Terkini
+            </h2>
+            <Link to="/ringkasan" className="link" style={{ fontSize: '0.85rem' }}>
+              Lihat Analisis Lengkap →
+            </Link>
           </div>
-          <div style={{ flex: 1, minWidth: 180 }}>
-            <label className="field required">
-              <span>Jenis Kelamin *</span>
-              <select {...register('gender')} defaultValue="" aria-invalid={!!e.gender}>
-                <option value="" disabled>Pilih jenis kelamin…</option>
-                <option value="MALE">Laki-laki</option>
-                <option value="FEMALE">Perempuan</option>
-              </select>
-              {e.gender && <small className="error">{e.gender.message}</small>}
-            </label>
-          </div>
-        </div>
 
-        <div className="row">
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <Field label="Tempat Lahir" required {...register('birth_place')} error={e.birth_place?.message} placeholder="Kota kelahiran" />
-          </div>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <Field label="Tanggal Lahir" type="date" required {...register('birth_date')} error={e.birth_date?.message} />
-          </div>
-          <div style={{ flex: 1, minWidth: 160 }}>
-            <Field label="Agama" {...register('religion')} error={e.religion?.message} placeholder="Islam / lainnya" />
-          </div>
-        </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+            <div className="card" style={{ margin: 0, padding: 18, borderTop: '3px solid var(--brand)' }}>
+              <span className="hint" style={{ fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                Total Calon Siswa
+              </span>
+              <strong style={{ fontSize: '1.75rem', color: 'var(--brand)', display: 'block' }}>
+                {s.total}
+              </strong>
+              <small className="hint" style={{ fontSize: '0.78rem' }}>
+                Pendaftaran seluruh gelombang
+              </small>
+            </div>
 
-        <div className="row">
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <Field
-              label="NISN"
-              inputMode="numeric"
-              maxLength={10}
-              {...register('nisn')}
-              error={e.nisn?.message}
-              hint="10 digit nomor NISN nasional"
-              placeholder="10 digit NISN"
-            />
-          </div>
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <Field
-              label="NIK"
-              inputMode="numeric"
-              maxLength={16}
-              {...register('nik')}
-              error={e.nik?.message}
-              hint="16 digit sesuai Kartu Keluarga"
-              placeholder="16 digit NIK"
-            />
-          </div>
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <Field label="Sekolah Asal (TK / SD / SMP)" {...register('previous_school_name')} error={e.previous_school_name?.message} placeholder="Nama sekolah asal sebelumnya" />
-          </div>
-        </div>
+            <div className="card" style={{ margin: 0, padding: 18, borderTop: '3px solid var(--warning)' }}>
+              <span className="hint" style={{ fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                Menunggu Verifikasi
+              </span>
+              <strong style={{ fontSize: '1.75rem', color: 'var(--warning)', display: 'block' }}>
+                {s.work_queue.awaiting_verification}
+              </strong>
+              <Link to="/verifikasi" className="link" style={{ fontSize: '0.78rem', display: 'inline-block', marginTop: 2 }}>
+                Buka Antrean Verifikasi →
+              </Link>
+            </div>
 
-        <div className="row">
-          <div style={{ flex: 2, minWidth: 280 }}>
-            <Field label="Alamat Domisili Lengkap" required {...register('address')} error={e.address?.message} placeholder="Jalan, RT/RW, Kelurahan, Kecamatan" />
+            <div className="card" style={{ margin: 0, padding: 18, borderTop: '3px solid var(--info)' }}>
+              <span className="hint" style={{ fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                Siap Keputusan Seleksi
+              </span>
+              <strong style={{ fontSize: '1.75rem', color: 'var(--info)', display: 'block' }}>
+                {s.work_queue.awaiting_decision}
+              </strong>
+              <Link to="/seleksi" className="link" style={{ fontSize: '0.78rem', display: 'inline-block', marginTop: 2 }}>
+                Buka Penetapan Seleksi →
+              </Link>
+            </div>
+
+            <div className="card" style={{ margin: 0, padding: 18, borderTop: '3px solid #8b5cf6' }}>
+              <span className="hint" style={{ fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                Verifikasi Pembayaran
+              </span>
+              <strong style={{ fontSize: '1.75rem', color: '#8b5cf6', display: 'block' }}>
+                {s.finance?.pending_payments ?? 0}
+              </strong>
+              <Link to="/keuangan" className="link" style={{ fontSize: '0.78rem', display: 'inline-block', marginTop: 2 }}>
+                Buka Konfirmasi Bayar →
+              </Link>
+            </div>
+
+            <div className="card" style={{ margin: 0, padding: 18, borderTop: '3px solid var(--success)' }}>
+              <span className="hint" style={{ fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: 4 }}>
+                Siswa Baru Siap NIS
+              </span>
+              <strong style={{ fontSize: '1.75rem', color: 'var(--success)', display: 'block' }}>
+                {s.work_queue.awaiting_enrollment}
+              </strong>
+              <Link to="/siswa" className="link" style={{ fontSize: '0.78rem', display: 'inline-block', marginTop: 2 }}>
+                Buka Daftar Siswa Baru →
+              </Link>
+            </div>
           </div>
-          <div style={{ flex: 1, minWidth: 180 }}>
-            <Field label="Kota / Kabupaten" {...register('city')} error={e.city?.message} placeholder="Kota tempat tinggal" />
-          </div>
-        </div>
-
-        <FormError message={error} />
-
-        <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-          <button type="submit" className="button" disabled={formState.isSubmitting}>
-            {formState.isSubmitting ? 'Menyimpan…' : 'Simpan Data Calon Siswa'}
-          </button>
-          <button type="button" className="button secondary" onClick={onDone}>
-            Batal
-          </button>
-        </div>
-      </div>
-    </form>
-  )
-}
-
-/**
- * Pendaftaran Calon Siswa ke Gelombang Aktif
- */
-function StartApplication({ applicant, periods }: { applicant: Applicant; periods: AdmissionPeriod[] }) {
-  const qc = useQueryClient()
-  const [periodId, setPeriodId] = useState(periods[0]?.id ?? '')
-  const start = useMutation({
-    mutationFn: () => api<Application>('/admission/applications', { method: 'POST', body: { applicant_id: applicant.id, admission_period_id: periodId } }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['applications'] })
-    },
-  })
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-      <select
-        value={periodId}
-        onChange={(e) => setPeriodId(e.target.value)}
-        aria-label="Periode"
-        style={{ fontSize: '0.85rem', padding: '6px 10px' }}
-      >
-        {periods.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name} {p.quota != null ? `(Kuota: ${p.quota})` : ''}
-          </option>
-        ))}
-      </select>
-      <button
-        type="button"
-        className="button"
-        style={{ padding: '6px 14px', fontSize: '0.85rem' }}
-        onClick={() => start.mutate()}
-        disabled={!periodId || start.isPending}
-      >
-        {start.isPending ? 'Mendaftarkan…' : 'Daftarkan ke Gelombang Ini'}
-      </button>
-      {start.error && (
-        <small className="error" style={{ display: 'block', width: '100%' }}>
-          {start.error instanceof ApiError ? start.error.message : 'Gagal memulai pendaftaran.'}
-        </small>
+        </section>
       )}
+
+      {/* 3. Pintasan Modul Kerja Berdasarkan Hak Akses */}
+      <section>
+        <div style={{ marginBottom: 12 }}>
+          <h2 style={{ margin: 0, fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="check-circle" size={18} />
+            Akses Cepat Modul Kerja
+          </h2>
+          <p className="hint" style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>
+            Akses langsung ke menu-menu operasional SPMB sesuai izin akun Anda.
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
+          {can('document.verify', 'application.verify', 'application.override') && (
+            <Link
+              to="/verifikasi"
+              className="card"
+              style={{
+                margin: 0,
+                padding: 16,
+                textDecoration: 'none',
+                color: 'inherit',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 14,
+                transition: 'border-color 0.15s ease, transform 0.15s ease',
+              }}
+            >
+              <div style={{ padding: 10, borderRadius: 8, background: 'var(--bg)', color: 'var(--brand)', flexShrink: 0 }}>
+                <Icon name="file-text" size={20} />
+              </div>
+              <div>
+                <strong style={{ fontSize: '0.95rem', display: 'block', color: 'var(--brand)', marginBottom: 2 }}>
+                  Verifikasi Berkas
+                </strong>
+                <span className="hint" style={{ fontSize: '0.825rem', lineHeight: 1.4 }}>
+                  Tinjau kelengkapan dokumen persyaratan dan validasi berkas pendaftar.
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {can('assessment.input', 'assessment.approve', 'application.override') && (
+            <Link
+              to="/jadwal-asesmen"
+              className="card"
+              style={{
+                margin: 0,
+                padding: 16,
+                textDecoration: 'none',
+                color: 'inherit',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 14,
+              }}
+            >
+              <div style={{ padding: 10, borderRadius: 8, background: 'var(--bg)', color: 'var(--brand)', flexShrink: 0 }}>
+                <Icon name="calendar" size={20} />
+              </div>
+              <div>
+                <strong style={{ fontSize: '0.95rem', display: 'block', color: 'var(--brand)', marginBottom: 2 }}>
+                  Jadwal Asesmen
+                </strong>
+                <span className="hint" style={{ fontSize: '0.825rem', lineHeight: 1.4 }}>
+                  Atur sesi tes seleksi, wawancara, dan penetapan ruang uji calon siswa.
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {can('assessment.input', 'assessment.approve', 'application.override') && (
+            <Link
+              to="/penilaian"
+              className="card"
+              style={{
+                margin: 0,
+                padding: 16,
+                textDecoration: 'none',
+                color: 'inherit',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 14,
+              }}
+            >
+              <div style={{ padding: 10, borderRadius: 8, background: 'var(--bg)', color: 'var(--brand)', flexShrink: 0 }}>
+                <Icon name="clipboard" size={20} />
+              </div>
+              <div>
+                <strong style={{ fontSize: '0.95rem', display: 'block', color: 'var(--brand)', marginBottom: 2 }}>
+                  Penilaian & Skor
+                </strong>
+                <span className="hint" style={{ fontSize: '0.825rem', lineHeight: 1.4 }}>
+                  Input nilai tes akademik, wawancara, dan skor komponen seleksi.
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {can('assessment.approve', 'application.override') && (
+            <Link
+              to="/seleksi"
+              className="card"
+              style={{
+                margin: 0,
+                padding: 16,
+                textDecoration: 'none',
+                color: 'inherit',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 14,
+              }}
+            >
+              <div style={{ padding: 10, borderRadius: 8, background: 'var(--bg)', color: 'var(--brand)', flexShrink: 0 }}>
+                <Icon name="award" size={20} />
+              </div>
+              <div>
+                <strong style={{ fontSize: '0.95rem', display: 'block', color: 'var(--brand)', marginBottom: 2 }}>
+                  Penetapan Seleksi
+                </strong>
+                <span className="hint" style={{ fontSize: '0.825rem', lineHeight: 1.4 }}>
+                  Kalkulasi ranking, penetapan kelulusan, cadangan, dan surat pengumuman.
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {can('payment.read', 'payment.verify', 'application.override') && (
+            <Link
+              to="/keuangan"
+              className="card"
+              style={{
+                margin: 0,
+                padding: 16,
+                textDecoration: 'none',
+                color: 'inherit',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 14,
+              }}
+            >
+              <div style={{ padding: 10, borderRadius: 8, background: 'var(--bg)', color: 'var(--brand)', flexShrink: 0 }}>
+                <Icon name="dollar-sign" size={20} />
+              </div>
+              <div>
+                <strong style={{ fontSize: '0.95rem', display: 'block', color: 'var(--brand)', marginBottom: 2 }}>
+                  Keuangan & Pembayaran
+                </strong>
+                <span className="hint" style={{ fontSize: '0.825rem', lineHeight: 1.4 }}>
+                  Verifikasi bukti transfer biaya formulir dan daftar ulang calon murid.
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {can('enrollment.manage', 'application.override', 'mpls.manage') && (
+            <Link
+              to="/siswa"
+              className="card"
+              style={{
+                margin: 0,
+                padding: 16,
+                textDecoration: 'none',
+                color: 'inherit',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 14,
+              }}
+            >
+              <div style={{ padding: 10, borderRadius: 8, background: 'var(--bg)', color: 'var(--brand)', flexShrink: 0 }}>
+                <Icon name="user-check" size={20} />
+              </div>
+              <div>
+                <strong style={{ fontSize: '0.95rem', display: 'block', color: 'var(--brand)', marginBottom: 2 }}>
+                  Siswa Baru & NIS
+                </strong>
+                <span className="hint" style={{ fontSize: '0.825rem', lineHeight: 1.4 }}>
+                  Konfirmasi calon siswa yang telah lolos seleksi dan terbitkan Nomor Induk Siswa.
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {can('mpls.manage', 'application.override') && (
+            <Link
+              to="/mpls"
+              className="card"
+              style={{
+                margin: 0,
+                padding: 16,
+                textDecoration: 'none',
+                color: 'inherit',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 14,
+              }}
+            >
+              <div style={{ padding: 10, borderRadius: 8, background: 'var(--bg)', color: 'var(--brand)', flexShrink: 0 }}>
+                <Icon name="users" size={20} />
+              </div>
+              <div>
+                <strong style={{ fontSize: '0.95rem', display: 'block', color: 'var(--brand)', marginBottom: 2 }}>
+                  Kegiatan MPLS
+                </strong>
+                <span className="hint" style={{ fontSize: '0.825rem', lineHeight: 1.4 }}>
+                  Pengelompokan siswa baru, penugasan pendamping, dan agenda masa orientasi.
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {can('application.override', 'enrollment.manage') && (
+            <Link
+              to="/admin"
+              className="card"
+              style={{
+                margin: 0,
+                padding: 16,
+                textDecoration: 'none',
+                color: 'inherit',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 14,
+              }}
+            >
+              <div style={{ padding: 10, borderRadius: 8, background: 'var(--bg)', color: 'var(--brand)', flexShrink: 0 }}>
+                <Icon name="settings" size={20} />
+              </div>
+              <div>
+                <strong style={{ fontSize: '0.95rem', display: 'block', color: 'var(--brand)', marginBottom: 2 }}>
+                  Data Master SPMB
+                </strong>
+                <span className="hint" style={{ fontSize: '0.825rem', lineHeight: 1.4 }}>
+                  Pengaturan gelombang pendaftaran, tahun akademik, dan kuota penerimaan.
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {can('application.override') && (
+            <Link
+              to="/admin/dashboard"
+              className="card"
+              style={{
+                margin: 0,
+                padding: 16,
+                textDecoration: 'none',
+                color: 'inherit',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 14,
+              }}
+            >
+              <div style={{ padding: 10, borderRadius: 8, background: 'var(--bg)', color: 'var(--brand)', flexShrink: 0 }}>
+                <Icon name="shield" size={20} />
+              </div>
+              <div>
+                <strong style={{ fontSize: '0.95rem', display: 'block', color: 'var(--brand)', marginBottom: 2 }}>
+                  Kontrol Sistem (Super Admin)
+                </strong>
+                <span className="hint" style={{ fontSize: '0.825rem', lineHeight: 1.4 }}>
+                  Status infrastruktur, pembersihan cache, antrean jobs, dan pemulihan sistem.
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {can('user.manage', 'application.override') && (
+            <Link
+              to="/pengguna"
+              className="card"
+              style={{
+                margin: 0,
+                padding: 16,
+                textDecoration: 'none',
+                color: 'inherit',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 14,
+              }}
+            >
+              <div style={{ padding: 10, borderRadius: 8, background: 'var(--bg)', color: 'var(--brand)', flexShrink: 0 }}>
+                <Icon name="users" size={20} />
+              </div>
+              <div>
+                <strong style={{ fontSize: '0.95rem', display: 'block', color: 'var(--brand)', marginBottom: 2 }}>
+                  Pengguna & Staf
+                </strong>
+                <span className="hint" style={{ fontSize: '0.825rem', lineHeight: 1.4 }}>
+                  Kelola akun administrator, penguji, verifikator, staf keuangan, dan hak akses.
+                </span>
+              </div>
+            </Link>
+          )}
+
+          {can('audit.read', 'application.override') && (
+            <Link
+              to="/audit-logs"
+              className="card"
+              style={{
+                margin: 0,
+                padding: 16,
+                textDecoration: 'none',
+                color: 'inherit',
+                border: '1px solid var(--line)',
+                borderRadius: 'var(--radius-md)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 14,
+              }}
+            >
+              <div style={{ padding: 10, borderRadius: 8, background: 'var(--bg)', color: 'var(--brand)', flexShrink: 0 }}>
+                <Icon name="history" size={20} />
+              </div>
+              <div>
+                <strong style={{ fontSize: '0.95rem', display: 'block', color: 'var(--brand)', marginBottom: 2 }}>
+                  Jejak Audit
+                </strong>
+                <span className="hint" style={{ fontSize: '0.825rem', lineHeight: 1.4 }}>
+                  Catatan riwayat aktivitas pengguna, perubahan data sensitif, dan log sistem.
+                </span>
+              </div>
+            </Link>
+          )}
+        </div>
+      </section>
+
+      {/* 4. Alur Kerja SPMB Terpadu */}
+      <section className="card" style={{ margin: 0, padding: 22 }}>
+        <h3 style={{ margin: '0 0 4px 0', fontSize: '1.05rem', color: 'var(--brand)' }}>
+          Alur Kerja Standar Operasional SPMB
+        </h3>
+        <p className="hint" style={{ margin: '0 0 16px 0', fontSize: '0.85rem' }}>
+          Tahapan baku proses penerimaan peserta didik baru dari registrasi hingga masa orientasi.
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
+          <div style={{ padding: 12, background: 'var(--bg)', borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--brand)' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--brand)', display: 'block' }}>Tahap 1</span>
+            <strong style={{ fontSize: '0.875rem', display: 'block', margin: '2px 0' }}>Registrasi Berkas</strong>
+            <small className="hint">Orang tua melengkapi biodata & dokumen syarat.</small>
+          </div>
+          <div style={{ padding: 12, background: 'var(--bg)', borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--warning)' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--warning)', display: 'block' }}>Tahap 2</span>
+            <strong style={{ fontSize: '0.875rem', display: 'block', margin: '2px 0' }}>Verifikasi Dokumen</strong>
+            <small className="hint">Pemeriksaan keaslian & validitas berkas.</small>
+          </div>
+          <div style={{ padding: 12, background: 'var(--bg)', borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--info)' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--info)', display: 'block' }}>Tahap 3</span>
+            <strong style={{ fontSize: '0.875rem', display: 'block', margin: '2px 0' }}>Asesmen & Seleksi</strong>
+            <small className="hint">Penjadwalan ujian, skoring, & perangkingan.</small>
+          </div>
+          <div style={{ padding: 12, background: 'var(--bg)', borderRadius: 'var(--radius-sm)', borderLeft: '3px solid #8b5cf6' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#8b5cf6', display: 'block' }}>Tahap 4</span>
+            <strong style={{ fontSize: '0.875rem', display: 'block', margin: '2px 0' }}>Daftar Ulang & Biaya</strong>
+            <small className="hint">Pengumuman kelulusan & verifikasi transfer.</small>
+          </div>
+          <div style={{ padding: 12, background: 'var(--bg)', borderRadius: 'var(--radius-sm)', borderLeft: '3px solid var(--success)' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--success)', display: 'block' }}>Tahap 5</span>
+            <strong style={{ fontSize: '0.875rem', display: 'block', margin: '2px 0' }}>Siswa Baru & MPLS</strong>
+            <small className="hint">Penerbitan NIS resmi & kegiatan orientasi.</small>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }
 
-export function DashboardPage() {
-  const [adding, setAdding] = useState(false)
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('ALL')
+/**
+ * Dashboard Khusus Orang Tua / Wali Calon Siswa (Parent Portal)
+ */
+function ParentDashboard() {
+  const { user } = useAuth()
 
   const applicants = useQuery({ queryKey: ['applicants'], queryFn: () => api<Applicant[]>('/admission/applicants') })
   const applications = useQuery({ queryKey: ['applications'], queryFn: () => api<Application[]>('/admission/applications') })
   const periods = useQuery({ queryKey: ['periods'], queryFn: () => api<AdmissionPeriod[]>('/admission/periods?is_active=true', { auth: false }) })
 
-  if (applicants.isPending || applications.isPending) {
-    return <p className="loading-indicator">Memuat informasi pendaftaran…</p>
-  }
-
   const appList = applications.data ?? []
   const applicantList = applicants.data ?? []
-
-  // Filter pendaftaran
-  const filteredApps = appList.filter((a) => {
-    if (statusFilter !== 'ALL' && a.status !== statusFilter) return false
-    if (search.trim()) {
-      const q = search.trim().toLowerCase()
-      const matchName = a.applicant_name.toLowerCase().includes(q)
-      const matchReg = (a.registration_number ?? '').toLowerCase().includes(q)
-      const matchPeriod = a.period_name.toLowerCase().includes(q)
-      if (!matchName && !matchReg && !matchPeriod) return false
-    }
-    return true
-  })
-
-  // Dapatkan ID applicant yang sudah didaftarkan ke gelombang
-  const registeredApplicantIds = new Set(appList.map((a) => a.applicant_id))
+  const activePeriods = periods.data ?? []
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <PageHeader
-        title="Portal Pendaftaran Calon Siswa"
-        description="Kelola berkas dan pantau proses seleksi pendaftaran putra-putri Anda pada gelombang penerimaan murid baru."
-        actions={
-          <button
-            type="button"
-            className="button"
-            onClick={() => setAdding(!adding)}
-          >
-            {adding ? 'Tutup Formulir' : '+ Tambah Calon Siswa'}
-          </button>
-        }
-      />
-
-      {/* Form Tambah Calon Siswa Baru */}
-      {adding && <NewApplicantForm onDone={() => setAdding(false)} />}
-
-      {/* 1. Bagian Daftar Pendaftaran Saya */}
-      <section className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+      {/* 1. Header Sambutan Orang Tua */}
+      <div
+        className="card"
+        style={{
+          margin: 0,
+          padding: '26px 30px',
+          background: 'linear-gradient(135deg, var(--card) 0%, var(--surface) 100%)',
+          borderLeft: '5px solid var(--brand)',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                <polyline points="14 2 14 8 20 8" />
-                <line x1="16" y1="13" x2="8" y2="13" />
-                <line x1="16" y1="17" x2="8" y2="17" />
-                <polyline points="10 9 9 9 8 9" />
-              </svg>
-              Daftar Pendaftaran Saya
-              <span className="badge" style={{ marginLeft: 6, fontSize: '0.8rem', verticalAlign: 'middle' }}>
-                {appList.length} Pendaftaran
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  padding: '3px 10px',
+                  borderRadius: 12,
+                  background: 'var(--brand-light)',
+                  color: 'var(--brand-dark)',
+                }}
+              >
+                Portal Pendaftaran Murid Baru
               </span>
-            </h2>
-            <p className="hint" style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>
-              Klik tombol pendaftaran untuk melengkapi berkas persyaratan, melihat jadwal asesmen, atau mengecek pengumuman kelulusan.
+              <span className="hint" style={{ fontSize: '0.85rem' }}>
+                Tahun Ajaran 2026/2027
+              </span>
+            </div>
+            <h1 style={{ margin: '0 0 6px 0', fontSize: '1.45rem', color: 'var(--brand)' }}>
+              Selamat Datang, {user?.name}
+            </h1>
+            <p className="hint" style={{ margin: 0, fontSize: '0.9rem', maxWidth: 640, lineHeight: 1.5 }}>
+              Selamat datang di sistem pendaftaran murid baru terpadu. Daftarkan putra-putri Anda, unggah dokumen persyaratan, ikuti proses seleksi, dan pantau pengumuman penerimaan secara online.
             </p>
           </div>
+
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Link to="/pendaftaran" className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px' }}>
+              <Icon name="file-text" size={16} /> Buka Menu Pendaftaran
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Ringkasan Status Pendaftaran Anak Saya */}
+      <section>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="users" size={18} />
+              Status Pendaftaran Putra-Putri Anda
+            </h2>
+            <p className="hint" style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>
+              {applicantList.length > 0
+                ? `${applicantList.length} profil calon siswa tersimpan pada akun keluarga Anda.`
+                : 'Daftar pendaftaran aktif calon siswa baru pada akun keluarga Anda.'}
+            </p>
+          </div>
+          <Link to="/pendaftaran" className="button secondary" style={{ fontSize: '0.85rem' }}>
+            + Daftarkan Siswa Baru
+          </Link>
         </div>
 
-        {/* Toolbar Filter */}
-        <div className="row" style={{ alignItems: 'flex-end', gap: 12, marginBottom: 16 }}>
-          <div style={{ flex: 2, minWidth: 240 }}>
-            <Field
-              label="Cari Pendaftaran"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Cari berdasarkan nama calon siswa, nomor registrasi, atau gelombang…"
-            />
-          </div>
-
-          <label className="field" style={{ flex: 1, minWidth: 180 }}>
-            <span>Filter Status</span>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="ALL">Semua Status ({appList.length})</option>
-              <option value="DRAFT">Draf (Belum Dikirim)</option>
-              <option value="SUBMITTED">Terkirim (Menunggu Verifikasi)</option>
-              <option value="VERIFIED">Terverifikasi</option>
-              <option value="REVISION_REQUIRED">Perlu Perbaikan Berkas</option>
-              <option value="ASSESSMENT_SCHEDULED">Jadwal Asesmen Terbit</option>
-              <option value="ACCEPTED">Lolos Seleksi (Diterima)</option>
-              <option value="RE_REGISTRATION">Daftar Ulang</option>
-              <option value="ENROLLED">Resmi Terdaftar</option>
-            </select>
-          </label>
-
-          {(search || statusFilter !== 'ALL') && (
-            <button
-              type="button"
-              className="button secondary"
-              style={{ marginBottom: 2 }}
-              onClick={() => {
-                setSearch('')
-                setStatusFilter('ALL')
+        {applications.isLoading || applicants.isLoading ? (
+          <p className="loading-indicator">Memuat status pendaftaran…</p>
+        ) : appList.length === 0 ? (
+          <div
+            className="card"
+            style={{
+              margin: 0,
+              padding: '36px 20px',
+              textAlign: 'center',
+              background: 'var(--surface)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px dashed var(--line)',
+            }}
+          >
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                background: 'var(--bg)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 12px',
+                color: 'var(--brand)',
               }}
             >
-              Reset Filter
-            </button>
-          )}
-        </div>
-
-        {appList.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '36px 16px', background: 'var(--bg)', borderRadius: 'var(--radius-md)' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10, color: 'var(--muted)' }}>
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="8.5" cy="7" r="4" />
-                <line x1="20" y1="8" x2="20" y2="14" />
-                <line x1="23" y1="11" x2="17" y2="11" />
-              </svg>
+              <Icon name="file-text" size={24} />
             </div>
-            <h3 style={{ margin: '0 0 6px 0', fontSize: '1.05rem' }}>Belum Ada Pendaftaran Aktif</h3>
-            <p className="hint" style={{ margin: '0 0 16px 0', maxWidth: 440, marginLeft: 'auto', marginRight: 'auto' }}>
-              Silakan tambahkan data calon siswa di bawah ini terlebih dahulu, lalu pilih gelombang pendaftaran yang tersedia untuk mendaftar.
+            <h3 style={{ margin: '0 0 6px 0', fontSize: '1.1rem' }}>Belum Ada Pendaftaran Calon Siswa</h3>
+            <p className="hint" style={{ margin: '0 auto 18px', maxWidth: 480, fontSize: '0.875rem', lineHeight: 1.5 }}>
+              Anda belum mendaftarkan calon siswa pada gelombang penerimaan ini. Mulai dengan mengisi data diri anak dan memilih gelombang masuk.
             </p>
-            <button type="button" className="button" onClick={() => setAdding(true)}>
-              + Tambah Calon Siswa Sekarang
-            </button>
+            <Link to="/pendaftaran" className="button" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="plus" size={16} /> Mulai Pendaftaran Sekarang
+            </Link>
           </div>
-        ) : filteredApps.length === 0 ? (
-          <p className="hint" style={{ textAlign: 'center', padding: '24px 0' }}>
-            Tidak ditemukan pendaftaran yang cocok dengan filter pencarian.
-          </p>
         ) : (
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: '18%' }}>No. Registrasi</th>
-                  <th style={{ width: '28%' }}>Nama Calon Siswa</th>
-                  <th style={{ width: '18%' }}>Gelombang</th>
-                  <th style={{ width: '16%' }}>Waktu</th>
-                  <th style={{ width: '12%', textAlign: 'center' }}>Status</th>
-                  <th style={{ width: '8%', textAlign: 'right' }}>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredApps.map((a) => (
-                  <tr key={a.id}>
-                    <td>
-                      {a.registration_number ? (
-                        <code
-                          style={{
-                            fontWeight: 700,
-                            fontSize: '0.85rem',
-                            color: 'var(--brand)',
-                            background: 'var(--bg)',
-                            padding: '3px 8px',
-                            borderRadius: 4,
-                          }}
-                        >
-                          {a.registration_number}
-                        </code>
-                      ) : (
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '2px 8px',
-                            borderRadius: 4,
-                            background: 'var(--warning-light)',
-                            color: 'var(--warning)',
-                            fontWeight: 700,
-                            fontSize: '0.78rem',
-                          }}
-                        >
-                          DRAF
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <Link
-                        to={`/applications/${a.id}`}
-                        style={{
-                          fontWeight: 700,
-                          fontSize: '0.95rem',
-                          color: 'var(--brand)',
-                          textDecoration: 'none',
-                          display: 'block',
-                        }}
-                      >
-                        {a.applicant_name}
-                      </Link>
-                    </td>
-                    <td>
-                      <strong style={{ fontSize: '0.875rem' }}>{a.period_name}</strong>
-                    </td>
-                    <td>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--muted)', lineHeight: 1.4 }}>
-                        {a.submitted_at ? (
-                          <div>
-                            <strong>Tgl Submit:</strong>{' '}
-                            {new Date(a.submitted_at).toLocaleDateString('id-ID', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })}
-                          </div>
-                        ) : a.created_at ? (
-                          <div>
-                            <strong>Draf:</strong>{' '}
-                            {new Date(a.created_at).toLocaleDateString('id-ID', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric',
-                            })}
-                          </div>
-                        ) : (
-                          '—'
-                        )}
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'center' }}>
-                      <StatusBadge status={a.status} />
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <Link
-                        to={`/applications/${a.id}`}
-                        className="button"
-                        style={{
-                          fontSize: '0.8rem',
-                          padding: '4px 12px',
-                          textDecoration: 'none',
-                          display: 'inline-block',
-                        }}
-                      >
-                        {a.status === 'DRAFT' || a.status === 'REVISION_REQUIRED' ? 'Lanjutkan' : 'Detail'}
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      {/* 2. Bagian Data Calon Siswa & Pendaftaran Gelombang Baru */}
-      <section className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-              Data Calon Siswa Terdaftar
-              <span className="badge" style={{ marginLeft: 6, fontSize: '0.8rem', verticalAlign: 'middle' }}>
-                {applicantList.length} Siswa
-              </span>
-            </h2>
-            <p className="hint" style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>
-              Daftar profil calon siswa pada akun Anda. Pilih gelombang pendaftaran yang aktif untuk mendaftarkan calon siswa ke proses seleksi baru.
-            </p>
-          </div>
-          {!adding && (
-            <button type="button" className="button secondary" onClick={() => setAdding(true)}>
-              + Tambah Calon Siswa
-            </button>
-          )}
-        </div>
-
-        {applicantList.length === 0 ? (
-          <p className="hint">Belum ada data calon siswa yang disimpan.</p>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
-            {applicantList.map((a) => {
-              const hasRegistered = registeredApplicantIds.has(a.id)
-              return (
-                <div
-                  key={a.id}
-                  className="card"
-                  style={{
-                    margin: 0,
-                    padding: 16,
-                    background: 'var(--surface)',
-                    border: '1px solid var(--line)',
-                    borderRadius: 'var(--radius-md)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: 12,
-                  }}
-                >
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 6 }}>
-                      <strong style={{ fontSize: '1rem', color: 'var(--brand)' }}>{a.full_name}</strong>
-                      <span
-                        style={{
-                          fontSize: '0.75rem',
-                          padding: '2px 8px',
-                          borderRadius: 4,
-                          fontWeight: 600,
-                          background: a.gender === 'MALE' ? 'var(--info-light)' : 'var(--danger-light)',
-                          color: a.gender === 'MALE' ? 'var(--info)' : 'var(--danger)',
-                        }}
-                      >
-                        {a.gender === 'MALE' ? 'Laki-laki' : 'Perempuan'}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
+            {appList.map((app) => (
+              <div
+                key={app.id}
+                className="card"
+                style={{
+                  margin: 0,
+                  padding: 20,
+                  background: 'var(--card)',
+                  border: '1px solid var(--line)',
+                  borderRadius: 'var(--radius-md)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: 16,
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
+                    <div>
+                      <strong style={{ fontSize: '1.05rem', color: 'var(--brand)', display: 'block' }}>
+                        {app.applicant_name}
+                      </strong>
+                      <span className="hint" style={{ fontSize: '0.825rem' }}>
+                        Gelombang: <strong>{app.period_name}</strong>
                       </span>
                     </div>
-
-                    <div style={{ fontSize: '0.825rem', color: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: 3 }}>
-                      <div>
-                        <strong>Lahir:</strong> {a.birth_place},{' '}
-                        {new Date(a.birth_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                      </div>
-                      {a.nisn && (
-                        <div>
-                          <strong>NISN:</strong> <code>{a.nisn}</code>
-                        </div>
-                      )}
-                      {a.nik && (
-                        <div>
-                          <strong>NIK:</strong> <code>{a.nik}</code>
-                        </div>
-                      )}
-                      {a.religion && (
-                        <div>
-                          <strong>Agama:</strong> {a.religion}
-                        </div>
-                      )}
-                      {a.address && (
-                        <div style={{ marginTop: 2 }}>
-                          <strong>Alamat:</strong> {a.address}
-                        </div>
-                      )}
-                    </div>
+                    <StatusBadge status={app.status} />
                   </div>
 
-                  {/* Pendaftaran Gelombang untuk Anak ini */}
-                  <div style={{ borderTop: '1px solid var(--line)', paddingTop: 10 }}>
-                    {periods.data && periods.data.length > 0 ? (
+                  <div style={{ fontSize: '0.85rem', color: 'var(--muted)', display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
+                    <div>
+                      <strong>No. Registrasi:</strong>{' '}
+                      {app.registration_number ? (
+                        <code style={{ fontWeight: 700, color: 'var(--brand)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 4 }}>
+                          {app.registration_number}
+                        </code>
+                      ) : (
+                        <span style={{ color: 'var(--warning)', fontWeight: 600 }}>Draf Belum Dikirim</span>
+                      )}
+                    </div>
+                    {app.submitted_at && (
                       <div>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                          {hasRegistered ? 'Daftarkan ke Gelombang Lain:' : 'Pilih Gelombang Masuk:'}
-                        </span>
-                        <StartApplication applicant={a} periods={periods.data} />
+                        <strong>Tanggal Kirim:</strong>{' '}
+                        {new Date(app.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                       </div>
-                    ) : (
-                      <p className="hint" style={{ margin: 0, fontSize: '0.8rem' }}>
-                        Tidak ada gelombang pendaftaran yang sedang aktif saat ini.
-                      </p>
                     )}
                   </div>
                 </div>
-              )
-            })}
+
+                <div style={{ borderTop: '1px solid var(--line)', paddingTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
+                    {app.status === 'DRAFT'
+                      ? 'Lengkapi berkas pendaftaran'
+                      : app.status === 'SUBMITTED'
+                        ? 'Menunggu verifikasi berkas'
+                        : app.status === 'ACCEPTED'
+                          ? 'Selamat! Calon siswa diterima'
+                          : 'Proses seleksi berlangsung'}
+                  </span>
+                  <Link to={`/applications/${app.id}`} className="button" style={{ fontSize: '0.825rem', padding: '5px 14px' }}>
+                    {app.status === 'DRAFT' || app.status === 'REVISION_REQUIRED' ? 'Lanjutkan Berkas' : 'Lihat Detail'}
+                  </Link>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </section>
+
+      {/* 3. Panduan Alur Pendaftaran SPMB (6 Langkah) */}
+      <section className="card" style={{ margin: 0, padding: 22 }}>
+        <h3 style={{ margin: '0 0 6px 0', fontSize: '1.1rem', color: 'var(--brand)' }}>
+          Tahapan & Alur Pendaftaran Murid Baru
+        </h3>
+        <p className="hint" style={{ margin: '0 0 16px 0', fontSize: '0.85rem' }}>
+          Ikuti 6 langkah mudah proses penerimaan peserta didik baru hingga resmi terdaftar di sekolah.
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
+          <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 'var(--radius-sm)', borderTop: '3px solid var(--brand)' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--brand)', display: 'block' }}>Langkah 1</span>
+            <strong style={{ fontSize: '0.875rem', display: 'block', margin: '3px 0' }}>Biodata Siswa</strong>
+            <small className="hint">Lengkapi identitas anak, NISN, NIK, dan data orang tua/wali.</small>
+          </div>
+          <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 'var(--radius-sm)', borderTop: '3px solid var(--brand)' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--brand)', display: 'block' }}>Langkah 2</span>
+            <strong style={{ fontSize: '0.875rem', display: 'block', margin: '3px 0' }}>Unggah Berkas</strong>
+            <small className="hint">Upload akta kelahiran, KK, pas foto, dan rapor sekolah asal.</small>
+          </div>
+          <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 'var(--radius-sm)', borderTop: '3px solid var(--warning)' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--warning)', display: 'block' }}>Langkah 3</span>
+            <strong style={{ fontSize: '0.875rem', display: 'block', margin: '3px 0' }}>Verifikasi & Tes</strong>
+            <small className="hint">Panitia memverifikasi berkas dan menerbitkan jadwal asesmen.</small>
+          </div>
+          <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 'var(--radius-sm)', borderTop: '3px solid var(--info)' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--info)', display: 'block' }}>Langkah 4</span>
+            <strong style={{ fontSize: '0.875rem', display: 'block', margin: '3px 0' }}>Pengumuman</strong>
+            <small className="hint">Cek hasil kelulusan seleksi dan unduh surat penerimaan.</small>
+          </div>
+          <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 'var(--radius-sm)', borderTop: '3px solid #8b5cf6' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#8b5cf6', display: 'block' }}>Langkah 5</span>
+            <strong style={{ fontSize: '0.875rem', display: 'block', margin: '3px 0' }}>Daftar Ulang</strong>
+            <small className="hint">Konfirmasi kesediaan dan selesaikan administrasi daftar ulang.</small>
+          </div>
+          <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 'var(--radius-sm)', borderTop: '3px solid var(--success)' }}>
+            <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--success)', display: 'block' }}>Langkah 6</span>
+            <strong style={{ fontSize: '0.875rem', display: 'block', margin: '3px 0' }}>Siswa Baru & MPLS</strong>
+            <small className="hint">Dapatkan NIS resmi dan ikuti kegiatan Masa Pengenalan Lingkungan Sekolah.</small>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Gelombang Pendaftaran Aktif & Bantuan Kontak */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
+        <section className="card" style={{ margin: 0, padding: 20 }}>
+          <h3 style={{ margin: '0 0 10px 0', fontSize: '1.05rem', color: 'var(--brand)' }}>
+            Gelombang Masuk Aktif
+          </h3>
+          {activePeriods.length === 0 ? (
+            <p className="hint">Belum ada gelombang pendaftaran yang sedang dibuka saat ini.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {activePeriods.map((p) => (
+                <div key={p.id} style={{ padding: 12, background: 'var(--bg)', borderRadius: 'var(--radius-sm)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <strong style={{ fontSize: '0.925rem' }}>{p.name}</strong>
+                    <span className="badge" style={{ fontSize: '0.75rem', background: 'var(--success-light)', color: 'var(--success)' }}>
+                      Dibuka
+                    </span>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: 4 }}>
+                    Periode: {new Date(p.registration_start).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} s.d.{' '}
+                    {new Date(p.registration_end).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {p.quota != null && <span> • Kuota: {p.quota} siswa</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="card" style={{ margin: 0, padding: 20 }}>
+          <h3 style={{ margin: '0 0 10px 0', fontSize: '1.05rem', color: 'var(--brand)' }}>
+            Pusat Bantuan & Layanan SPMB
+          </h3>
+          <p className="hint" style={{ margin: '0 0 12px 0', fontSize: '0.85rem' }}>
+            Membutuhkan informasi seputar persyaratan berkas, alur seleksi, atau kendala teknis?
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: '0.85rem' }}>
+            <div>
+              <strong>Sekretariat Panitia SPMB:</strong> Gedung Administrasi Lt. 1
+            </div>
+            <div>
+              <strong>Jam Layanan:</strong> Senin – Jumat, 08.00 – 15.00 WIB
+            </div>
+            <div>
+              <strong>Hotline WhatsApp:</strong> <span style={{ color: 'var(--brand)', fontWeight: 600 }}>0812-3456-7890</span>
+            </div>
+            <div>
+              <strong>Email SPMB:</strong> <span style={{ color: 'var(--brand)' }}>spmb@sekolah.sch.id</span>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Halaman Utama Dashboard (Halaman Awal Setelah Login)
+ * Secara otomatis menyesuaikan tampilan bagi Staf / Admin atau Orang Tua / Calon Siswa
+ */
+export function DashboardPage() {
+  const { user, can } = useAuth()
+  const isStaff = !!user && can(...STAFF_PERMISSIONS)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {isStaff ? <StaffDashboard /> : <ParentDashboard />}
     </div>
   )
 }
