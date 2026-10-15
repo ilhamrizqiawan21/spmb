@@ -33,3 +33,4 @@ class AdminDashboardTest extends TestCase
         $this->as($parent)->getJson(self::API.'/system/admin-dashboard')->assertForbidden();
     }
 }
+

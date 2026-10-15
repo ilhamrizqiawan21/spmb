@@ -31,6 +31,33 @@ function mockApi(me: User) {
     if (url.includes('/users/roles')) return new Response(JSON.stringify([]), { status: 200 })
     if (url.includes('/users')) return new Response(JSON.stringify({ data: [], meta: { page: 1, per_page: 20, total: 0 } }), { status: 200 })
     if (url.includes('/audit-logs')) return new Response(JSON.stringify({ data: [], meta: { page: 1, per_page: 50, total: 0 } }), { status: 200 })
+    if (url.includes('/system/admin-dashboard')) {
+      return new Response(
+        JSON.stringify({
+          health: {
+            database: 'ok',
+            cache: 'ok',
+            environment: 'testing',
+            php_version: '8.3.0',
+            laravel_version: '13.0.0',
+            queue: { pending_jobs: 0, failed_jobs: 0 },
+            notifications: { sent_24h: 10, failed_24h: 0 },
+            storage: { total_documents: 25, total_bytes: 10485760 },
+          },
+          alerts: [],
+          governance: {
+            total_users: 15,
+            active_users: 14,
+            inactive_users: 1,
+            roles: [{ code: 'verifier', name: 'Verifier', active_users_count: 3 }],
+          },
+          academic_year: '2026/2027',
+          periods: [],
+          recent_audits: [],
+        }),
+        { status: 200 },
+      )
+    }
     return new Response(JSON.stringify([]), { status: 200 })
   })
 }
@@ -48,9 +75,20 @@ describe('Super Admin flow and access', () => {
     render(<App />)
 
     // Verify all super admin menus are displayed
-    expect(await screen.findByRole('link', { name: 'Data Master' })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'Konsol Sistem' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Data Master' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Pengguna & Staf' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Jejak Audit' })).toBeInTheDocument()
+  })
+
+  it('renders dedicated admin console dashboard for super admin', async () => {
+    mockApi(superAdmin)
+    window.history.pushState({}, '', '/admin/dashboard')
+    render(<App />)
+
+    expect(await screen.findByRole('heading', { name: 'Konsol Sistem & Super Admin' })).toBeInTheDocument()
+    expect(screen.getByText(/Kondisi Sistem Normal/i)).toBeInTheDocument()
+    expect(screen.getByText('Status Infrastruktur & Subsistem')).toBeInTheDocument()
   })
 
   it('renders users management page for super admin', async () => {

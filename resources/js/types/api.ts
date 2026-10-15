@@ -422,3 +422,62 @@ export interface AuditLogPage {
   meta: { page: number; per_page: number; total: number }
 }
 
+export interface AdminDashboardData {
+  health: {
+    database: 'ok' | 'error'
+    cache: 'ok' | 'error'
+    environment: string
+    php_version: string
+    laravel_version: string
+    queue: {
+      pending_jobs: number
+      failed_jobs: number
+    }
+    notifications: {
+      sent_24h: number
+      failed_24h: number
+    }
+    storage: {
+      total_documents: number
+      total_bytes: number
+    }
+  }
+  alerts: {
+    level: 'danger' | 'warning' | 'info'
+    title: string
+    message: string
+  }[]
+  governance: {
+    total_users: number
+    active_users: number
+    inactive_users: number
+    roles: {
+      code: string
+      name: string
+      active_users_count: number
+    }[]
+  }
+  academic_year: string | null
+  periods: {
+    id: string
+    name: string
+    code: string
+    quota: number | null
+    applications_count: number
+    fill_percentage: number | null
+    registration_start: string
+    registration_end: string
+    is_open: boolean
+  }[]
+  recent_audits: {
+    id: string
+    action: string
+    resource_type: string
+    user_name: string
+    reason: string | null
+    ip_address: string | null
+    created_at: string
+  }[]
+}
+
+

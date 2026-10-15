@@ -4,6 +4,7 @@ import { Layout, RequireAuth } from './components/Layout'
 import { AuthProvider } from './features/auth/AuthContext'
 import { ThemeProvider } from './features/theme/ThemeContext'
 import { AccountPage } from './pages/AccountPage'
+import { AdminDashboardPage } from './pages/admin/AdminDashboardPage'
 import { AdminPage } from './pages/admin/AdminPage'
 import { ApplicationPage } from './pages/ApplicationPage'
 import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage } from './pages/AuthPages'
@@ -48,6 +49,9 @@ export default function App() {
               </Route>
               <Route element={<RequireAuth permissions={['assessment.input', 'assessment.approve', 'application.override']} />}>
                 <Route path="penilaian" element={<AssessmentPage />} />
+              </Route>
+              <Route element={<RequireAuth permissions={['application.override']} />}>
+                <Route path="admin/dashboard" element={<AdminDashboardPage />} />
               </Route>
               <Route element={<RequireAuth permissions={['application.override', 'enrollment.manage']} />}>
                 <Route path="admin" element={<AdminPage />} />
