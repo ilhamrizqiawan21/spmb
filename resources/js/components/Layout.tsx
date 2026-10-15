@@ -24,14 +24,15 @@ export function Layout() {
   const [openOn, setOpenOn] = useState<string | null>(null)
   const sidebarOpen = openOn === location.pathname
 
-  // Determine if logged-in user is a staff/admin member
+  // Check authentication & staff privileges
+  const isAuthenticated = !!user
   const isStaff = !!user && can(...STAFF_PERMISSIONS)
 
   return (
-    <div className={`app-shell ${isStaff ? 'layout-staff' : 'layout-portal'}`}>
+    <div className={`app-shell ${isAuthenticated ? 'layout-staff' : 'layout-portal'}`}>
       <a className="skip-link" href="#main">Langsung ke konten</a>
 
-      {isStaff && (
+      {isAuthenticated && (
         <Sidebar
           isOpen={sidebarOpen}
           onClose={() => setOpenOn(null)}
@@ -45,7 +46,7 @@ export function Layout() {
           isSidebarOpen={sidebarOpen}
         />
 
-        <main id="main" className={`container ${isStaff ? 'container-fluid' : ''}`} tabIndex={-1}>
+        <main id="main" className={`container ${isAuthenticated ? 'container-fluid' : ''}`} tabIndex={-1}>
           <Outlet />
         </main>
       </div>

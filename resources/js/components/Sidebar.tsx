@@ -127,6 +127,69 @@ const STAFF_GROUPS: NavGroup[] = [
   },
 ]
 
+const PARENT_GROUPS: NavGroup[] = [
+  {
+    heading: 'Menu Utama',
+    items: [
+      {
+        to: '/dashboard',
+        label: 'Dashboard',
+        perms: [],
+        iconSvg: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10',
+      },
+      {
+        to: '/pendaftaran',
+        label: 'Pendaftaran',
+        perms: [],
+        iconSvg: 'M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2 M9 2h6a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z',
+      },
+    ],
+  },
+  {
+    heading: 'Informasi SPMB',
+    items: [
+      {
+        to: '/periods',
+        label: 'Gelombang & Kuota',
+        perms: [],
+        iconSvg: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z',
+      },
+      {
+        to: '/hasil',
+        label: 'Cek Pengumuman',
+        perms: [],
+        iconSvg: 'M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9 M13.73 21a2 2 0 0 1-3.46 0',
+      },
+    ],
+  },
+  {
+    heading: 'Akun Pengguna',
+    items: [
+      {
+        to: '/akun',
+        label: 'Pengaturan Akun',
+        perms: [],
+        iconSvg: 'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+      },
+    ],
+  },
+]
+
+const ALL_STAFF_PERMS = [
+  'application.read',
+  'document.verify',
+  'application.verify',
+  'assessment.input',
+  'assessment.approve',
+  'payment.read',
+  'payment.verify',
+  'enrollment.manage',
+  'mpls.manage',
+  'application.override',
+  'user.manage',
+  'audit.read',
+]
+
 interface SidebarProps {
   isOpen: boolean
   onClose: () => void
@@ -134,6 +197,7 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, can, logout } = useAuth()
+  const isStaff = !!user && can(...ALL_STAFF_PERMS)
 
   return (
     <>
@@ -142,20 +206,22 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         onClick={onClose}
         aria-hidden="true"
       />
-      <aside className={`sidebar ${isOpen ? 'open' : ''}`} aria-label="Navigasi Panel Staf">
+      <aside className={`sidebar ${isOpen ? 'open' : ''}`} aria-label={isStaff ? 'Navigasi Panel Staf' : 'Navigasi Portal Pendaftar'}>
         <div className="sidebar-header">
           <Link to="/dashboard" className="sidebar-brand" onClick={onClose}>
             <span className="sidebar-brand-badge">SPMB</span>
             <div className="sidebar-brand-text">
               <strong>SPMB Terpadu</strong>
-              <small>T.A. 2026/2027</small>
+              <small>{isStaff ? 'Panel Staf 2026/2027' : 'Portal Pendaftar'}</small>
             </div>
           </Link>
         </div>
 
         <nav className="sidebar-nav" id="sidebar-nav">
-          {STAFF_GROUPS.map((group) => {
-            const accessibleItems = group.items.filter((item) => can(...item.perms))
+          {(isStaff ? STAFF_GROUPS : PARENT_GROUPS).map((group) => {
+            const accessibleItems = isStaff && group.items.some((i) => i.perms.length > 0)
+              ? group.items.filter((item) => can(...item.perms))
+              : group.items
             if (accessibleItems.length === 0) return null
             return (
               <div key={group.heading} className="sidebar-group">
