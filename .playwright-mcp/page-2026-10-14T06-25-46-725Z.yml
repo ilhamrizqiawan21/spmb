@@ -1,0 +1,30 @@
+- generic [ref=f3e2]:
+  - banner [ref=f3e3]:
+    - link "SPMB Terpadu 2026/2027" [ref=f3e4] [cursor=pointer]:
+      - /url: /
+    - navigation [ref=f3e5]:
+      - link "Periode" [ref=f3e6] [cursor=pointer]:
+        - /url: /periods
+      - link "Cek Hasil" [ref=f3e7] [cursor=pointer]:
+        - /url: /hasil
+      - link "Masuk" [ref=f3e12] [cursor=pointer]:
+        - /url: /login
+      - link "Daftar" [ref=f3e13] [cursor=pointer]:
+        - /url: /register
+  - main [ref=f3e10]:
+    - generic [ref=f3e14]:
+      - heading "Masuk" [level=1] [ref=f3e15]
+      - generic [ref=f3e16]:
+        - generic [ref=f3e17]: Email atau nomor HP
+        - textbox "Email atau nomor HP" [ref=f3e18]
+      - generic [ref=f3e19]:
+        - generic [ref=f3e20]: Kata sandi
+        - textbox "Kata sandi" [ref=f3e21]
+      - button "Masuk" [ref=f3e22] [cursor=pointer]
+      - paragraph [ref=f3e23]:
+        - link "Lupa kata sandi?" [ref=f3e24] [cursor=pointer]:
+          - /url: /forgot-password
+      - paragraph [ref=f3e25]:
+        - text: Belum punya akun?
+        - link "Daftar" [ref=f3e26] [cursor=pointer]:
+          - /url: /register

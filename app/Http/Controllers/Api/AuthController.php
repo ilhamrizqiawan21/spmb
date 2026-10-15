@@ -111,4 +111,14 @@ class AuthController extends ApiController
     {
         return new UserProfileResource($request->user());
     }
+
+    public function updateMe(Request $request): UserProfileResource
+    {
+        $data = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:150'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:30', 'regex:/^\+?[0-9 ()-]{6,30}$/'],
+        ]);
+
+        return new UserProfileResource(AuthService::updateProfile($request->user(), $data));
+    }
 }

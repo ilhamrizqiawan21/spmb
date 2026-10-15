@@ -1,43 +1,65 @@
-import { Link, Navigate, Outlet, useLocation } from 'react-router-dom'
+import { useState } from 'react'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../features/auth/AuthContext'
+import { Sidebar } from './Sidebar'
+import { Topbar } from './Topbar'
+
+const STAFF_PERMISSIONS = [
+  'application.read',
+  'document.verify',
+  'application.verify',
+  'assessment.input',
+  'assessment.approve',
+  'payment.read',
+  'payment.verify',
+  'enrollment.manage',
+  'mpls.manage',
+  'application.override',
+]
 
 export function Layout() {
-  const { user, logout, can } = useAuth()
+  const { user, can } = useAuth()
+  const location = useLocation()
+  // The mobile sidebar is open only on the page where it was opened; navigating away closes it automatically.
+  const [openOn, setOpenOn] = useState<string | null>(null)
+  const sidebarOpen = openOn === location.pathname
+
+  // Check authentication & staff privileges
+  const isAuthenticated = !!user
+  const isStaff = !!user && can(...STAFF_PERMISSIONS)
+
   return (
-    <>
-      <header className="topbar">
-        <Link to="/" className="brand">SPMB Terpadu 2026/2027</Link>
-        <nav>
-          <Link to="/periods">Periode</Link>
-          <Link to="/hasil">Cek Hasil</Link>
-          {user && <Link to="/dashboard">Pendaftaran</Link>}
-          {can('document.verify', 'application.verify', 'application.override') && <Link to="/verifikasi">Verifikasi</Link>}
-          {can('assessment.input', 'assessment.approve', 'application.override') && <Link to="/penilaian">Penilaian</Link>}
-          {can('assessment.approve', 'application.override') && <Link to="/seleksi">Seleksi</Link>}
-          {can('payment.read', 'payment.verify', 'application.override') && <Link to="/keuangan">Keuangan</Link>}
-          {can('application.override', 'enrollment.manage') && <Link to="/admin">Data Master</Link>}
-          {user ? (
-            <button className="link" onClick={() => void logout()}>Keluar ({user.name})</button>
-          ) : (
-            <>
-              <Link to="/login">Masuk</Link>
-              <Link to="/register">Daftar</Link>
-            </>
-          )}
-        </nav>
-      </header>
-      <main className="container">
-        <Outlet />
-      </main>
-    </>
+    <div className={`app-shell ${isAuthenticated ? 'layout-staff' : 'layout-portal'}`}>
+      <a className="skip-link" href="#main">Langsung ke konten</a>
+
+      {isAuthenticated && (
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setOpenOn(null)}
+        />
+      )}
+
+      <div className="app-main-wrapper">
+        <Topbar
+          isStaff={isStaff}
+          isAuthenticated={isAuthenticated}
+          onToggleSidebar={() => setOpenOn(sidebarOpen ? null : location.pathname)}
+          isSidebarOpen={sidebarOpen}
+        />
+
+        <main id="main" className={`container ${isAuthenticated ? 'container-fluid' : ''}`} tabIndex={-1}>
+          <Outlet />
+        </main>
+      </div>
+    </div>
   )
 }
 
 export function RequireAuth({ permissions }: { permissions?: string[] }) {
   const { user, loading, can } = useAuth()
   const location = useLocation()
-  if (loading) return <p>Memuat…</p>
+  if (loading) return <p role="status" className="loading-indicator">Memuat data…</p>
   if (!user) return <Navigate to="/login" state={{ from: location.pathname }} replace />
-  if (permissions && !can(...permissions)) return <p className="error">Anda tidak memiliki akses ke halaman ini.</p>
+  if (permissions && !can(...permissions)) return <p className="error" role="alert">Anda tidak memiliki akses ke halaman ini.</p>
   return <Outlet />
 }

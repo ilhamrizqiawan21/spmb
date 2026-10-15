@@ -1,0 +1,82 @@
+- generic [ref=f2e2]:
+  - banner [ref=f2e3]:
+    - link "SPMB Terpadu 2026/2027" [ref=f2e4] [cursor=pointer]:
+      - /url: /
+    - navigation [ref=f2e5]:
+      - link "Periode" [ref=f2e6] [cursor=pointer]:
+        - /url: /periods
+      - link "Cek Hasil" [ref=f2e7] [cursor=pointer]:
+        - /url: /hasil
+      - link "Pendaftaran" [ref=f2e8] [cursor=pointer]:
+        - /url: /dashboard
+      - link "Dashboard" [ref=f2e9] [cursor=pointer]:
+        - /url: /ringkasan
+      - link "Verifikasi" [ref=f2e10] [cursor=pointer]:
+        - /url: /verifikasi
+      - link "Penilaian" [ref=f2e11] [cursor=pointer]:
+        - /url: /penilaian
+      - link "Seleksi" [ref=f2e12] [cursor=pointer]:
+        - /url: /seleksi
+      - link "Keuangan" [ref=f2e13] [cursor=pointer]:
+        - /url: /keuangan
+      - link "Siswa" [ref=f2e14] [cursor=pointer]:
+        - /url: /siswa
+      - link "MPLS" [ref=f2e15] [cursor=pointer]:
+        - /url: /mpls
+      - link "Data Master" [ref=f2e16] [cursor=pointer]:
+        - /url: /admin
+      - button "Keluar (Super Admin Demo)" [ref=f2e17] [cursor=pointer]
+  - main [ref=f2e18]:
+    - heading "MPLS" [level=1] [ref=f2e19]
+    - generic [ref=f2e20]:
+      - generic [ref=f2e21]:
+        - generic [ref=f2e22]: Tahun ajaran
+        - combobox "Tahun ajaran" [ref=f2e23]:
+          - option "2026/2027" [selected]
+      - navigation "Menu MPLS" [ref=f2e24]:
+        - button "Kelompok" [ref=f2e25] [cursor=pointer]
+        - button "Kegiatan" [pressed] [ref=f2e26] [cursor=pointer]
+        - button "Presensi" [ref=f2e27] [cursor=pointer]
+        - button "Peserta" [ref=f2e28] [cursor=pointer]
+    - generic [ref=f2e92]:
+      - heading "Kegiatan" [level=2] [ref=f2e93]
+      - table [ref=f2e115]:
+        - rowgroup [ref=f2e116]:
+          - row [ref=f2e117]:
+            - columnheader "Waktu" [ref=f2e118]
+            - columnheader "Kegiatan" [ref=f2e119]
+            - columnheader "Untuk" [ref=f2e120]
+            - columnheader "Tempat" [ref=f2e121]
+            - columnheader [ref=f2e122]
+        - rowgroup [ref=f2e123]:
+          - row [ref=f2e124]:
+            - cell "13 Jul 2026, 07.00 s.d. 13 Jul 2026, 09.00" [ref=f2e125]:
+              - text: 13 Jul 2026, 07.00
+              - generic [ref=f2e126]: s.d. 13 Jul 2026, 09.00
+            - cell "Upacara pembukaan" [ref=f2e127]
+            - cell "Semua kelompok" [ref=f2e128]
+            - cell "Lapangan" [ref=f2e129]
+            - cell [ref=f2e130]:
+              - button "Hapus" [ref=f2e131] [cursor=pointer]
+      - form "Kegiatan baru" [ref=f2e95]:
+        - generic [ref=f2e96]:
+          - generic [ref=f2e97]: Judul kegiatan
+          - textbox "Judul kegiatan" [ref=f2e98]
+        - generic [ref=f2e99]:
+          - generic [ref=f2e100]: Untuk
+          - combobox "Untuk" [ref=f2e101]:
+            - option "Semua kelompok" [selected]
+            - option "A — Kelompok Garuda"
+        - generic [ref=f2e102]:
+          - generic [ref=f2e103]: Mulai
+          - textbox "Mulai" [ref=f2e104]
+        - generic [ref=f2e105]:
+          - generic [ref=f2e106]: Selesai
+          - textbox "Selesai" [ref=f2e107]
+        - generic [ref=f2e108]:
+          - generic [ref=f2e109]: Tempat
+          - textbox "Tempat" [ref=f2e110]
+        - generic [ref=f2e111]:
+          - generic [ref=f2e112]: Wajib
+          - checkbox "Wajib" [checked] [ref=f2e113]
+        - button "Tambah kegiatan" [ref=f2e114] [cursor=pointer]

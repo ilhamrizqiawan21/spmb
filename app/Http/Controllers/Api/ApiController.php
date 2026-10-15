@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api;
 
 use App\Exceptions\ApiException;
 use App\Http\Controllers\Controller;
+use App\Support\TableExport;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 abstract class ApiController extends Controller
 {
@@ -45,5 +48,11 @@ abstract class ApiController extends Controller
     protected function dt(?string $value): ?Carbon
     {
         return $value === null || $value === '' ? null : Carbon::parse($value)->setTimezone(config('app.timezone'));
+    }
+
+    /** Requested report format (`?format=csv|xlsx|pdf`, CSV by default). */
+    protected function exportFormat(Request $request): string
+    {
+        return $request->validate(['format' => ['nullable', Rule::in(TableExport::FORMATS)]])['format'] ?? 'csv';
     }
 }

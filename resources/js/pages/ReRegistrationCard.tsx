@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { StatusBadge } from '../components/Field'
 import { ErrorNote } from '../components/Notice'
 import { api, openBlob } from '../lib/api'
-import type { AnnouncementDetail, Application, AssessmentSchedule, ReRegistration, ReRegistrationItem } from '../types/api'
+import type { AnnouncementDetail, Application, AssessmentSchedule, ReRegistration, ReRegistrationItem, Student } from '../types/api'
 
 const DECIDED = ['ACCEPTED', 'WAITLISTED', 'REJECTED', 'RE_REGISTRATION', 'RE_REGISTRATION_VERIFIED', 'ENROLLED', 'MPLS_ACTIVE', 'MPLS_COMPLETED', 'COMPLETED']
 const RE_REG = ['RE_REGISTRATION', 'RE_REGISTRATION_VERIFIED', 'ENROLLED', 'MPLS_ACTIVE', 'MPLS_COMPLETED', 'COMPLETED']
@@ -97,7 +97,9 @@ export function ReRegistrationCard({ application }: { application: Application }
         </p>
       )}
       <ErrorNote error={toggle.error ?? complete.error} />
-      {rr.status === 'COMPLETED' && <p>Daftar ulang selesai. Menunggu proses enrollment oleh sekolah.</p>}
+      {rr.status === 'COMPLETED' && (
+        <p>Daftar ulang selesai.{application.status === 'RE_REGISTRATION_VERIFIED' && ' Menunggu proses enrollment oleh sekolah.'}</p>
+      )}
     </section>
   )
 }
@@ -126,6 +128,29 @@ export function ScheduleCard({ application }: { application: Application }) {
           ))}
         </tbody>
       </table>
+    </section>
+  )
+}
+
+const ENROLLED = ['ENROLLED', 'MPLS_ACTIVE', 'MPLS_COMPLETED', 'COMPLETED']
+
+/** Official student data (NIS) once the school has enrolled the applicant. */
+export function StudentCard({ application }: { application: Application }) {
+  const student = useQuery({
+    queryKey: ['app-student', application.id],
+    enabled: ENROLLED.includes(application.status),
+    queryFn: () => api<{ data: Student | null }>(`/enrollment/applications/${application.id}/student`),
+  })
+  const s = student.data?.data
+  if (!s) return null
+  return (
+    <section className="card">
+      <h2>Data Siswa</h2>
+      <p>Selamat, {s.full_name} resmi terdaftar sebagai siswa baru.</p>
+      <dl className="details">
+        <dt>NIS</dt><dd>{s.student_number}</dd>
+        <dt>Tahun ajaran</dt><dd>{s.academic_year_name ?? '—'}</dd>
+      </dl>
     </section>
   )
 }

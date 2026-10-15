@@ -31,6 +31,15 @@ class InvoiceResource extends JsonResource
             'due_date' => $i->due_date,
             'status' => $i->status,
             'description' => $i->description,
+            'applicant_name' => $i->relationLoaded('application') && $i->application && $i->application->relationLoaded('applicant')
+                ? $i->application->applicant?->full_name
+                : ($i->relationLoaded('application') ? ($i->application?->applicant_name ?? null) : null),
+            'registration_number' => $i->relationLoaded('application') && $i->application
+                ? $i->application->registration_number
+                : null,
+            'admission_period_id' => $i->relationLoaded('application') && $i->application
+                ? $i->application->admission_period_id
+                : null,
             'payments' => PaymentResource::collection($payments)->resolve($request),
             'created_at' => $i->created_at,
         ];

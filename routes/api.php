@@ -8,8 +8,13 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EnrollmentController;
 use App\Http\Controllers\Api\FinanceController;
+use App\Http\Controllers\Api\MplsController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SelectionController;
 use App\Http\Controllers\Api\StaffController;
+use App\Http\Controllers\Api\StudentController;
+use App\Http\Controllers\Api\SystemController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VerificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +32,17 @@ $enrollment = 'permission:enrollment.manage,application.override';
 // Routes are served under /api/v1 (Laravel's default `api` prefix + `v1`).
 Route::prefix('v1')->group(function () use ($verify, $override, $approve, $assess, $enrollment) {
 
+    Route::get('public/school', [SystemController::class, 'school']);
+
+    // ---- System & Operations Console (Super Admin) ---------------------------
+    Route::prefix('system')->middleware(['auth:sanctum', 'permission:application.override'])->group(function () {
+        Route::get('admin-dashboard', [SystemController::class, 'adminDashboard']);
+        Route::post('actions/clear-cache', [SystemController::class, 'clearCache']);
+        Route::post('actions/retry-jobs', [SystemController::class, 'retryJobs']);
+        Route::post('actions/flush-failed-jobs', [SystemController::class, 'flushFailedJobs']);
+        Route::post('actions/toggle-period/{id}', [SystemController::class, 'togglePeriod']);
+    });
+
     // ---- Auth ----------------------------------------------------------------
     Route::prefix('auth')->group(function () {
         Route::post('register', [AuthController::class, 'register'])->middleware('throttle:20,1');
@@ -37,6 +53,7 @@ Route::prefix('v1')->group(function () use ($verify, $override, $approve, $asses
             Route::post('logout', [AuthController::class, 'logout']);
             Route::post('change-password', [AuthController::class, 'changePassword'])->middleware('throttle:10,1');
             Route::get('me', [AuthController::class, 'me']);
+            Route::patch('me', [AuthController::class, 'updateMe'])->middleware('throttle:20,1');
             Route::get('staff', [StaffController::class, 'index'])
                 ->middleware('permission:application.verify,application.override,user.manage');
         });
@@ -159,12 +176,28 @@ Route::prefix('v1')->group(function () use ($verify, $override, $approve, $asses
             Route::get('applications/{applicationId}/re-registration', [EnrollmentController::class, 'show']);
             Route::patch('re-registration-items/{itemId}', [EnrollmentController::class, 'updateItem']);
             Route::post('re-registrations/{reRegistrationId}/complete', [EnrollmentController::class, 'complete']);
+
+            // Enrollment into official students (ERD §14); owner or staff may read the result.
+            Route::get('applications/{applicationId}/student', [StudentController::class, 'forApplication']);
+            Route::middleware($enrollment)->group(function () {
+                Route::get('eligible', [StudentController::class, 'eligible']);
+                Route::post('applications/{applicationId}/enroll', [StudentController::class, 'enroll']);
+                Route::patch('students/{id}', [StudentController::class, 'update']);
+            });
+            Route::middleware('permission:enrollment.manage,application.override,mpls.manage')->group(function () {
+                Route::get('students', [StudentController::class, 'index']);
+                Route::get('students/export', [StudentController::class, 'export']);
+            });
         });
     });
 
     // ---- Finance: manual invoices and payment proofs ---------------------------
     // Authorization is enforced in PaymentService (owner or finance/admin staff).
     Route::prefix('finance')->middleware('auth:sanctum')->group(function () {
+        Route::get('summary', [FinanceController::class, 'summary']);
+        Route::get('invoices', [FinanceController::class, 'allInvoices']);
+        Route::post('invoices/bulk', [FinanceController::class, 'storeBulkInvoices']);
+        Route::get('export', [FinanceController::class, 'exportPayments']);
         Route::get('applications/{applicationId}/invoices', [FinanceController::class, 'invoices']);
         Route::post('applications/{applicationId}/invoices', [FinanceController::class, 'storeInvoice']);
         Route::post('invoices/{id}/cancel', [FinanceController::class, 'cancelInvoice']);
@@ -172,6 +205,52 @@ Route::prefix('v1')->group(function () use ($verify, $override, $approve, $asses
         Route::get('payments', [FinanceController::class, 'payments']);
         Route::post('payments/{id}/verify', [FinanceController::class, 'verify']);
         Route::get('payments/{id}/proof', [FinanceController::class, 'proof']);
+    });
+
+    // ---- MPLS ------------------------------------------------------------------
+    Route::prefix('mpls')->middleware('auth:sanctum')->group(function () {
+        // Owner (parent) or MPLS staff; checked in MplsService.
+        Route::get('applications/{applicationId}', [MplsController::class, 'forApplication']);
+
+        Route::middleware('permission:mpls.manage,application.override')->group(function () {
+            Route::get('groups', [MplsController::class, 'groups']);
+            Route::post('groups', [MplsController::class, 'storeGroup']);
+            Route::patch('groups/{id}', [MplsController::class, 'updateGroup']);
+            Route::delete('groups/{id}', [MplsController::class, 'destroyGroup']);
+            Route::get('events', [MplsController::class, 'events']);
+            Route::post('events', [MplsController::class, 'storeEvent']);
+            Route::patch('events/{id}', [MplsController::class, 'updateEvent']);
+            Route::delete('events/{id}', [MplsController::class, 'destroyEvent']);
+            Route::get('events/{id}/attendance', [MplsController::class, 'roster']);
+            Route::get('participants', [MplsController::class, 'participants']);
+            Route::get('participants/unassigned', [MplsController::class, 'unassigned']);
+            Route::get('participants/export', [MplsController::class, 'export']);
+            Route::post('participants', [MplsController::class, 'assign']);
+            Route::post('participants/auto-assign', [MplsController::class, 'autoAssign']);
+            Route::post('participants/{id}/rotate-qr', [MplsController::class, 'rotateToken']);
+            Route::post('participants/{id}/complete', [MplsController::class, 'complete']);
+            Route::post('attendance', [MplsController::class, 'record']);
+            Route::post('attendance/scan', [MplsController::class, 'scan'])->middleware('throttle:120,1');
+        });
+    });
+
+    // ---- Dashboard & reports (read-only) -------------------------------------
+    Route::prefix('reports')->middleware('auth:sanctum')->group(function () {
+        Route::get('summary', [ReportController::class, 'summary'])->middleware('permission:application.read,application.override');
+        Route::get('applications/export', [ReportController::class, 'applications'])->middleware('permission:application.read,application.override');
+        Route::get('selection/export', [ReportController::class, 'selection'])
+            ->middleware('permission:assessment.approve,announcement.publish,application.override');
+        Route::get('payments/export', [ReportController::class, 'payments'])
+            ->middleware('permission:payment.read,payment.verify,application.override');
+    });
+
+    // ---- User management (Super Admin & Admin) ------------------------------
+    Route::prefix('users')->middleware(['auth:sanctum', 'permission:user.manage,application.override'])->group(function () {
+        Route::get('/', [UserController::class, 'index']);
+        Route::post('/', [UserController::class, 'store']);
+        Route::get('roles', [UserController::class, 'roles']);
+        Route::patch('{id}', [UserController::class, 'update']);
+        Route::delete('{id}', [UserController::class, 'destroy']);
     });
 
     // ---- Audit trail (read-only) ---------------------------------------------

@@ -1,58 +1,73 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, type FormEvent } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { useParams } from 'react-router-dom'
+import { z } from 'zod'
 import { Field, StatusBadge } from '../components/Field'
-import { ApiError, api, fieldErrors } from '../lib/api'
+import { FormError } from '../components/Notice'
+import { ApiError, api } from '../lib/api'
+import { applyServerErrors, optionalPhone, requiredText } from '../lib/validation'
+import { MplsCard } from './mpls/MplsCard'
 import { PaymentCard } from './PaymentCard'
-import { ReRegistrationCard, ResultCard, ScheduleCard } from './ReRegistrationCard'
+import { ReRegistrationCard, ResultCard, ScheduleCard, StudentCard } from './ReRegistrationCard'
 import type { Application, ApplicationDocument, DocumentRequirement, Guardian } from '../types/api'
 
 const RELATIONS = { FATHER: 'Ayah', MOTHER: 'Ibu', GUARDIAN: 'Wali' } as const
 const message = (e: unknown) => (e instanceof ApiError ? e.message : 'Terjadi kesalahan.')
 
+const guardianSchema = z.object({
+  relationship: z.enum(['FATHER', 'MOTHER', 'GUARDIAN']),
+  full_name: requiredText(200),
+  phone: optionalPhone,
+  is_primary_contact: z.boolean(),
+})
+type GuardianInput = z.input<typeof guardianSchema>
+
 function Guardians({ applicantId }: { applicantId: string }) {
   const qc = useQueryClient()
   const key = ['guardians', applicantId]
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [error, setError] = useState<string | null>(null)
   const list = useQuery({ queryKey: key, queryFn: () => api<Guardian[]>(`/admission/applicants/${applicantId}/guardians`) })
-  const add = useMutation({
-    mutationFn: (body: Record<string, unknown>) => api(`/admission/applicants/${applicantId}/guardians`, { method: 'POST', body }),
-    onSuccess: async () => {
-      setErrors({})
-      await qc.invalidateQueries({ queryKey: key })
-      await qc.invalidateQueries({ queryKey: ['application'] })
-    },
-    onError: (e) => setErrors(fieldErrors(e)),
+  const { register, handleSubmit, formState, reset, setError: setFieldError } = useForm<GuardianInput>({
+    resolver: zodResolver(guardianSchema),
+    defaultValues: { relationship: 'FATHER', full_name: '', phone: '', is_primary_contact: false },
   })
 
-  function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const f = new FormData(e.currentTarget)
-    add.mutate({
-      relationship: f.get('relationship'),
-      full_name: f.get('full_name'),
-      phone: f.get('phone') || null,
-      is_primary_contact: f.get('is_primary_contact') === 'on',
-    })
-    e.currentTarget.reset()
-  }
+  // Only clear the form once the server accepted it, so a rejected entry is not lost.
+  const onSubmit = handleSubmit(async (v) => {
+    setError(null)
+    try {
+      await api(`/admission/applicants/${applicantId}/guardians`, { method: 'POST', body: { ...v, phone: v.phone || null } })
+      reset()
+      await qc.invalidateQueries({ queryKey: key })
+      await qc.invalidateQueries({ queryKey: ['application'] })
+    } catch (err) {
+      setError(applyServerErrors(err, setFieldError, ['full_name', 'phone']))
+    }
+  })
 
   return (
     <section className="card">
       <h2>Orang Tua / Wali</h2>
+      {list.isPending && <p role="status">Memuat…</p>}
+      {list.data?.length === 0 && <p>Belum ada data orang tua/wali. Minimal satu wajib diisi sebelum mengirim pendaftaran.</p>}
       <ul className="list">
         {list.data?.map((g) => <li key={g.id}>{RELATIONS[g.relationship]}: {g.full_name} {g.phone && `(${g.phone})`}</li>)}
       </ul>
-      <form onSubmit={onSubmit} className="row">
-        <select name="relationship" defaultValue="FATHER" aria-label="Hubungan">
-          {Object.entries(RELATIONS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </select>
-        <Field label="Nama" name="full_name" required error={errors.full_name} />
-        <Field label="No. HP" name="phone" />
-        <label><input type="checkbox" name="is_primary_contact" /> Kontak utama</label>
-        <button disabled={add.isPending}>Tambah</button>
+      <form onSubmit={onSubmit} className="row" noValidate aria-label="Tambah orang tua/wali">
+        <label className="field">
+          <span>Hubungan</span>
+          <select {...register('relationship')}>
+            {Object.entries(RELATIONS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </label>
+        <Field label="Nama" required {...register('full_name')} error={formState.errors.full_name?.message} />
+        <Field label="No. HP" type="tel" inputMode="tel" {...register('phone')} error={formState.errors.phone?.message} />
+        <label className="field"><span>Kontak utama</span><input type="checkbox" {...register('is_primary_contact')} /></label>
+        <button className="field" disabled={formState.isSubmitting}>Tambah</button>
       </form>
-      {errors.relationship && <p className="error">{errors.relationship}</p>}
+      <FormError message={error ?? (list.error ? message(list.error) : null)} />
     </section>
   )
 }
@@ -129,7 +144,14 @@ export function ApplicationPage() {
     <>
       <section className="card">
         <h1>{a.applicant_name}</h1>
-        <p>{a.period_name} · No. {a.registration_number} · <StatusBadge status={a.status} /></p>
+        <p>{a.period_name} · No. {a.registration_number ?? 'DRAF'} · <StatusBadge status={a.status} /></p>
+        <p className="hint" style={{ fontSize: '0.85rem', marginTop: -6, marginBottom: 10 }}>
+          {a.submitted_at
+            ? `Tanggal Diajukan: ${new Date(a.submitted_at).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })} WIB`
+            : a.created_at
+            ? `Draf Dibuat: ${new Date(a.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })} WIB`
+            : null}
+        </p>
         <progress value={a.completion_percentage} max={100} aria-label="Kelengkapan" /> {a.completion_percentage}%
         {a.status === 'DRAFT' && (
           <p>
@@ -142,6 +164,8 @@ export function ApplicationPage() {
       <ResultCard application={a} />
       <ReRegistrationCard application={a} />
       <PaymentCard application={a} />
+      <StudentCard application={a} />
+      <MplsCard application={a} />
       <Guardians applicantId={a.applicant_id} />
       <Documents application={a} editable={editable} />
       <section className="card">

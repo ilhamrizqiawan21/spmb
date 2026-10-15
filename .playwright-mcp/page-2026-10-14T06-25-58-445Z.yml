@@ -1,0 +1,98 @@
+- generic [ref=f5e2]:
+  - banner [ref=f5e3]:
+    - link "SPMB Terpadu 2026/2027" [ref=f5e4] [cursor=pointer]:
+      - /url: /
+    - navigation [ref=f5e5]:
+      - link "Periode" [ref=f5e6] [cursor=pointer]:
+        - /url: /periods
+      - link "Cek Hasil" [ref=f5e7] [cursor=pointer]:
+        - /url: /hasil
+      - link "Pendaftaran" [ref=f5e12] [cursor=pointer]:
+        - /url: /dashboard
+      - button "Keluar (Parent Demo)" [ref=f5e13] [cursor=pointer]
+  - main [ref=f5e10]:
+    - generic [ref=f5e14]:
+      - heading "Siti Aminah" [level=1] [ref=f5e15]
+      - paragraph [ref=f5e16]: Gelombang 1 · No. REG-2026-900000 · MPLS ACTIVE
+      - progressbar "Kelengkapan" [ref=f5e17]
+      - text: 0%
+    - generic [ref=f5e18]:
+      - heading "Hasil Seleksi" [level=2] [ref=f5e19]
+      - paragraph [ref=f5e20]: ACCEPTED
+      - list [ref=f5e21]:
+        - listitem [ref=f5e22]: Lakukan konfirmasi kesediaan dan pendaftaran ulang pada portal.
+        - listitem [ref=f5e23]: Lengkapi berkas pendaftaran ulang yang dipersyaratkan.
+        - listitem [ref=f5e24]: Lakukan pembayaran biaya daftar ulang sebelum batas waktu.
+      - button "Unduh surat hasil (PDF)" [ref=f5e25] [cursor=pointer]
+    - generic [ref=f5e26]:
+      - heading "Daftar Ulang COMPLETED" [level=2] [ref=f5e27]
+      - list
+      - paragraph [ref=f5e28]: Tidak ada persyaratan daftar ulang untuk periode ini.
+      - paragraph [ref=f5e29]: Daftar ulang selesai. Menunggu proses enrollment oleh sekolah.
+    - generic [ref=f5e30]:
+      - heading "Data Siswa" [level=2] [ref=f5e31]
+      - paragraph [ref=f5e32]: Selamat, Siti Aminah resmi terdaftar sebagai siswa baru.
+      - generic [ref=f5e33]:
+        - term [ref=f5e34]: NIS
+        - definition [ref=f5e35]: "2026.001"
+        - term [ref=f5e36]: Tahun ajaran
+        - definition [ref=f5e37]: 2026/2027
+    - generic [ref=f5e38]:
+      - heading "MPLS" [level=2] [ref=f5e39]
+      - paragraph [ref=f5e40]: Tunjukkan kode QR ini kepada petugas saat presensi kegiatan MPLS.
+      - img "Kode QR presensi MPLS" [ref=f5e41]
+      - generic [ref=f5e42]:
+        - term [ref=f5e43]: Kelompok
+        - definition [ref=f5e44]: A — Kelompok Garuda
+        - term [ref=f5e45]: Pendamping
+        - definition [ref=f5e46]: Bu Sari
+        - term [ref=f5e47]: Kehadiran
+        - definition [ref=f5e48]: 1 hadir, 0 sakit, 0 izin, 0 alpa
+      - heading "Jadwal" [level=3] [ref=f5e49]
+      - list [ref=f5e50]:
+        - listitem [ref=f5e51]:
+          - generic [ref=f5e52]: 13 Jul 2026, 07.00
+          - strong [ref=f5e53]: Upacara pembukaan
+          - generic [ref=f5e54]: Lapangan
+          - generic [ref=f5e55]: (Hadir)
+    - generic [ref=f5e56]:
+      - heading "Orang Tua / Wali" [level=2] [ref=f5e57]
+      - list [ref=f5e58]:
+        - listitem [ref=f5e59]: "Ibu: Ibu Siti Aminah"
+      - generic [ref=f5e60]:
+        - combobox "Hubungan" [ref=f5e61]:
+          - option "Ayah" [selected]
+          - option "Ibu"
+          - option "Wali"
+        - generic [ref=f5e62]:
+          - generic [ref=f5e63]: Nama
+          - textbox "Nama" [ref=f5e64]
+        - generic [ref=f5e65]:
+          - generic [ref=f5e66]: No. HP
+          - textbox "No. HP" [ref=f5e67]
+        - generic [ref=f5e68]:
+          - checkbox "Kontak utama" [ref=f5e69]
+          - text: Kontak utama
+        - button "Tambah" [ref=f5e70] [cursor=pointer]
+    - generic [ref=f5e71]:
+      - heading "Berkas" [level=2] [ref=f5e72]
+      - table [ref=f5e73]:
+        - rowgroup [ref=f5e74]:
+          - row [ref=f5e75]:
+            - columnheader "Berkas" [ref=f5e76]
+            - columnheader "Status" [ref=f5e77]
+            - columnheader [ref=f5e78]
+        - rowgroup [ref=f5e79]:
+          - row [ref=f5e80]:
+            - cell "Kartu Keluarga *" [ref=f5e81]
+            - cell "Belum diunggah" [ref=f5e82]
+            - cell [ref=f5e83]
+          - row [ref=f5e84]:
+            - cell "Akta Kelahiran *" [ref=f5e85]
+            - cell "Belum diunggah" [ref=f5e86]
+            - cell [ref=f5e87]
+    - generic [ref=f5e88]:
+      - heading "Riwayat Status" [level=2] [ref=f5e89]
+      - list [ref=f5e90]:
+        - listitem [ref=f5e91]: 14/10/2026, 13.24.30 — ENROLLED Enrolled as official student.
+        - listitem [ref=f5e92]: 14/10/2026, 13.25.00 — MPLS ACTIVE Placed in MPLS group A.

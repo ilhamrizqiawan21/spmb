@@ -67,4 +67,9 @@ class Application extends BaseModel
     {
         return $this->hasOne(ReRegistration::class);
     }
+
+    public function enrollment(): HasOne
+    {
+        return $this->hasOne(Enrollment::class);
+    }
 }

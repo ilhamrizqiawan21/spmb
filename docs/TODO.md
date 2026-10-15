@@ -13,7 +13,7 @@ Jangan centang bila test atau kriteria selesai belum terpenuhi (lihat *Definitio
 `AGENTS.md`). Prioritas bila ada konflik: benar → aman → integritas data → integritas
 workflow → mudah dirawat → UX → performa.
 
-## Status saat ini (2026-10-06)
+## Status saat ini (2026-10-14)
 
 | Area | Status |
 | --- | --- |
@@ -24,19 +24,19 @@ workflow → mudah dirawat → UX → performa.
 | Penilaian, ranking, keputusan, daftar tunggu | Selesai (F9–F10) |
 | Pengumuman + surat PDF, daftar ulang | Selesai (F11–F12) |
 | Frontend: semua alur di atas + data master admin | Ada, belum dipoles (F19) |
-| Pembayaran, enrollment/siswa, MPLS | Belum (F13–F15) |
-| Notifikasi, dashboard/laporan | Belum (F16–F17) |
-| Audit log, hardening privasi | Belum (F18) |
+| Pembayaran manual (F13), enrollment/siswa (F14), MPLS (F15) | Selesai |
+| Notifikasi email (F16), dashboard + laporan CSV (F17) | Selesai (inti) |
+| Audit log, hardening privasi | Sebagian besar (F18) |
 | Paket deploy, E2E, go-live | Belum (F20–F22) |
 
-Test: 97 backend (PHPUnit), 34 frontend (Vitest); CI backend (SQLite + MySQL) dan frontend.
+Test: 115 backend (PHPUnit, lulus di SQLite dan MySQL 8), 48 frontend (Vitest); CI backend (SQLite + MySQL) dan frontend.
 
 ---
 
 # P0 — Fondasi dan keamanan (kerjakan lebih dulu)
 
 ## F0 — Repo & tooling
-- [ ] Merge branch `merge-backend-frontend` ke `main` (layout satu project).
+- [x] Merge branch `merge-backend-frontend` ke `main` (PR #2).
 - [x] Suite Unit kini ada (`tests/Unit/ApplicationStateMachineTest.php`); `php artisan test` jalan tanpa argumen (59 test).
 - [x] `.devcontainer/setup.sh`: `DB_DATABASE` diarahkan ke `database/database.sqlite` (sebelumnya SQLite menulis ke file `spmb`).
 - [x] `composer dev` ternyata valid (`artisan dev` bawaan Laravel 13: server, queue, logs, vite); tidak perlu diubah.
@@ -78,17 +78,24 @@ Test: 97 backend (PHPUnit), 34 frontend (Vitest); CI backend (SQLite + MySQL) da
 - [ ] Keputusan produk: penetapan biaya otomatis per periode/jenis (saat ini staf mengisi nominal manual), nomor rekening/instruksi transfer yang ditampilkan ke orang tua, refund (`REFUNDED` sudah ada sebagai status, belum ada aksinya), dan email "tagihan baru"/"pembayaran diverifikasi" (F16).
 
 ## F14 — Enrollment & siswa
-- [ ] Buat record siswa (NIS, kelas) dari pendaftar ACCEPTED yang selesai daftar ulang dan lunas/dibebaskan.
-- [ ] Penempatan kelas dan tahun ajaran aktif; riwayat pendaftaran asli tidak diubah.
-- [ ] Ekspor data siswa (CSV/XLSX) untuk sistem sekolah/Dapodik.
+- [x] Skema ERD 14 (`enrollments`, `students`; migrasi 000205). Enrollment dipicu **manual** oleh staf (`enrollment.manage` / `application.override`) di halaman `/siswa`; **NIS diketik staf** (huruf/angka/`.`/`/`/`-`, unik tanpa beda huruf besar-kecil). Semua prasyarat AGENTS §22 dicek ulang saat enroll: status `RE_REGISTRATION_VERIFIED`, keputusan ACCEPTED, daftar ulang COMPLETED, tidak ada tagihan terbuka (tagihan dibatalkan = dibebaskan), tidak ada berkas PENDING/INVALID/REVISION_REQUIRED. Data inti disalin sebagai snapshot; status aplikasi → `ENROLLED` lewat state machine; audit `enrollment.created`. Koreksi NIS/NISN wajib alasan dan tercatat (`student.updated`). Test: `EnrollmentTest`, `enrollment.test.tsx`.
+- [x] Orang tua melihat NIS di portal (`StudentCard`); petugas MPLS boleh membaca daftar siswa (untuk F15) tanpa aksi enrollment.
+- [x] Ekspor CSV (UTF-8 + BOM, aman dari formula injection) dengan filter tahun ajaran/periode/pencarian: `GET /enrollment/students/export`. XLSX tidak dibuat (butuh dependensi baru; CSV terbuka di Excel).
+- [ ] Penempatan kelas: **ditunda** (keputusan 2026-10-14) — ERD tidak punya kolom kelas; kelas diatur di sistem sekolah/Dapodik dari ekspor.
+- [ ] Pembatalan enrollment (status `CANCELLED` ada di ERD) belum ada aksinya; state machine tidak mengizinkan mundur dari `ENROLLED`.
 
 ## F15 — MPLS
-- [ ] Jadwal, kelompok, peserta (hanya siswa enrolled), dan kehadiran QR (token unik, tanpa data pribadi, bisa dirotasi).
-- [ ] Informasi MPLS untuk orang tua di portal.
+- [x] Skema ERD 15 (migrasi 000206; tambahan `mpls_events.academic_year_id` dan `mpls_participants.completed_at`, dicatat di ERD). Halaman `/mpls` (izin `mpls.manage` / `application.override`): kelompok (kode unik per tahun ajaran, kapasitas, pendamping), kegiatan (untuk semua atau satu kelompok), penempatan manual/pindah kelompok dan **bagi otomatis merata** (PRD 10.15) dengan batas kapasitas.
+- [x] Hanya siswa ACTIVE dengan aplikasi `ENROLLED` dan tahun ajaran yang sama yang bisa jadi peserta; penempatan → `MPLS_ACTIVE`. Penyelesaian oleh petugas → `MPLS_COMPLETED` → `COMPLETED` (PRD tidak menetapkan syarat kehadiran minimum, jadi tidak dipaksakan).
+- [x] Presensi unik per (kegiatan, peserta): manual 4 status (koreksi diaudit beserta status lama) atau scan QR. QR hanya berisi token acak 40 karakter (tanpa data pribadi), unik, bisa dirotasi; scan ganda idempoten; token tidak pernah muncul di daftar staf. Scanner genggam cukup mengetik token ke kolom input (tanpa kamera).
+- [x] Portal orang tua (`MplsCard`): kelompok, pendamping, QR presensi, jadwal + status kehadiran sendiri. Ekspor CSV peserta + rekap kehadiran; funnel dashboard menampilkan peserta MPLS dan selesai. Test: `MplsTest` (8), `mpls.test.tsx` (5). Dependensi baru: `qrcode-generator` 2.0.4 (MIT, tanpa dependensi).
+- [ ] Belum: status `WITHDRAWN` (mengundurkan diri) tanpa aksi, materi/pengumuman MPLS (PRD 10.14), scan via kamera ponsel, email "informasi MPLS" (F16).
 
 ## F17 — Dashboard & laporan
-- [ ] Dashboard staf: pendaftar per status, kuota vs terisi, antrean verifikasi, progres seleksi dan daftar ulang.
-- [ ] Laporan ekspor CSV/XLSX: pendaftar, hasil seleksi, keuangan, siswa; filter per tahun ajaran/periode.
+- [x] Dashboard staf `/ringkasan` (`GET /reports/summary`, izin `application.read`/`application.override`): total dan per status, funnel PRD §11 (registrasi → submit → verifikasi → dinilai → diterima → daftar ulang → enrolled), antrean kerja (verifikasi, revisi, keputusan, daftar ulang, enrollment), kuota vs diterima/enrolled per gelombang, 10 asal sekolah dan kota terbanyak; blok keuangan hanya untuk pemegang izin pembayaran. Filter tahun ajaran/gelombang.
+- [x] Ekspor CSV: pendaftar (tanpa NIK/kontak), hasil seleksi (izin approve/publish/override), pembayaran (izin keuangan), siswa (F14). Test: `ReportTest`, `reports.test.tsx`.
+- [x] Semua laporan (pendaftar, hasil seleksi, pembayaran, siswa, peserta MPLS) bisa diunduh sebagai CSV, XLSX, atau PDF lewat `?format=` (`App\Support\TableExport`; keputusan 2026-10-14: openspout untuk XLSX, dompdf untuk PDF). XLSX hanya memakai sel teks (tidak ada formula), kolom angka ditandai eksplisit; PDF A4 landscape, remote/PHP dimatikan, maksimal `SPMB_EXPORT_PDF_MAX_ROWS` (default 1000) baris; lebih dari itu ditolak dengan saran pakai XLSX. Test: `ExportFormatTest`.
+- [ ] Laporan dokumen belum lengkap dan waiting list (PRD §14) belum ada sebagai ekspor tersendiri.
 
 ---
 

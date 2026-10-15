@@ -1374,6 +1374,7 @@ group_id UUID FK -> mpls_groups.id
 qr_token VARCHAR(255) UNIQUE
 status VARCHAR(30)
 joined_at TIMESTAMPTZ
+completed_at TIMESTAMPTZ NULL
 created_at TIMESTAMP (UTC)
 updated_at TIMESTAMP (UTC)
 ```
@@ -1394,6 +1395,7 @@ WITHDRAWN
 mpls_events
 -----------
 id UUID PK
+academic_year_id UUID FK -> academic_years.id
 group_id UUID FK -> mpls_groups.id NULL
 title VARCHAR(200)
 description TEXT NULL
@@ -1406,6 +1408,8 @@ updated_at TIMESTAMP (UTC)
 ```
 
 Jika `group_id = NULL`, event berlaku untuk seluruh kelompok.
+
+`academic_year_id` ditambahkan saat implementasi (2026-10-14) agar event tanpa kelompok tetap terikat ke satu tahun ajaran; untuk event berkelompok nilainya selalu sama dengan tahun ajaran kelompok. `mpls_participants.completed_at` mencatat waktu penyelesaian MPLS.
 
 ---
 

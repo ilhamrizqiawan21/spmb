@@ -15,6 +15,7 @@ class ApplicationScoreResource extends JsonResource
             'application_id' => $this->resource->application_id,
             'registration_number' => $this->resource->application->registration_number,
             'applicant_name' => $this->resource->application->applicant->full_name,
+            'submitted_at' => $this->resource->application->submitted_at,
             'raw_score' => $this->resource->raw_score,
             'final_score' => $this->resource->final_score,
             'rank' => $this->resource->rank,

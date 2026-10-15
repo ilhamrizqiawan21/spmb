@@ -45,7 +45,7 @@ class VerificationService
 
     public static function queue(User $user, ?string $assignment, ?string $status, ?string $periodId, ?string $search): Collection
     {
-        $q = Application::with(['applicant', 'admissionPeriod', 'documents'])
+        $q = Application::with(['applicant', 'admissionPeriod.documentRequirements', 'documents.requirement'])
             ->orderByDesc('submitted_at')->orderByDesc('created_at');
 
         $status
