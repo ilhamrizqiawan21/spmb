@@ -228,4 +228,58 @@ class PaymentFlowTest extends TestCase
 
         $this->as($parent)->postJson(self::API."/enrollment/re-registrations/{$reRegId}/complete")->assertOk();
     }
+
+    public function test_finance_summary_and_all_invoices_endpoints(): void
+    {
+        [$parent, $app, $finance] = $this->scenario('ACCEPTED');
+        $this->invoice($finance, $app, '2500000');
+
+        $res = $this->as($finance)->getJson(self::FIN."/summary?period_id={$app->admission_period_id}")
+            ->assertOk()
+            ->json();
+
+        $this->assertSame(1, $res['outstanding_invoices']);
+        $this->assertSame('2500000.00', $res['total_invoiced_amount']);
+
+        $list = $this->as($finance)->getJson(self::FIN."/invoices?period_id={$app->admission_period_id}")
+            ->assertOk()
+            ->json();
+
+        $this->assertCount(1, $list['data']);
+        $this->assertSame($app->applicant->full_name, $list['data'][0]['applicant_name']);
+    }
+
+    public function test_bulk_invoice_creation_creates_invoices_for_accepted_students(): void
+    {
+        $finance = $this->makeUser('finance');
+        $parent1 = $this->makeUser('parent');
+        $parent2 = $this->makeUser('parent');
+        $app1 = $this->makeApplication($parent1, null, 'ACCEPTED');
+        $app2 = $this->makeApplication($parent2, null, 'ACCEPTED');
+        // Pastikan keduanya memiliki admission_period_id yang sama
+        $app2->update(['admission_period_id' => $app1->admission_period_id]);
+
+        $res = $this->as($finance)->postJson(self::FIN.'/invoices/bulk', [
+            'admission_period_id' => $app1->admission_period_id,
+            'application_status' => 'ACCEPTED',
+            'type' => 'ENROLLMENT_FEE',
+            'amount' => '3000000',
+            'description' => 'Biaya Daftar Ulang Massal',
+        ])->assertCreated()->json();
+
+        $this->assertSame(2, $res['result']['created']);
+        $this->assertSame(0, $res['result']['skipped']);
+
+        // Ulangi pemanggilan bulk; pendaftar yang sudah punya tagihan harus dilewati (skipped)
+        $repeat = $this->as($finance)->postJson(self::FIN.'/invoices/bulk', [
+            'admission_period_id' => $app1->admission_period_id,
+            'application_status' => 'ACCEPTED',
+            'type' => 'ENROLLMENT_FEE',
+            'amount' => '3000000',
+        ])->assertCreated()->json();
+
+        $this->assertSame(0, $repeat['result']['created']);
+        $this->assertSame(2, $repeat['result']['skipped']);
+    }
 }
+

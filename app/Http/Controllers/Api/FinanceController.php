@@ -92,4 +92,60 @@ class FinanceController extends ApiController
             fclose($stream);
         }, $payment->proof_original_filename ?: 'proof', ['Content-Type' => $payment->proof_mime_type]);
     }
+
+    public function summary(Request $request): JsonResponse
+    {
+        $periodId = $request->query('period_id');
+
+        return response()->json(PaymentService::financeSummary($request->user(), $periodId ? (string) $periodId : null));
+    }
+
+    public function allInvoices(Request $request): JsonResponse
+    {
+        $filters = [
+            'period_id' => $request->query('period_id'),
+            'status' => $request->query('status'),
+            'type' => $request->query('type'),
+            'search' => $request->query('search'),
+        ];
+        $perPage = (int) ($request->query('per_page') ?? 50);
+        $page = PaymentService::allInvoices($request->user(), $filters, $perPage);
+
+        return response()->json([
+            'data' => InvoiceResource::collection($page->getCollection())->resolve($request),
+            'meta' => ['page' => $page->currentPage(), 'per_page' => $page->perPage(), 'total' => $page->total()],
+        ]);
+    }
+
+    public function storeBulkInvoices(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'admission_period_id' => ['required', 'uuid'],
+            'application_status' => ['required', 'string'],
+            'type' => ['required', 'string', 'max:50'],
+            'amount' => self::MONEY,
+            'due_date' => ['nullable', 'date'],
+            'description' => ['nullable', 'string'],
+        ]);
+        $data['amount'] = (string) $data['amount'];
+        $data['due_date'] = $this->dt($data['due_date'] ?? null);
+
+        $result = PaymentService::createBulkInvoices($request->user(), $data);
+
+        return response()->json([
+            'message' => "Berhasil menerbitkan {$result['created']} tagihan baru ({$result['skipped']} pendaftar dilewati karena sudah memiliki tagihan aktif).",
+            'result' => $result,
+        ], 201);
+    }
+
+    public function exportPayments(Request $request): JsonResponse
+    {
+        $periodId = $request->query('period_id');
+        $payments = PaymentService::exportPayments($request->user(), $periodId ? (string) $periodId : null);
+
+        return response()->json([
+            'data' => PaymentResource::collection($payments)->resolve($request),
+        ]);
+    }
 }
+

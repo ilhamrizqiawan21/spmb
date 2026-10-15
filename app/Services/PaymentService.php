@@ -81,6 +81,67 @@ class PaymentService
         });
     }
 
+    /**
+     * Bulk create invoices for all matching applications in an admission period.
+     * Skips applications that already have an active (non-cancelled) invoice of the same type.
+     *
+     * @param array{admission_period_id:string,application_status:string,type:string,amount:string,due_date:?CarbonInterface,description:?string} $data
+     * @return array{total_targeted:int,created:int,skipped:int}
+     */
+    public static function createBulkInvoices(User $by, array $data): array
+    {
+        self::requireManage($by);
+
+        $applications = Application::where('admission_period_id', $data['admission_period_id'])
+            ->where('status', $data['application_status'])
+            ->get();
+
+        if ($applications->isEmpty()) {
+            return ['total_targeted' => 0, 'created' => 0, 'skipped' => 0];
+        }
+
+        $existingAppIds = Invoice::whereIn('application_id', $applications->pluck('id'))
+            ->where('type', $data['type'])
+            ->where('status', '!=', InvoiceStatus::CANCELLED)
+            ->pluck('application_id')
+            ->all();
+        $existingSet = array_flip($existingAppIds);
+
+        return DB::transaction(function () use ($by, $applications, $existingSet, $data) {
+            $created = 0;
+            foreach ($applications as $app) {
+                if (isset($existingSet[$app->id])) {
+                    continue;
+                }
+                $invoice = Invoice::create([
+                    'application_id' => $app->id,
+                    'invoice_number' => self::newInvoiceNumber(),
+                    'type' => $data['type'],
+                    'amount' => $data['amount'],
+                    'due_date' => $data['due_date'] ?? null,
+                    'description' => $data['description'] ?? null,
+                    'status' => InvoiceStatus::UNPAID,
+                    'created_by' => $by->id,
+                ]);
+
+                AuditService::record($by, 'invoice.created', 'invoice', $invoice->id, null, [
+                    'application_id' => $app->id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'type' => $invoice->type,
+                    'amount' => (string) $invoice->amount,
+                    'bulk' => true,
+                ]);
+                $created++;
+            }
+
+            return [
+                'total_targeted' => $applications->count(),
+                'created' => $created,
+                'skipped' => $applications->count() - $created,
+            ];
+        });
+    }
+
     private static function newInvoiceNumber(): string
     {
         do {
@@ -290,4 +351,79 @@ class PaymentService
 
         return $payment;
     }
+
+    /** All invoices across applications with period and status filtering. */
+    public static function allInvoices(User $user, array $filters = [], int $perPage = 50): LengthAwarePaginator
+    {
+        if (! $user->hasAnyPermCodes(self::READ_PERMS)) {
+            throw ApiException::forbidden('You do not have permission to view invoices.');
+        }
+
+        $q = Invoice::with(['application.applicant', 'payments.verifiedBy', 'createdBy']);
+
+        if (! empty($filters['period_id'])) {
+            $q->whereHas('application', fn ($app) => $app->where('admission_period_id', $filters['period_id']));
+        }
+        if (! empty($filters['status'])) {
+            $q->where('status', $filters['status']);
+        }
+        if (! empty($filters['type'])) {
+            $q->where('type', $filters['type']);
+        }
+        if (! empty($filters['search'])) {
+            $s = '%'.strtolower(trim($filters['search'])).'%';
+            $q->where(function ($sub) use ($s) {
+                $sub->whereRaw('LOWER(invoice_number) like ?', [$s])
+                    ->orWhereHas('application', function ($app) use ($s) {
+                        $app->whereRaw('LOWER(registration_number) like ?', [$s])
+                            ->orWhereHas('applicant', fn ($appl) => $appl->whereRaw('LOWER(full_name) like ?', [$s]));
+                    });
+            });
+        }
+
+        return $q->orderBy('created_at', 'desc')->paginate($perPage);
+    }
+
+    /** High-level finance summary cards for super admin & finance staff. */
+    public static function financeSummary(User $user, ?string $periodId = null): array
+    {
+        if (! $user->hasAnyPermCodes(self::READ_PERMS)) {
+            throw ApiException::forbidden('You do not have permission to view finance reports.');
+        }
+
+        $appQuery = Application::query();
+        if ($periodId) {
+            $appQuery->where('admission_period_id', $periodId);
+        }
+        $appIds = $appQuery->select('id');
+
+        $invoices = fn () => Invoice::whereIn('application_id', $appIds);
+        $payments = fn () => Payment::whereHas('invoice', fn ($i) => $i->whereIn('application_id', $appIds));
+
+        return [
+            'pending_payments' => $payments()->where('status', PaymentStatus::PENDING)->count(),
+            'outstanding_invoices' => $invoices()->whereIn('status', InvoiceStatus::OUTSTANDING)->count(),
+            'paid_invoices' => $invoices()->where('status', InvoiceStatus::PAID)->count(),
+            'verified_amount' => (string) number_format((float) $payments()->where('status', PaymentStatus::PAID)->sum('amount'), 2, '.', ''),
+            'total_invoiced_amount' => (string) number_format((float) $invoices()->where('status', '!=', InvoiceStatus::CANCELLED)->sum('amount'), 2, '.', ''),
+        ];
+    }
+
+    /** Export verified payments log for financial audit / spreadsheet. */
+    public static function exportPayments(User $user, ?string $periodId = null): Collection
+    {
+        if (! $user->hasAnyPermCodes(self::READ_PERMS)) {
+            throw ApiException::forbidden('You do not have permission to export finance data.');
+        }
+
+        $q = Payment::with(['invoice.application.applicant', 'verifiedBy'])
+            ->where('status', PaymentStatus::PAID);
+
+        if ($periodId) {
+            $q->whereHas('invoice.application', fn ($app) => $app->where('admission_period_id', $periodId));
+        }
+
+        return $q->orderBy('verified_at', 'desc')->get();
+    }
 }
+

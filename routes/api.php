@@ -194,6 +194,10 @@ Route::prefix('v1')->group(function () use ($verify, $override, $approve, $asses
     // ---- Finance: manual invoices and payment proofs ---------------------------
     // Authorization is enforced in PaymentService (owner or finance/admin staff).
     Route::prefix('finance')->middleware('auth:sanctum')->group(function () {
+        Route::get('summary', [FinanceController::class, 'summary']);
+        Route::get('invoices', [FinanceController::class, 'allInvoices']);
+        Route::post('invoices/bulk', [FinanceController::class, 'storeBulkInvoices']);
+        Route::get('export', [FinanceController::class, 'exportPayments']);
         Route::get('applications/{applicationId}/invoices', [FinanceController::class, 'invoices']);
         Route::post('applications/{applicationId}/invoices', [FinanceController::class, 'storeInvoice']);
         Route::post('invoices/{id}/cancel', [FinanceController::class, 'cancelInvoice']);

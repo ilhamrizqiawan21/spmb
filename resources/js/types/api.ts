@@ -269,6 +269,9 @@ export interface Payment {
 export interface Invoice {
   id: string
   application_id: string
+  applicant_name?: string | null
+  registration_number?: string | null
+  admission_period_id?: string | null
   invoice_number: string
   type: string
   amount: string
@@ -279,6 +282,19 @@ export interface Invoice {
   description: string | null
   payments: Payment[]
   created_at: string
+}
+
+export interface InvoicePage {
+  data: Invoice[]
+  meta: { page: number; per_page: number; total: number }
+}
+
+export interface FinanceSummary {
+  pending_payments: number
+  outstanding_invoices: number
+  paid_invoices: number
+  verified_amount: string
+  total_invoiced_amount: string
 }
 
 export interface PaymentPage {
