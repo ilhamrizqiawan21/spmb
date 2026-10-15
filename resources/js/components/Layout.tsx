@@ -1,84 +1,63 @@
 import { useState } from 'react'
-import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../features/auth/AuthContext'
+import { Sidebar } from './Sidebar'
+import { Topbar } from './Topbar'
 
-interface NavItem {
-  to: string
-  label: string
-  perms?: string[]
-}
-
-const PUBLIC_NAV: NavItem[] = [
-  { to: '/periods', label: 'Periode' },
-  { to: '/hasil', label: 'Cek Hasil' },
-]
-
-const STAFF_NAV: NavItem[] = [
-  { to: '/ringkasan', label: 'Dashboard', perms: ['application.read', 'application.override'] },
-  { to: '/verifikasi', label: 'Verifikasi', perms: ['document.verify', 'application.verify', 'application.override'] },
-  { to: '/penilaian', label: 'Penilaian', perms: ['assessment.input', 'assessment.approve', 'application.override'] },
-  { to: '/seleksi', label: 'Seleksi', perms: ['assessment.approve', 'application.override'] },
-  { to: '/keuangan', label: 'Keuangan', perms: ['payment.read', 'payment.verify', 'application.override'] },
-  { to: '/siswa', label: 'Siswa', perms: ['enrollment.manage', 'application.override', 'mpls.manage'] },
-  { to: '/mpls', label: 'MPLS', perms: ['mpls.manage', 'application.override'] },
-  { to: '/admin', label: 'Data Master', perms: ['application.override', 'enrollment.manage'] },
+const STAFF_PERMISSIONS = [
+  'application.read',
+  'document.verify',
+  'application.verify',
+  'assessment.input',
+  'assessment.approve',
+  'payment.read',
+  'payment.verify',
+  'enrollment.manage',
+  'mpls.manage',
+  'application.override',
 ]
 
 export function Layout() {
-  const { user, logout, can } = useAuth()
-  const navigate = useNavigate()
+  const { user, can } = useAuth()
   const location = useLocation()
-  // The mobile menu is open only on the page where it was opened, so navigating closes it.
+  // The mobile sidebar is open only on the page where it was opened; navigating away closes it automatically.
   const [openOn, setOpenOn] = useState<string | null>(null)
-  const open = openOn === location.pathname
+  const sidebarOpen = openOn === location.pathname
 
-  async function signOut() {
-    await logout()
-    // Go home explicitly so the next sign-in does not land on the previous user's page.
-    navigate('/', { replace: true })
-  }
-
-  const links = [
-    ...PUBLIC_NAV,
-    ...(user ? [{ to: '/dashboard', label: 'Pendaftaran' }] : []),
-    ...STAFF_NAV.filter((i) => !i.perms || can(...i.perms)),
-  ]
+  // Determine if logged-in user is a staff/admin member
+  const isStaff = !!user && can(...STAFF_PERMISSIONS)
 
   return (
-    <>
+    <div className={`app-shell ${isStaff ? 'layout-staff' : 'layout-portal'}`}>
       <a className="skip-link" href="#main">Langsung ke konten</a>
-      <header className="topbar">
-        <Link to="/" className="brand">SPMB Terpadu 2026/2027</Link>
-        <button className="menu-toggle secondary" aria-expanded={open} aria-controls="main-nav" onClick={() => setOpenOn(open ? null : location.pathname)}>
-          Menu
-        </button>
-        <nav id="main-nav" className={open ? 'open' : ''} aria-label="Navigasi utama">
-          {links.map((l) => <NavLink key={l.to} to={l.to}>{l.label}</NavLink>)}
-          {user ? (
-            <>
-              <NavLink to="/akun">Akun ({user.name})</NavLink>
-              <button className="link" onClick={() => void signOut()}>Keluar</button>
-            </>
-          ) : (
-            <>
-              <NavLink to="/login">Masuk</NavLink>
-              <NavLink to="/register">Daftar</NavLink>
-            </>
-          )}
-        </nav>
-      </header>
-      <main id="main" className="container" tabIndex={-1}>
-        <Outlet />
-      </main>
-    </>
+
+      {isStaff && (
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setOpenOn(null)}
+        />
+      )}
+
+      <div className="app-main-wrapper">
+        <Topbar
+          isStaff={isStaff}
+          onToggleSidebar={() => setOpenOn(sidebarOpen ? null : location.pathname)}
+          isSidebarOpen={sidebarOpen}
+        />
+
+        <main id="main" className={`container ${isStaff ? 'container-fluid' : ''}`} tabIndex={-1}>
+          <Outlet />
+        </main>
+      </div>
+    </div>
   )
 }
 
 export function RequireAuth({ permissions }: { permissions?: string[] }) {
   const { user, loading, can } = useAuth()
   const location = useLocation()
-  if (loading) return <p role="status">Memuat…</p>
+  if (loading) return <p role="status" className="loading-indicator">Memuat data…</p>
   if (!user) return <Navigate to="/login" state={{ from: location.pathname }} replace />
-  if (permissions && !can(...permissions)) return <p className="error">Anda tidak memiliki akses ke halaman ini.</p>
+  if (permissions && !can(...permissions)) return <p className="error" role="alert">Anda tidak memiliki akses ke halaman ini.</p>
   return <Outlet />
 }

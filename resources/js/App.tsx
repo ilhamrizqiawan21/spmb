@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import { Layout, RequireAuth } from './components/Layout'
 import { AuthProvider } from './features/auth/AuthContext'
+import { ThemeProvider } from './features/theme/ThemeContext'
 import { AccountPage } from './pages/AccountPage'
 import { AdminPage } from './pages/admin/AdminPage'
 import { ApplicationPage } from './pages/ApplicationPage'
@@ -14,6 +15,8 @@ import { MplsPage } from './pages/mpls/MplsPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { SelectionPage } from './pages/SelectionPage'
 import { StudentsPage } from './pages/StudentsPage'
+import { AuditLogPage } from './pages/AuditLogPage'
+import { UsersPage } from './pages/UsersPage'
 import { VerificationDetailPage } from './pages/VerificationDetailPage'
 import { VerificationPage } from './pages/VerificationPage'
 
@@ -22,10 +25,11 @@ const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false,
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route element={<Layout />}>
+      <ThemeProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route element={<Layout />}>
               <Route index element={<HomePage />} />
               <Route path="periods" element={<PeriodsPage />} />
               <Route path="hasil" element={<AnnouncementLookupPage />} />
@@ -48,6 +52,12 @@ export default function App() {
               <Route element={<RequireAuth permissions={['application.override', 'enrollment.manage']} />}>
                 <Route path="admin" element={<AdminPage />} />
               </Route>
+              <Route element={<RequireAuth permissions={['user.manage', 'application.override']} />}>
+                <Route path="pengguna" element={<UsersPage />} />
+              </Route>
+              <Route element={<RequireAuth permissions={['audit.read', 'application.override']} />}>
+                <Route path="audit-logs" element={<AuditLogPage />} />
+              </Route>
               <Route element={<RequireAuth permissions={['assessment.approve', 'application.override']} />}>
                 <Route path="seleksi" element={<SelectionPage />} />
               </Route>
@@ -68,6 +78,7 @@ export default function App() {
           </Routes>
         </BrowserRouter>
       </AuthProvider>
-    </QueryClientProvider>
+    </ThemeProvider>
+  </QueryClientProvider>
   )
 }

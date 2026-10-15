@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\SelectionController;
 use App\Http\Controllers\Api\StaffController;
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\SystemController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VerificationController;
 use Illuminate\Support\Facades\Route;
 
@@ -32,6 +33,8 @@ $enrollment = 'permission:enrollment.manage,application.override';
 Route::prefix('v1')->group(function () use ($verify, $override, $approve, $assess, $enrollment) {
 
     Route::get('public/school', [SystemController::class, 'school']);
+    Route::get('system/admin-dashboard', [SystemController::class, 'adminDashboard'])
+        ->middleware(['auth:sanctum', 'permission:application.override']);
 
     // ---- Auth ----------------------------------------------------------------
     Route::prefix('auth')->group(function () {
@@ -228,6 +231,15 @@ Route::prefix('v1')->group(function () use ($verify, $override, $approve, $asses
             ->middleware('permission:assessment.approve,announcement.publish,application.override');
         Route::get('payments/export', [ReportController::class, 'payments'])
             ->middleware('permission:payment.read,payment.verify,application.override');
+    });
+
+    // ---- User management (Super Admin & Admin) ------------------------------
+    Route::prefix('users')->middleware(['auth:sanctum', 'permission:user.manage,application.override'])->group(function () {
+        Route::get('/', [UserController::class, 'index']);
+        Route::post('/', [UserController::class, 'store']);
+        Route::get('roles', [UserController::class, 'roles']);
+        Route::patch('{id}', [UserController::class, 'update']);
+        Route::delete('{id}', [UserController::class, 'destroy']);
     });
 
     // ---- Audit trail (read-only) ---------------------------------------------

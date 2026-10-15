@@ -378,3 +378,47 @@ export interface SchoolInfo {
   website: string | null
   office_hours: string | null
 }
+
+export interface SystemRole {
+  id: string
+  code: string
+  name: string
+  description: string | null
+  is_system: boolean
+}
+
+export interface ManagedUser {
+  id: string
+  name: string
+  email: string | null
+  phone: string | null
+  is_active: boolean
+  last_login: string | null
+  created_at: string
+  roles: { id: string; code: string; name: string }[]
+}
+
+export interface ManagedUserPage {
+  data: ManagedUser[]
+  meta: { page: number; per_page: number; total: number }
+}
+
+export interface AuditLogEntry {
+  id: string
+  action: string
+  resource_type: string
+  resource_id: string | null
+  old_values: Record<string, unknown> | null
+  new_values: Record<string, unknown> | null
+  reason: string | null
+  user: { id: string; name: string } | null
+  ip_address: string | null
+  request_id: string | null
+  created_at: string
+}
+
+export interface AuditLogPage {
+  data: AuditLogEntry[]
+  meta: { page: number; per_page: number; total: number }
+}
+
