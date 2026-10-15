@@ -1,29 +1,37 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useState, useRef, type ChangeEvent } from 'react'
+import { useState, useRef, type ChangeEvent, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { EmptyState } from '../components/EmptyState'
 import { StatusBadge } from '../components/Field'
 import { Icon } from '../components/Icon'
 import { ErrorNote } from '../components/Notice'
 import { PageHeader } from '../components/PageHeader'
-import { api } from '../lib/api'
+import { api, fieldErrors } from '../lib/api'
+import { fromLocalInput } from '../lib/form'
 import {
   generateAssessmentTemplate,
   parseAssessmentCsv,
   type ParseResult,
 } from '../lib/assessmentCsv'
-import type { Application, ApplicationScore, SelectionComponent } from '../types/api'
+import type { Application, ApplicationScore, AssessmentSchedule, SelectionComponent } from '../types/api'
 
 const ASSESSABLE = ['VERIFIED', 'ASSESSMENT_SCHEDULED', 'ASSESSED']
+
+const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleString('id-ID', { dateStyle: 'short', timeStyle: 'short' })
 
 function ScoreRow({
   app,
   components,
+  schedules,
   onScoreSaved,
+  onScheduleStudent,
 }: {
   app: Application
   components: SelectionComponent[]
+  schedules: AssessmentSchedule[]
   onScoreSaved: (appId: string, scores: Record<string, string>) => void
+  onScheduleStudent: (app: Application) => void
 }) {
   const qc = useQueryClient()
   const key = ['score', app.id]
@@ -50,10 +58,17 @@ function ScoreRow({
     },
   })
 
+  const patchSchedule = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      api(`/selection/schedules/${id}`, { method: 'PATCH', body: { status } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['schedules'] }),
+  })
+
   const given = (cid: string) => score.data?.assessments.find((a) => a.component_id === cid)?.score
 
   return (
     <tr>
+      {/* 1. Calon Siswa & No Registrasi */}
       <td style={{ whiteSpace: 'nowrap' }}>
         <strong style={{ display: 'block', fontSize: '0.92rem', color: 'var(--fg)' }}>
           {app.applicant_name}
@@ -70,11 +85,71 @@ function ScoreRow({
         </span>
       </td>
 
+      {/* 2. Status Berkas */}
       <td>
         <StatusBadge status={app.status} />
       </td>
 
-      {/* Input Nilai per Komponen Seleksi Sekolah */}
+      {/* 3. Jadwal Tes Siswa & Kehadiran */}
+      <td style={{ fontSize: '0.825rem' }}>
+        {schedules.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {schedules.map((s) => (
+              <div
+                key={s.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 6,
+                  padding: '2px 6px',
+                  borderRadius: 4,
+                  background: 'var(--bg)',
+                  fontSize: '0.75rem',
+                }}
+              >
+                <span>
+                  <strong>{s.component_name}</strong>: {fmtDate(s.scheduled_at)}{' '}
+                  {s.room && <span className="hint">({s.room})</span>}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <StatusBadge status={s.status} />
+                  {s.status === 'SCHEDULED' && (
+                    <button
+                      type="button"
+                      className="link"
+                      style={{ fontSize: '0.7rem', color: 'var(--warning)', padding: 0 }}
+                      onClick={() => patchSchedule.mutate({ id: s.id, status: 'NO_SHOW' })}
+                      title="Tandai tidak hadir"
+                    >
+                      Absen
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="link"
+              style={{ fontSize: '0.725rem', padding: 0, textAlign: 'left', marginTop: 2 }}
+              onClick={() => onScheduleStudent(app)}
+            >
+              + Tambah / Atur Jadwal
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="button secondary"
+            style={{ fontSize: '0.75rem', padding: '3px 8px' }}
+            onClick={() => onScheduleStudent(app)}
+          >
+            + Jadwalkan Tes
+          </button>
+        )}
+      </td>
+
+      {/* 4. Input Nilai per Komponen Seleksi Sekolah */}
       {components.map((c) => (
         <td key={c.id}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -109,7 +184,7 @@ function ScoreRow({
         </td>
       ))}
 
-      {/* Nilai Akhir Terhitung */}
+      {/* 5. Nilai Akhir Terhitung */}
       <td style={{ textAlign: 'center' }}>
         <strong
           style={{
@@ -141,6 +216,13 @@ export function AssessmentPage() {
     type: 'success' | 'error'
     message: string
   } | null>(null)
+
+  // State untuk modal penjadwalan siswa
+  const [schedulingStudent, setSchedulingStudent] = useState<Application | null>(null)
+  const [scheduleErrors, setScheduleErrors] = useState<Record<string, string>>({})
+
+  // State pencarian siswa
+  const [searchQuery, setSearchQuery] = useState('')
 
   // State lokal cache skor yang terisi (untuk dimasukkan saat download template jika ada)
   const [loadedScores, setLoadedScores] = useState<Record<string, Record<string, string>>>({})
@@ -177,11 +259,35 @@ export function AssessmentPage() {
     queryFn: () => api<Application[]>('/admission/applications'),
   })
 
+  // Seluruh jadwal asesmen siswa
+  const schedules = useQuery({
+    queryKey: ['schedules'],
+    queryFn: () => api<AssessmentSchedule[]>('/selection/schedules'),
+  })
+
   const list =
     apps.data?.filter(
       (a) => a.admission_period_id === selectedPeriodId && ASSESSABLE.includes(a.status)
     ) ?? []
 
+  const filteredList = list.filter((a) => {
+    if (!searchQuery.trim()) return true
+    const q = searchQuery.toLowerCase()
+    return (
+      a.applicant_name.toLowerCase().includes(q) ||
+      (a.registration_number && a.registration_number.toLowerCase().includes(q))
+    )
+  })
+
+  // Peta jadwal per aplikasi
+  const schedulesByApp = new Map<string, AssessmentSchedule[]>()
+  schedules.data?.forEach((s) => {
+    const existing = schedulesByApp.get(s.application_id) || []
+    existing.push(s)
+    schedulesByApp.set(s.application_id, existing)
+  })
+
+  const scheduledCount = list.filter((a) => (schedulesByApp.get(a.id)?.length ?? 0) > 0).length
   const assessedCount = list.filter((a) => a.status === 'ASSESSED').length
   const pendingAssessmentCount = list.length - assessedCount
   const compList = components.data ?? []
@@ -191,6 +297,36 @@ export function AssessmentPage() {
       ...prev,
       [appId]: { ...(prev[appId] || {}), ...newScores },
     }))
+  }
+
+  // Mutasi membuat jadwal ujian siswa
+  const createSchedule = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      api('/selection/schedules', { method: 'POST', body }),
+    onSuccess: async () => {
+      setSchedulingStudent(null)
+      setScheduleErrors({})
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['schedules'] }),
+        qc.invalidateQueries({ queryKey: ['applications'] }),
+      ])
+    },
+    onError: (e) => setScheduleErrors(fieldErrors(e)),
+  })
+
+  function onSubmitSchedule(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setScheduleErrors({})
+    const f = new FormData(e.currentTarget)
+    const text = (k: string) => String(f.get(k) ?? '') || null
+    createSchedule.mutate({
+      application_id: f.get('application_id'),
+      component_id: f.get('component_id'),
+      scheduled_at: fromLocalInput(String(f.get('scheduled_at'))),
+      location: text('location'),
+      room: text('room'),
+      notes: text('notes'),
+    })
   }
 
   // 1. Fungsi Unduh Format Impor Excel / CSV
@@ -255,7 +391,6 @@ export function AssessmentPage() {
                 application_id: row.applicationId,
                 component_id: componentId,
                 score: scoreVal,
-                notes: 'Impor massal dari file spreadsheet',
               },
             })
             successCount++
@@ -267,21 +402,24 @@ export function AssessmentPage() {
         }
       }
 
-      await qc.invalidateQueries({ queryKey: ['applications'] })
-      await qc.invalidateQueries({ queryKey: ['score'] })
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['applications'] }),
+        qc.invalidateQueries({ queryKey: ['scores'] }),
+      ])
 
       setImportFeedback({
         type: 'success',
-        message: `Berhasil mengimpor ${successCount} nilai seleksi untuk ${parsedImport.rows.length} calon siswa.${
-          failCount > 0 ? ` (${failCount} nilai gagal diproses)` : ''
-        }`,
+        message: `Impor nilai selesai: Berhasil menyimpan ${successCount} nilai${
+          failCount > 0 ? `, gagal ${failCount}` : ''
+        }.`,
       })
+      setShowImportModal(false)
       setParsedImport(null)
       if (fileInputRef.current) fileInputRef.current.value = ''
     } catch {
       setImportFeedback({
         type: 'error',
-        message: 'Terjadi kendala saat memproses impor nilai.',
+        message: 'Terjadi kesalahan saat memproses impor nilai. Periksa koneksi Anda.',
       })
     } finally {
       setIsImporting(false)
@@ -290,13 +428,13 @@ export function AssessmentPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <PageHeader
-        title="Penilaian & Skor Seleksi"
-        description="Penginputan nilai tes akademik, baca Al-Qur'an, dan wawancara calon siswa. Nilai dapat diisi langsung atau diimpor massal dari file Excel."
+        title="Penilaian & Peserta Seleksi"
+        description="Fokus pada pengelolaan calon siswa yang mengikuti tes, penugasan sesi jadwal ujian, unduh format Excel, impor nilai massal, dan penilaian."
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            {/* Tombol Unduh Format Excel */}
+            {/* Tombol Unduh Format Impor Excel */}
             <button
               type="button"
               className="button secondary"
@@ -328,7 +466,7 @@ export function AssessmentPage() {
               className="button secondary"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}
             >
-              <Icon name="calendar" size={14} /> Atur Jadwal Asesmen →
+              <Icon name="calendar" size={14} /> Master Komponen Tes →
             </Link>
           </div>
         }
@@ -367,7 +505,7 @@ export function AssessmentPage() {
         </div>
       )}
 
-      {/* Filter Gelombang & KPI Status Penilaian */}
+      {/* Filter Gelombang & KPI Status Siswa Mengikuti Tes */}
       <div
         className="card"
         style={{
@@ -399,9 +537,12 @@ export function AssessmentPage() {
           </select>
         </div>
 
-        <div style={{ display: 'flex', gap: 16, fontSize: '0.85rem' }}>
+        <div style={{ display: 'flex', gap: 16, fontSize: '0.85rem', flexWrap: 'wrap' }}>
           <span>
-            Total Peserta: <strong>{list.length} Siswa</strong>
+            Siswa Mengikuti Tes: <strong>{list.length} Orang</strong>
+          </span>
+          <span>
+            Terjadwal: <strong style={{ color: 'var(--brand)' }}>{scheduledCount}</strong>
           </span>
           <span>
             Selesai Dinilai: <strong style={{ color: 'var(--brand)' }}>{assessedCount}</strong>
@@ -412,36 +553,52 @@ export function AssessmentPage() {
         </div>
       </div>
 
-      {/* Tabel Penilaian Peserta */}
+      {/* Tabel Siswa yang Mengikuti Tes & Input Penilaian */}
       <section className="card" style={{ margin: 0 }}>
-        <div className="card-header between" style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
+        <div
+          className="card-header between"
+          style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}
+        >
           <div>
-            <h2 className="card-title" style={{ fontSize: '1.15rem' }}>Daftar Nilai Seleksi Calon Siswa</h2>
+            <h2 className="card-title" style={{ fontSize: '1.15rem' }}>Daftar Siswa Peserta Tes & Input Nilai</h2>
             <small className="hint">
-              Input nilai angka untuk masing-masing komponen tes sekolah. Status calon siswa otomatis berpindah ke <strong>ASSESSED</strong> setelah seluruh komponen terisi.
+              Kelola status kehadiran / jadwal ujian siswa dan input nilai tiap komponen seleksi.
             </small>
           </div>
-          <span className="badge badge-verified" style={{ fontWeight: 600 }}>
-            {compList.length} Komponen Tes Aktif
-          </span>
+
+          {/* Form Pencarian Cepat */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <input
+              type="search"
+              placeholder="Cari siswa / no. reg…"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ fontSize: '0.85rem', padding: '5px 10px', minWidth: 200 }}
+              aria-label="Cari siswa"
+            />
+            <span className="badge badge-verified" style={{ fontWeight: 600 }}>
+              {compList.length} Komponen Tes
+            </span>
+          </div>
         </div>
 
         {compList.length === 0 ? (
           <EmptyState
             title="Belum ada komponen tes seleksi"
-            description="Sekolah belum mengatur komponen tes (seperti Tes Tulis, Tes Baca Al-Qur'an, dll) untuk gelombang ini. Klik 'Atur Jadwal Asesmen' di atas untuk membuat komponen tes terlebih dahulu."
+            description="Sekolah belum mengatur komponen tes (seperti Tes Tulis, Tes Baca Al-Qur'an, dll) untuk gelombang ini. Buka menu 'Master Komponen Tes' untuk membuat komponen tes terlebih dahulu."
           />
         ) : apps.isPending ? (
           <p className="loading-indicator">Memuat data pendaftar & nilai…</p>
-        ) : list.length > 0 ? (
+        ) : filteredList.length > 0 ? (
           <div className="table-wrapper" style={{ marginBottom: 0 }}>
             <table>
               <thead>
                 <tr>
-                  <th style={{ width: '25%' }}>Calon Siswa & No. Pendaftaran</th>
-                  <th style={{ width: '15%' }}>Status</th>
+                  <th style={{ width: '22%' }}>Calon Siswa & No. Reg</th>
+                  <th style={{ width: '12%' }}>Status Berkas</th>
+                  <th style={{ width: '22%' }}>Jadwal / Kehadiran Tes</th>
                   {compList.map((c) => (
-                    <th key={c.id} style={{ minWidth: 150 }}>
+                    <th key={c.id} style={{ minWidth: 140 }}>
                       <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <span>{c.name}</span>
                         <small className="hint" style={{ fontSize: '0.7rem', fontWeight: 500 }}>
@@ -450,16 +607,21 @@ export function AssessmentPage() {
                       </div>
                     </th>
                   ))}
-                  <th style={{ textAlign: 'center', width: '12%' }}>Nilai Akhir</th>
+                  <th style={{ textAlign: 'center', width: '10%' }}>Nilai Akhir</th>
                 </tr>
               </thead>
               <tbody>
-                {list.map((a) => (
+                {filteredList.map((a) => (
                   <ScoreRow
                     key={a.id}
                     app={a}
                     components={compList}
+                    schedules={schedulesByApp.get(a.id) ?? []}
                     onScoreSaved={handleScoreSaved}
+                    onScheduleStudent={(student) => {
+                      setSchedulingStudent(student)
+                      setScheduleErrors({})
+                    }}
                   />
                 ))}
               </tbody>
@@ -467,11 +629,113 @@ export function AssessmentPage() {
           </div>
         ) : (
           <EmptyState
-            title="Belum ada calon siswa siap dinilai"
-            description="Tidak ada calon siswa pada gelombang ini yang berstatus lolos verifikasi berkas (VERIFIED)."
+            title="Tidak ada calon siswa ditemukan"
+            description={
+              searchQuery
+                ? `Tidak ada siswa yang cocok dengan pencarian "${searchQuery}".`
+                : 'Tidak ada calon siswa pada gelombang ini yang siap mengikuti tes seleksi.'
+            }
           />
         )}
       </section>
+
+      {/* Modal Dialog Penjadwalan Siswa ke Tes */}
+      {schedulingStudent && (
+        <div
+          className="modal-overlay"
+          onClick={() => setSchedulingStudent(null)}
+          role="presentation"
+        >
+          <div
+            className="modal-window"
+            style={{ maxWidth: 520, padding: 24 }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-sched-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="card-header between" style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
+              <div>
+                <h3 id="modal-sched-title" style={{ margin: 0, fontSize: '1.15rem' }}>
+                  Atur Jadwal Tes Siswa
+                </h3>
+                <small className="hint">
+                  {schedulingStudent.applicant_name} ({schedulingStudent.registration_number})
+                </small>
+              </div>
+              <button
+                type="button"
+                className="button secondary"
+                style={{ padding: '4px 8px', fontSize: '0.8rem' }}
+                onClick={() => setSchedulingStudent(null)}
+              >
+                <Icon name="x" size={14} />
+              </button>
+            </div>
+
+            <form onSubmit={onSubmitSchedule}>
+              <input type="hidden" name="application_id" value={schedulingStudent.id} />
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <label className="field">
+                  <span>Komponen Tes yang Diikuti *</span>
+                  <select name="component_id" required defaultValue="">
+                    <option value="" disabled>Pilih komponen tes…</option>
+                    {compList.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.weight}%)
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="field">
+                  <span>Waktu Pelaksanaan *</span>
+                  <input type="datetime-local" name="scheduled_at" required />
+                  {scheduleErrors.scheduled_at && <small className="error">{scheduleErrors.scheduled_at}</small>}
+                </label>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <label className="field">
+                    <span>Lokasi</span>
+                    <input name="location" placeholder="e.g. Gedung Utama" />
+                  </label>
+                  <label className="field">
+                    <span>Ruang</span>
+                    <input name="room" placeholder="e.g. Lab Komputer 1 / Masjid" />
+                  </label>
+                </div>
+
+                <label className="field">
+                  <span>Catatan Khusus</span>
+                  <input name="notes" placeholder="e.g. Membawa mushaf Al-Qur'an dan pensil" />
+                </label>
+
+                <ErrorNote error={createSchedule.error} />
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                  <button
+                    type="button"
+                    className="button secondary"
+                    onClick={() => setSchedulingStudent(null)}
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="button"
+                    disabled={createSchedule.isPending}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <Icon name="check" size={14} />
+                    {createSchedule.isPending ? 'Menyimpan…' : 'Simpan Jadwal Siswa'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Modal Dialog Impor Nilai dari File Excel/CSV */}
       {showImportModal && (
@@ -548,87 +812,100 @@ export function AssessmentPage() {
                 accept=".csv,text/csv,text/plain"
                 onChange={handleFileSelected}
                 disabled={isImporting}
-                style={{ width: '100%', padding: '6px', fontSize: '0.875rem' }}
+                style={{ fontSize: '0.875rem', width: '100%' }}
               />
             </div>
 
-            {/* Hasil Parsing & Pratinjau */}
+            {/* Pratinjau Hasil Pembacaan Berkas */}
             {parsedImport && (
-              <div style={{ marginBottom: 16 }}>
-                <div
-                  style={{
-                    padding: '10px 14px',
-                    borderRadius: 'var(--radius-sm)',
-                    background:
-                      parsedImport.rows.length > 0 ? 'var(--brand-light)' : 'var(--danger-light)',
-                    border: `1px solid ${
-                      parsedImport.rows.length > 0 ? 'var(--brand)' : 'var(--danger)'
-                    }`,
-                    fontSize: '0.875rem',
-                    marginBottom: 10,
-                  }}
-                >
-                  <strong style={{ display: 'block' }}>Hasil Pemeriksaan File:</strong>
+              <div
+                style={{
+                  padding: 14,
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg)',
+                  border: '1px solid var(--line)',
+                  marginBottom: 16,
+                }}
+              >
+                <h4 style={{ margin: '0 0 8px 0', fontSize: '0.95rem' }}>
+                  Pratinjau Data yang Terbaca:
+                </h4>
+                <div style={{ display: 'flex', gap: 16, fontSize: '0.85rem', marginBottom: 10 }}>
                   <span>
-                    Ditemukan <strong>{parsedImport.rows.length} siswa</strong> dengan total{' '}
-                    <strong>{parsedImport.totalScoresToInput} nilai</strong> yang siap diimpor.
+                    Baris Siswa Teridentifikasi: <strong>{parsedImport.rows.length}</strong>
+                  </span>
+                  <span>
+                    Total Nilai Akan Dimasukkan:{' '}
+                    <strong style={{ color: 'var(--brand)' }}>
+                      {parsedImport.totalScoresToInput}
+                    </strong>
                   </span>
                 </div>
 
-                {parsedImport.errors.length > 0 && (
-                  <div style={{ color: 'var(--danger)', fontSize: '0.8rem', marginBottom: 8 }}>
-                    {parsedImport.errors.map((err, i) => (
-                      <div key={i}>• {err}</div>
-                    ))}
-                  </div>
-                )}
-
+                {/* Peringatan jika ada baris tidak cocok */}
                 {parsedImport.warnings.length > 0 && (
                   <div
                     style={{
                       maxHeight: 120,
                       overflowY: 'auto',
+                      padding: 8,
+                      borderRadius: 'var(--radius-sm)',
+                      background: 'var(--warning-light)',
+                      border: '1px solid var(--warning)',
                       fontSize: '0.78rem',
-                      color: 'var(--warning)',
-                      padding: '8px 10px',
-                      background: 'var(--bg)',
-                      borderRadius: 4,
-                      border: '1px solid var(--line)',
+                      color: 'var(--fg)',
                     }}
                   >
-                    <strong>Peringatan ({parsedImport.warnings.length} baris):</strong>
-                    {parsedImport.warnings.map((w, i) => (
-                      <div key={i}>{w}</div>
-                    ))}
+                    <strong>Peringatan ({parsedImport.warnings.length}):</strong>
+                    <ul style={{ margin: '4px 0 0 0', paddingLeft: 16 }}>
+                      {parsedImport.warnings.map((w, idx) => (
+                        <li key={idx}>{w}</li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Progress Bar saat Impor Berjalan */}
-            {importProgress && (
+            {/* Indikator Kemajuan Impor */}
+            {isImporting && importProgress && (
               <div style={{ marginBottom: 16 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: 4 }}>
-                  <span>Memproses nilai peserta…</span>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '0.825rem',
+                    marginBottom: 4,
+                  }}
+                >
+                  <span>Menyimpan nilai ke server…</span>
                   <span>
-                    {importProgress.current} / {importProgress.total}
+                    {importProgress.current} dari {importProgress.total} nilai
                   </span>
                 </div>
-                <div style={{ width: '100%', height: 8, background: 'var(--bg)', borderRadius: 4, overflow: 'hidden' }}>
+                <div
+                  style={{
+                    width: '100%',
+                    height: 8,
+                    background: 'var(--line)',
+                    borderRadius: 4,
+                    overflow: 'hidden',
+                  }}
+                >
                   <div
                     style={{
+                      width: `${(importProgress.current / importProgress.total) * 100}%`,
                       height: '100%',
-                      width: `${Math.min(100, (importProgress.current / (importProgress.total || 1)) * 100)}%`,
                       background: 'var(--brand)',
-                      transition: 'width 0.15s ease',
+                      transition: 'width 0.2s',
                     }}
                   />
                 </div>
               </div>
             )}
 
-            {/* Tombol Aksi Modal */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            {/* Tombol Aksi Impor */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
               <button
                 type="button"
                 className="button secondary"
@@ -640,14 +917,12 @@ export function AssessmentPage() {
               <button
                 type="button"
                 className="button"
-                onClick={() => void handleExecuteImport()}
-                disabled={
-                  isImporting || !parsedImport || parsedImport.rows.length === 0
-                }
+                disabled={!parsedImport || parsedImport.totalScoresToInput === 0 || isImporting}
+                onClick={handleExecuteImport}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
-                <Icon name="rocket" size={14} />
-                {isImporting ? 'Mengimpor…' : `Simpan & Terapkan Nilai (${parsedImport?.rows.length ?? 0} Siswa)`}
+                <Icon name="check" size={14} />
+                {isImporting ? 'Memproses Impor…' : 'Eksekusi Impor Nilai'}
               </button>
             </div>
           </div>

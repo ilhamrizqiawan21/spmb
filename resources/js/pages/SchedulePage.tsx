@@ -2,183 +2,20 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { EmptyState } from '../components/EmptyState'
-import { StatusBadge } from '../components/Field'
 import { Icon } from '../components/Icon'
 import { ErrorNote } from '../components/Notice'
 import { PageHeader } from '../components/PageHeader'
 import { api, fieldErrors } from '../lib/api'
-import { fromLocalInput, toLocalInput } from '../lib/form'
-import type { Application, AssessmentSchedule, SelectionComponent } from '../types/api'
-
-const fmt = (iso: string) =>
-  new Date(iso).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
-
-function ScheduleRow({
-  s,
-  onChange,
-}: {
-  s: AssessmentSchedule
-  onChange: () => void
-}) {
-  const [when, setWhen] = useState(toLocalInput(s.scheduled_at))
-  const [isEditing, setIsEditing] = useState(false)
-
-  const patch = useMutation({
-    mutationFn: (body: Record<string, unknown>) =>
-      api(`/selection/schedules/${s.id}`, { method: 'PATCH', body }),
-    onSuccess: () => {
-      setIsEditing(false)
-      onChange()
-    },
-  })
-
-  const active = s.status === 'SCHEDULED'
-
-  return (
-    <tr>
-      <td>
-        <strong style={{ display: 'block', fontSize: '0.9rem' }}>{s.applicant_name}</strong>
-        <span
-          style={{
-            fontFamily: 'monospace',
-            fontSize: '0.78rem',
-            color: 'var(--brand)',
-            fontWeight: 600,
-          }}
-        >
-          {s.registration_number}
-        </span>
-      </td>
-
-      <td>
-        <span className="badge badge-verified" style={{ fontWeight: 600, fontSize: '0.78rem' }}>
-          {s.component_name}
-        </span>
-      </td>
-
-      <td style={{ whiteSpace: 'nowrap' }}>
-        {active && isEditing ? (
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <input
-              type="datetime-local"
-              value={when}
-              onChange={(e) => setWhen(e.target.value)}
-              aria-label={`Waktu ${s.registration_number}`}
-              style={{ fontSize: '0.8rem', padding: '4px 8px' }}
-            />
-            <button
-              type="button"
-              className="button secondary"
-              style={{ fontSize: '0.78rem', padding: '4px 8px' }}
-              disabled={
-                !when ||
-                fromLocalInput(when) === new Date(s.scheduled_at).toISOString() ||
-                patch.isPending
-              }
-              onClick={() => patch.mutate({ scheduled_at: fromLocalInput(when) })}
-            >
-              Simpan
-            </button>
-            <button
-              type="button"
-              className="button secondary"
-              style={{ fontSize: '0.78rem', padding: '4px 8px' }}
-              onClick={() => setIsEditing(false)}
-            >
-              Batal
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 500 }}>{fmt(s.scheduled_at)} WIB</span>
-            {active && (
-              <button
-                type="button"
-                className="link"
-                style={{ fontSize: '0.75rem', padding: 0 }}
-                onClick={() => setIsEditing(true)}
-                title="Ubah waktu pelaksanaan tes"
-              >
-                Ubah
-              </button>
-            )}
-          </div>
-        )}
-      </td>
-
-      <td>
-        <span style={{ fontSize: '0.85rem' }}>
-          {[s.location, s.room].filter(Boolean).join(' / ') || '—'}
-        </span>
-      </td>
-
-      <td>
-        <StatusBadge status={s.status} />
-      </td>
-
-      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-          <Link
-            to="/penilaian"
-            className="button secondary"
-            style={{
-              fontSize: '0.78rem',
-              padding: '4px 10px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              fontWeight: 600,
-            }}
-            title="Buka halaman penilaian untuk input nilai peserta"
-          >
-            Input Nilai →
-          </Link>
-
-          {active && (
-            <>
-              <button
-                type="button"
-                className="button secondary"
-                style={{ fontSize: '0.78rem', padding: '4px 8px', color: 'var(--warning)' }}
-                onClick={() => patch.mutate({ status: 'NO_SHOW' })}
-                disabled={patch.isPending}
-                title="Tandai peserta tidak hadir"
-              >
-                Tidak Hadir
-              </button>
-
-              <button
-                type="button"
-                className="button secondary"
-                style={{ fontSize: '0.78rem', padding: '4px 8px', color: 'var(--danger)' }}
-                onClick={() =>
-                  window.confirm('Batalkan jadwal asesmen untuk calon siswa ini?') &&
-                  patch.mutate({ status: 'CANCELLED' })
-                }
-                disabled={patch.isPending}
-                title="Batalkan jadwal ini"
-              >
-                Batalkan
-              </button>
-            </>
-          )}
-        </div>
-        <ErrorNote error={patch.error} />
-      </td>
-    </tr>
-  )
-}
+import type { SelectionComponent } from '../types/api'
 
 export function SchedulePage() {
   const qc = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [scheduleErrors, setScheduleErrors] = useState<Record<string, string>>({})
   const [componentErrors, setComponentErrors] = useState<Record<string, string>>({})
-  const [showAddSchedule, setShowAddSchedule] = useState(false)
   const [showAddComponent, setShowAddComponent] = useState(false)
   const [editingComponent, setEditingComponent] = useState<SelectionComponent | null>(null)
 
-  // Query periode gelombang
+  // Query periode gelombang pendaftaran
   const periods = useQuery({
     queryKey: ['periods-all'],
     queryFn: () => api<{ id: string; name: string }[]>('/admission/periods', { auth: false }),
@@ -191,6 +28,9 @@ export function SchedulePage() {
     setSearchParams({ period_id: id })
   }
 
+  const selectedPeriodName =
+    periods.data?.find((p) => p.id === selectedPeriodId)?.name || 'Gelombang'
+
   // Komponen seleksi pada gelombang terpilih (fleksibel sesuai kebutuhan sekolah)
   const components = useQuery({
     queryKey: ['components', selectedPeriodId],
@@ -202,36 +42,8 @@ export function SchedulePage() {
       ),
   })
 
-  // Seluruh pendaftar gelombang ini yang siap asesmen
-  const apps = useQuery({
-    queryKey: ['applications'],
-    queryFn: () => api<Application[]>('/admission/applications'),
-  })
-
-  const eligibleApps =
-    apps.data?.filter(
-      (a) =>
-        a.admission_period_id === selectedPeriodId &&
-        ['VERIFIED', 'ASSESSMENT_SCHEDULED', 'ASSESSED'].includes(a.status)
-    ) ?? []
-
-  const unassessedApps = eligibleApps.filter((a) => a.status !== 'ASSESSED')
-
-  // Seluruh jadwal asesmen yang tersimpan
-  const schedules = useQuery({
-    queryKey: ['schedules'],
-    queryFn: () => api<AssessmentSchedule[]>('/selection/schedules'),
-  })
-
-  const eligibleIds = new Set(eligibleApps.map((a) => a.id))
-  const currentSchedules = schedules.data?.filter((s) => eligibleIds.has(s.application_id)) ?? []
-
-  const refreshAll = async () => {
-    await Promise.all([
-      qc.invalidateQueries({ queryKey: ['components', selectedPeriodId] }),
-      qc.invalidateQueries({ queryKey: ['schedules'] }),
-      qc.invalidateQueries({ queryKey: ['applications'] }),
-    ])
+  const refreshComponents = async () => {
+    await qc.invalidateQueries({ queryKey: ['components', selectedPeriodId] })
   }
 
   // Mutasi komponen tes (tambah / ubah / hapus)
@@ -272,42 +84,15 @@ export function SchedulePage() {
       setShowAddComponent(false)
       setEditingComponent(null)
       setComponentErrors({})
-      await refreshAll()
+      await refreshComponents()
     },
     onError: (e) => setComponentErrors(fieldErrors(e)),
   })
 
   const deleteComponent = useMutation({
     mutationFn: (id: string) => api(`/selection/components/${id}`, { method: 'DELETE' }),
-    onSuccess: refreshAll,
+    onSuccess: refreshComponents,
   })
-
-  // Mutasi jadwal asesmen
-  const createSchedule = useMutation({
-    mutationFn: (body: Record<string, unknown>) =>
-      api('/selection/schedules', { method: 'POST', body }),
-    onSuccess: async () => {
-      setShowAddSchedule(false)
-      setScheduleErrors({})
-      await refreshAll()
-    },
-    onError: (e) => setScheduleErrors(fieldErrors(e)),
-  })
-
-  function onSubmitSchedule(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setScheduleErrors({})
-    const f = new FormData(e.currentTarget)
-    const text = (k: string) => String(f.get(k) ?? '') || null
-    createSchedule.mutate({
-      application_id: f.get('application_id'),
-      component_id: f.get('component_id'),
-      scheduled_at: fromLocalInput(String(f.get('scheduled_at'))),
-      location: text('location'),
-      room: text('room'),
-      notes: text('notes'),
-    })
-  }
 
   function onSubmitComponent(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -323,15 +108,14 @@ export function SchedulePage() {
     })
   }
 
-  // Hitung total bobot komponen yang sudah diset
   const compList = components.data ?? []
   const totalWeight = compList.reduce((acc, c) => acc + parseFloat(c.weight || '0'), 0)
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <PageHeader
-        title="Jadwal Asesmen & Ujian Seleksi"
-        description="Pengaturan komponen tes sekolah (Tes Tulis, Baca Qur'an, Wawancara, dll) dan jadwal pelaksanaan ujian bagi calon siswa."
+        title="Jadwal Asesmen & Komponen Tes"
+        description="Fokus pada konfigurasi komponen tes sekolah dan pengaturan jadwal sesi pelaksanaan tes seleksi."
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Link
@@ -339,13 +123,65 @@ export function SchedulePage() {
               className="button"
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.875rem' }}
             >
-              <Icon name="award" size={15} /> Lanjut ke Menu Penilaian →
+              <Icon name="award" size={15} /> Buka Menu Penilaian Peserta →
             </Link>
           </div>
         }
       />
 
-      {/* Baris Pemilihan Gelombang */}
+      {/* Banner Pemisahan Tanggung Jawab Halaman */}
+      <div
+        className="card"
+        style={{
+          margin: 0,
+          padding: '14px 18px',
+          background: 'var(--surface)',
+          borderLeft: '4px solid var(--brand)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              background: 'var(--bg)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--brand)',
+            }}
+          >
+            <Icon name="calendar" size={18} />
+          </div>
+          <div>
+            <strong style={{ display: 'block', fontSize: '0.92rem' }}>
+              Fokus Halaman: Komponen & Penjadwalan Pelaksanaan Tes
+            </strong>
+            <span className="hint" style={{ fontSize: '0.825rem' }}>
+              Halaman ini khusus untuk mengatur jenis tes sekolah dan jadwal pelaksanaan ujian. Pengelolaan
+              calon siswa yang mengikuti tes dan input penilaian dilakukan di menu{' '}
+              <Link to={`/penilaian?period_id=${selectedPeriodId}`} style={{ fontWeight: 600 }}>
+                Penilaian
+              </Link>.
+            </span>
+          </div>
+        </div>
+        <Link
+          to={`/penilaian?period_id=${selectedPeriodId}`}
+          className="button secondary"
+          style={{ fontSize: '0.8rem', padding: '6px 12px' }}
+        >
+          Lihat Siswa & Input Nilai →
+        </Link>
+      </div>
+
+      {/* Baris Pemilihan Gelombang & Ringkasan Bobot */}
       <div
         className="card"
         style={{
@@ -382,10 +218,14 @@ export function SchedulePage() {
             Komponen Tes Aktif: <strong>{compList.length}</strong>
           </span>
           <span>
-            Total Bobot: <strong style={{ color: totalWeight === 100 ? 'var(--brand)' : 'var(--warning)' }}>{totalWeight}%</strong>
-          </span>
-          <span>
-            Jadwal Terdaftar: <strong>{currentSchedules.length}</strong>
+            Total Bobot: <strong style={{ color: totalWeight === 100 ? 'var(--brand)' : 'var(--warning)' }}>{totalWeight}%</strong>{' '}
+            {totalWeight === 100 ? (
+              <span style={{ color: 'var(--brand)', fontSize: '0.8rem' }}>(Ideal 100%)</span>
+            ) : (
+              <span style={{ color: 'var(--warning)', fontSize: '0.8rem' }}>
+                (Harus 100%, selisih: {100 - totalWeight}%)
+              </span>
+            )}
           </span>
         </div>
       </div>
@@ -394,14 +234,15 @@ export function SchedulePage() {
       <section className="card" style={{ margin: 0 }}>
         <div className="card-header between" style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
           <div>
-            <h2 className="card-title" style={{ fontSize: '1.15rem' }}>1. Komponen Tes & Asesmen Sekolah</h2>
+            <h2 className="card-title" style={{ fontSize: '1.15rem' }}>1. Komponen Tes Seleksi Sekolah</h2>
             <small className="hint">
-              Tentukan jenis tes yang diadakan sekolah (misal: Tes Tulis, Tes Baca Al-Qur&apos;an, Wawancara, Uji Minat). Tidak mutlak dan dapat disesuaikan kebutuhan.
+              Komponen tes dapat dibuat dari awal (kosongan) atau disesuaikan kebutuhan sekolah (misal: Tes Tulis,
+              Tes Baca Al-Qur&apos;an, Wawancara, Praktik Ibadah). Tidak mutlak dan dapat diperbarui sewaktu-waktu.
             </small>
           </div>
           <button
             type="button"
-            className="button secondary"
+            className="button"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}
             onClick={() => {
               setEditingComponent(null)
@@ -418,10 +259,10 @@ export function SchedulePage() {
               <thead>
                 <tr>
                   <th style={{ width: '25%' }}>Nama Komponen Tes</th>
-                  <th style={{ width: '15%' }}>Kode Kolom</th>
+                  <th style={{ width: '15%' }}>Kode Kolom Excel</th>
                   <th style={{ width: '15%' }}>Bobot Nilai (%)</th>
                   <th style={{ width: '15%' }}>Skor Maksimal</th>
-                  <th style={{ width: '20%' }}>Keterangan / Indikator</th>
+                  <th style={{ width: '20%' }}>Keterangan / Jadwal</th>
                   <th style={{ width: '10%', textAlign: 'right' }}>Aksi</th>
                 </tr>
               </thead>
@@ -429,7 +270,7 @@ export function SchedulePage() {
                 {compList.map((c) => (
                   <tr key={c.id}>
                     <td>
-                      <strong style={{ fontSize: '0.9rem' }}>{c.name}</strong>
+                      <strong style={{ fontSize: '0.9rem', display: 'block' }}>{c.name}</strong>
                     </td>
                     <td>
                       <code style={{ fontSize: '0.8rem', background: 'var(--bg)', padding: '2px 6px', borderRadius: 4 }}>
@@ -485,142 +326,80 @@ export function SchedulePage() {
         )}
       </section>
 
-      {/* Bagian 2: Penjadwalan Pelaksanaan Tes & Sesi Asesmen */}
+      {/* Bagian 2: Penjadwalan Pelaksanaan Tes (Agenda Sesi Tes Sekolah) */}
       <section className="card" style={{ margin: 0 }}>
         <div className="card-header between" style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
           <div>
-            <h2 className="card-title" style={{ fontSize: '1.15rem' }}>2. Jadwal Pelaksanaan Ujian / Asesmen</h2>
+            <h2 className="card-title" style={{ fontSize: '1.15rem' }}>2. Penjadwalan Pelaksanaan Tes Sekolah</h2>
             <small className="hint">
-              Atur waktu pelaksanaan, ruang, dan lokasi ujian untuk masing-masing calon siswa.
+              Rincian agenda dan jadwal pelaksanaan ujian untuk tiap komponen tes pada gelombang {selectedPeriodName}.
             </small>
           </div>
-          <button
-            type="button"
-            className="button secondary"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}
-            onClick={() => setShowAddSchedule(!showAddSchedule)}
-          >
-            <Icon name={showAddSchedule ? 'x' : 'calendar'} size={14} />
-            {showAddSchedule ? 'Tutup Formulir' : '+ Buat Jadwal Ujian'}
-          </button>
         </div>
 
-        {/* Form Penjadwalan Asesmen */}
-        {showAddSchedule && (
-          <div style={{ marginBottom: 20, padding: 16, background: 'var(--bg)', borderRadius: 'var(--radius-md)', border: '1px solid var(--line)' }}>
-            <h3 style={{ fontSize: '1rem', marginTop: 0, marginBottom: 12 }}>Formulir Penjadwalan Asesmen</h3>
-            <form
-              onSubmit={onSubmitSchedule}
-              className="grid-form"
-              aria-label="Form jadwal asesmen"
-              key={selectedPeriodId}
-              style={{ background: 'transparent', padding: 0, border: 'none', margin: 0 }}
-            >
-              <label className="field">
-                <span>Pendaftar *</span>
-                <select name="application_id" required defaultValue="">
-                  <option value="" disabled>
-                    Pilih calon siswa…
-                  </option>
-                  {unassessedApps.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.registration_number} — {a.applicant_name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+        {compList.length > 0 ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+            {compList.map((c) => (
+              <div
+                key={c.id}
+                style={{
+                  padding: 16,
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg)',
+                  border: '1px solid var(--line)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <strong style={{ fontSize: '1rem', display: 'block' }}>{c.name}</strong>
+                    <code style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>Kode: {c.code}</code>
+                  </div>
+                  <span className="badge badge-verified" style={{ fontWeight: 600 }}>
+                    Bobot {c.weight}%
+                  </span>
+                </div>
 
-              <label className="field">
-                <span>Komponen *</span>
-                <select name="component_id" required defaultValue="">
-                  <option value="" disabled>
-                    Pilih komponen tes…
-                  </option>
-                  {compList.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.weight}%)
-                    </option>
-                  ))}
-                </select>
-              </label>
+                <div style={{ fontSize: '0.85rem', color: 'var(--fg)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div>
+                    <span className="hint" style={{ fontSize: '0.75rem', display: 'block' }}>Nilai Maksimal:</span>
+                    <strong>{c.max_score} poin</strong>
+                  </div>
+                  <div>
+                    <span className="hint" style={{ fontSize: '0.75rem', display: 'block' }}>Petunjuk / Jadwal Pelaksanaan:</span>
+                    <p style={{ margin: 0, lineHeight: 1.4, color: c.description ? 'var(--fg)' : 'var(--muted)' }}>
+                      {c.description || 'Belum diatur keterangan waktu/ruang pelaksanaan.'}
+                    </p>
+                  </div>
+                </div>
 
-              <label className="field">
-                <span>Waktu *</span>
-                <input type="datetime-local" name="scheduled_at" required />
-                {scheduleErrors.scheduled_at && <small className="error">{scheduleErrors.scheduled_at}</small>}
-              </label>
-
-              <label className="field">
-                <span>Lokasi</span>
-                <input name="location" placeholder="e.g. Kampus Utama / Gedung A" />
-              </label>
-
-              <label className="field">
-                <span>Ruang</span>
-                <input name="room" placeholder="e.g. Ruang Wawancara 02 / Masjid" />
-              </label>
-
-              <label className="field">
-                <span>Catatan</span>
-                <input name="notes" placeholder="e.g. Harap membawa Al-Qur'an dan alat tulis" />
-              </label>
-
-              <div className="row" style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-                <button
-                  type="submit"
-                  disabled={createSchedule.isPending || unassessedApps.length === 0 || compList.length === 0}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                >
-                  <Icon name="check" size={14} /> {createSchedule.isPending ? 'Menyimpan…' : 'Jadwalkan'}
-                </button>
-                <button
-                  type="button"
-                  className="button secondary"
-                  onClick={() => setShowAddSchedule(false)}
-                >
-                  Batal
-                </button>
+                <div style={{ marginTop: 'auto', paddingTop: 8, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                  <button
+                    type="button"
+                    className="button secondary"
+                    style={{ fontSize: '0.78rem', padding: '4px 10px' }}
+                    onClick={() => {
+                      setEditingComponent(c)
+                      setShowAddComponent(true)
+                    }}
+                  >
+                    Atur Jadwal & Keterangan
+                  </button>
+                </div>
               </div>
-
-              {Object.keys(scheduleErrors).length === 0 && <ErrorNote error={createSchedule.error} />}
-            </form>
-          </div>
-        )}
-
-        {/* Tabel Daftar Jadwal */}
-        {currentSchedules.length > 0 ? (
-          <div className="table-wrapper" style={{ marginBottom: 0 }}>
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: '25%' }}>Calon Siswa & No. Reg</th>
-                  <th style={{ width: '15%' }}>Komponen Tes</th>
-                  <th style={{ width: '22%' }}>Waktu Pelaksanaan</th>
-                  <th style={{ width: '15%' }}>Lokasi / Ruang</th>
-                  <th style={{ width: '10%' }}>Status</th>
-                  <th style={{ width: '13%', textAlign: 'right' }}>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentSchedules.map((s) => (
-                  <ScheduleRow
-                    key={s.id + s.scheduled_at + s.status}
-                    s={s}
-                    onChange={refreshAll}
-                  />
-                ))}
-              </tbody>
-            </table>
+            ))}
           </div>
         ) : (
           <EmptyState
-            title="Belum ada jadwal ujian terdaftar"
-            description="Klik tombol '+ Buat Jadwal Ujian' di atas untuk menjadwalkan tes bagi calon siswa."
+            title="Belum ada jadwal pelaksanaan"
+            description="Tambahkan komponen tes terlebih dahulu untuk mengatur jadwal dan sesi pelaksanaan ujian."
           />
         )}
       </section>
 
-      {/* Modal Dialog Tambah / Edit Komponen Tes */}
+      {/* Modal Dialog Tambah / Edit Komponen Tes & Jadwal */}
       {showAddComponent && (
         <div className="modal-overlay" onClick={() => setShowAddComponent(false)} role="presentation">
           <div
@@ -633,7 +412,7 @@ export function SchedulePage() {
           >
             <div className="card-header between" style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
               <h3 id="modal-component-title" style={{ margin: 0, fontSize: '1.15rem' }}>
-                {editingComponent ? 'Ubah Komponen Tes' : 'Tambah Komponen Tes Baru'}
+                {editingComponent ? 'Ubah Komponen & Jadwal Tes' : 'Tambah Komponen Tes Baru'}
               </h3>
               <button
                 type="button"
@@ -701,14 +480,17 @@ export function SchedulePage() {
                 </label>
 
                 <label className="field">
-                  <span>Deskripsi / Petunjuk Pelaksanaan (Opsional)</span>
+                  <span>Jadwal Pelaksanaan / Keterangan Ruang & Waktu</span>
                   <textarea
                     name="description"
-                    rows={2}
+                    rows={3}
                     defaultValue={editingComponent?.description ?? ''}
-                    placeholder="e.g. Penilaian mencakup makhrajul huruf, tajwid, adab, dan kelancaran membaca."
+                    placeholder="e.g. Pelaksanaan: Sabtu, 15 Nov 2026 Pkl 08:00 - 10:00 WIB di Lab Komputer. Bawa kartu peserta dan alat tulis."
                     style={{ fontFamily: 'inherit', fontSize: '0.875rem' }}
                   />
+                  <small className="hint">
+                    Keterangan ini menjadi panduan bagi penguji dan calon siswa mengenai waktu, ruang, dan materi tes.
+                  </small>
                 </label>
 
                 <ErrorNote error={saveComponent.error} />
@@ -728,7 +510,7 @@ export function SchedulePage() {
                     style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
                   >
                     <Icon name="check" size={14} />
-                    {saveComponent.isPending ? 'Menyimpan…' : 'Simpan Komponen Tes'}
+                    {saveComponent.isPending ? 'Menyimpan…' : 'Simpan Komponen'}
                   </button>
                 </div>
               </div>
