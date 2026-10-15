@@ -104,6 +104,21 @@ export interface AnnouncementResult {
   next_steps?: string[]
 }
 
+export interface QueueItemDocument {
+  requirement_id: string
+  requirement_name: string
+  requirement_code: string | null
+  is_required: boolean
+  is_uploaded: boolean
+  document_id: string | null
+  status: 'VALID' | 'PENDING' | 'REVISION_REQUIRED' | 'INVALID' | 'NOT_UPLOADED'
+  original_filename: string | null
+  file_size: number | null
+  verification_note: string | null
+  uploaded_at: string | null
+  verified_at: string | null
+}
+
 export interface QueueItem {
   id: string
   applicant_id: string
@@ -114,7 +129,16 @@ export interface QueueItem {
   status: string
   assigned_verifier_id: string | null
   assigned_verifier_name: string | null
-  document_counts: { total: number; pending: number; valid: number; invalid: number; revision_required: number }
+  document_counts: {
+    total: number
+    uploaded?: number
+    pending: number
+    valid: number
+    invalid: number
+    revision_required: number
+    not_uploaded?: number
+  }
+  documents?: QueueItemDocument[]
 }
 
 export interface SelectionComponent {

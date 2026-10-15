@@ -33,4 +33,14 @@ class AdmissionPeriod extends BaseModel
     {
         return $this->hasMany(Application::class);
     }
+
+    public function documentRequirements(): HasMany
+    {
+        return $this->hasMany(DocumentRequirement::class);
+    }
+
+    public function selectionComponents(): HasMany
+    {
+        return $this->hasMany(SelectionComponent::class);
+    }
 }
