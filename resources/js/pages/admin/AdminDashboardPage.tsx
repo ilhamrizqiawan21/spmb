@@ -380,55 +380,95 @@ export function AdminDashboardPage() {
             <p className="hint">Tidak ada gelombang pendaftaran aktif saat ini.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {periods.map((p) => (
-                <div key={p.id} style={{ borderBottom: '1px solid var(--line)', paddingBottom: 12 }}>
-                  <div className="between" style={{ display: 'flex', marginBottom: 6, alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <strong>{p.name}</strong>
-                      <span className="hint">({p.code})</span>
-                      <span className={`badge ${p.is_active ? 'badge-verified' : 'badge-rejected'}`} style={{ fontSize: '0.7rem' }}>
-                        {p.is_active ? 'Aktif' : 'Nonaktif'}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                      <span className={`badge ${p.is_open ? 'badge-verified' : 'badge-draft'}`} style={{ fontSize: '0.75rem' }}>
-                        {p.is_open ? 'Buka' : 'Tutup'}
-                      </span>
-                      <button
-                        type="button"
-                        className="button secondary"
-                        style={{ fontSize: '0.75rem', padding: '2px 8px' }}
-                        disabled={actionLoading !== null}
-                        onClick={() => void handleTogglePeriod(p.id, p.name, p.is_active)}
-                        title={p.is_active ? 'Nonaktifkan gelombang ini sementara' : 'Aktifkan kembali gelombang ini'}
-                      >
-                        {actionLoading === `toggle-${p.id}`
-                          ? 'Menyimpan…'
-                          : p.is_active
-                          ? 'Nonaktifkan'
-                          : 'Aktifkan'}
-                      </button>
-                    </div>
-                  </div>
+              {periods.map((p) => {
+                const startDate = new Date(p.registration_start)
+                const endDate = new Date(p.registration_end)
+                const now = new Date()
+                const isPast = now > endDate
+                const isFuture = now < startDate
+                const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                const daysToStart = Math.ceil((startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
 
-                  <div className="between" style={{ display: 'flex', fontSize: '0.85rem', color: 'var(--muted)', marginBottom: 6 }}>
-                    <span>Pendaftar Masuk: <strong>{p.applications_count}</strong></span>
-                    <span>Kuota: <strong>{p.quota ?? 'Tidak Dibatasi'}</strong></span>
-                  </div>
-
-                  {p.quota && p.quota > 0 && (
-                    <div style={{ width: '100%', height: 8, background: 'var(--bg)', borderRadius: 4, overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          height: '100%',
-                          width: `${Math.min(100, p.fill_percentage ?? 0)}%`,
-                          background: (p.fill_percentage ?? 0) >= 90 ? 'var(--danger)' : 'var(--brand)',
-                        }}
-                      />
+                return (
+                  <div key={p.id} style={{ borderBottom: '1px solid var(--line)', paddingBottom: 14 }}>
+                    <div className="between" style={{ display: 'flex', marginBottom: 6, alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <strong>{p.name}</strong>
+                        <span className="hint">({p.code})</span>
+                        <span className={`badge ${p.is_active ? 'badge-verified' : 'badge-rejected'}`} style={{ fontSize: '0.7rem' }}>
+                          {p.is_active ? 'Aktif' : 'Nonaktif'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <span className={`badge ${p.is_open ? 'badge-verified' : 'badge-draft'}`} style={{ fontSize: '0.75rem' }}>
+                          {p.is_open ? 'Buka' : 'Tutup'}
+                        </span>
+                        <button
+                          type="button"
+                          className="button secondary"
+                          style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                          disabled={actionLoading !== null}
+                          onClick={() => void handleTogglePeriod(p.id, p.name, p.is_active)}
+                          title={p.is_active ? 'Nonaktifkan gelombang ini sementara' : 'Aktifkan kembali gelombang ini'}
+                        >
+                          {actionLoading === `toggle-${p.id}`
+                            ? 'Menyimpan…'
+                            : p.is_active
+                            ? 'Nonaktifkan'
+                            : 'Aktifkan'}
+                        </button>
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))}
+
+                    {/* Rincian Tanggal Pendaftaran Gelombang */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.82rem', margin: '6px 0 8px', color: 'var(--muted)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
+                        <span>
+                          📅 <strong>Rentang Pendaftaran:</strong>{' '}
+                          {startDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} s/d{' '}
+                          {endDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                        {p.is_open ? (
+                          <span className="badge badge-verified" style={{ fontSize: '0.7rem' }}>
+                            ⏳ Sisa {daysLeft} hari lagi
+                          </span>
+                        ) : isFuture ? (
+                          <span className="badge badge-draft" style={{ fontSize: '0.7rem' }}>
+                            ⏳ Buka dalam {daysToStart} hari
+                          </span>
+                        ) : (
+                          <span className="badge badge-rejected" style={{ fontSize: '0.7rem' }}>
+                            Selesai {endDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                          </span>
+                        )}
+                      </div>
+                      {p.announcement_at && (
+                        <div>
+                          📢 <strong>Pengumuman:</strong>{' '}
+                          {new Date(p.announcement_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="between" style={{ display: 'flex', fontSize: '0.85rem', color: 'var(--muted)', marginBottom: 6 }}>
+                      <span>Pendaftar Masuk: <strong>{p.applications_count}</strong></span>
+                      <span>Kuota: <strong>{p.quota ?? 'Tidak Dibatasi'}</strong></span>
+                    </div>
+
+                    {p.quota && p.quota > 0 && (
+                      <div style={{ width: '100%', height: 8, background: 'var(--bg)', borderRadius: 4, overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            height: '100%',
+                            width: `${Math.min(100, p.fill_percentage ?? 0)}%`,
+                            background: (p.fill_percentage ?? 0) >= 90 ? 'var(--danger)' : 'var(--brand)',
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>

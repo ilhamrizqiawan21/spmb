@@ -84,7 +84,7 @@ class SystemController extends ApiController
             $periodsQuery->where('academic_year_id', $activeYear->id);
         }
         $periods = $periodsQuery->orderBy('registration_start')
-            ->get(['id', 'name', 'code', 'quota', 'is_active', 'registration_start', 'registration_end'])
+            ->get(['id', 'name', 'code', 'quota', 'is_active', 'registration_start', 'registration_end', 'announcement_at'])
             ->map(function ($p) {
                 $quota = $p->quota;
                 $pct = ($quota && $quota > 0) ? round(($p->applications_count / $quota) * 100, 1) : null;
@@ -97,6 +97,7 @@ class SystemController extends ApiController
                     'fill_percentage' => $pct,
                     'registration_start' => $p->registration_start->toIso8601String(),
                     'registration_end' => $p->registration_end->toIso8601String(),
+                    'announcement_at' => $p->announcement_at?->toIso8601String(),
                     'is_open' => $p->is_active && now()->between($p->registration_start, $p->registration_end),
                     'is_active' => (bool) $p->is_active,
                 ];

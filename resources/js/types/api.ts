@@ -70,6 +70,13 @@ export interface Application {
   period_name: string
   registration_number: string | null
   status: string
+  submitted_at?: string | null
+  verified_at?: string | null
+  assessed_at?: string | null
+  decided_at?: string | null
+  enrolled_at?: string | null
+  created_at?: string
+  updated_at?: string
   current_step: number
   completion_percentage: number
   status_histories: StatusHistory[]
@@ -125,8 +132,12 @@ export interface QueueItem {
   applicant_name: string
   period_id: string
   period_name: string
+  period_start?: string | null
+  period_end?: string | null
   registration_number: string | null
   status: string
+  submitted_at: string | null
+  created_at?: string | null
   assigned_verifier_id: string | null
   assigned_verifier_name: string | null
   document_counts: {
@@ -155,6 +166,7 @@ export interface ApplicationScore {
   application_id: string
   registration_number: string | null
   applicant_name: string
+  submitted_at?: string | null
   raw_score: string
   final_score: string
   rank: number | null
@@ -491,6 +503,7 @@ export interface AdminDashboardData {
     fill_percentage: number | null
     registration_start: string
     registration_end: string
+    announcement_at?: string | null
     is_open: boolean
     is_active: boolean
   }[]

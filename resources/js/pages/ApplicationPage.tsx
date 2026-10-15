@@ -144,7 +144,14 @@ export function ApplicationPage() {
     <>
       <section className="card">
         <h1>{a.applicant_name}</h1>
-        <p>{a.period_name} · No. {a.registration_number} · <StatusBadge status={a.status} /></p>
+        <p>{a.period_name} · No. {a.registration_number ?? 'DRAF'} · <StatusBadge status={a.status} /></p>
+        <p className="hint" style={{ fontSize: '0.85rem', marginTop: -6, marginBottom: 10 }}>
+          {a.submitted_at
+            ? `Tanggal Diajukan: ${new Date(a.submitted_at).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })} WIB`
+            : a.created_at
+            ? `Draf Dibuat: ${new Date(a.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })} WIB`
+            : null}
+        </p>
         <progress value={a.completion_percentage} max={100} aria-label="Kelengkapan" /> {a.completion_percentage}%
         {a.status === 'DRAFT' && (
           <p>

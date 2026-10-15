@@ -107,9 +107,20 @@ export function DashboardPage() {
         <ul className="list">
           {applications.data?.map((a) => (
             <li key={a.id}>
-              <Link to={`/applications/${a.id}`}>{a.applicant_name} — {a.period_name}</Link>
+              <div>
+                <Link to={`/applications/${a.id}`}>
+                  <strong>{a.applicant_name}</strong> — {a.period_name}
+                </Link>
+                <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: 2 }}>
+                  {a.submitted_at ? (
+                    <span>Tgl Daftar: {new Date(a.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                  ) : a.created_at ? (
+                    <span>Draf dibuat: {new Date(a.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                  ) : null}
+                </div>
+              </div>
               <StatusBadge status={a.status} />
-              <span>{a.registration_number}</span>
+              <span>{a.registration_number ?? 'DRAF'}</span>
             </li>
           ))}
         </ul>

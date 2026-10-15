@@ -5,7 +5,7 @@ import { EmptyState } from '../components/EmptyState'
 import { StatusBadge } from '../components/Field'
 import { PageHeader } from '../components/PageHeader'
 import { api } from '../lib/api'
-import type { QueueItem } from '../types/api'
+import type { AdmissionPeriod, QueueItem } from '../types/api'
 
 function formatBytes(bytes: number | null | undefined): string {
   if (!bytes || bytes <= 0) return '—'
@@ -34,8 +34,14 @@ function renderDocStatusBadge(status: string) {
 
 export function VerificationPage() {
   const [assignment, setAssignment] = useState('')
+  const [periodId, setPeriodId] = useState('')
   const [search, setSearch] = useState('')
   const [selectedItem, setSelectedItem] = useState<QueueItem | null>(null)
+
+  const periods = useQuery({
+    queryKey: ['periods-list'],
+    queryFn: () => api<AdmissionPeriod[]>('/admission/periods', { auth: false }),
+  })
 
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
@@ -51,9 +57,10 @@ export function VerificationPage() {
 
   const q = new URLSearchParams()
   if (assignment) q.set('assignment', assignment)
+  if (periodId) q.set('admission_period_id', periodId)
   if (search) q.set('search', search)
   const { data, isPending } = useQuery({
-    queryKey: ['verification-queue', assignment, search],
+    queryKey: ['verification-queue', assignment, periodId, search],
     queryFn: () => api<QueueItem[]>(`/verification/queue?${q}`),
   })
 
@@ -71,6 +78,18 @@ export function VerificationPage() {
             onChange={(e) => setSearch(e.target.value)}
             aria-label="Cari"
           />
+          <select
+            value={periodId}
+            onChange={(e) => setPeriodId(e.target.value)}
+            aria-label="Filter Gelombang"
+          >
+            <option value="">Semua Gelombang</option>
+            {periods.data?.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
           <select
             value={assignment}
             onChange={(e) => setAssignment(e.target.value)}
@@ -91,6 +110,8 @@ export function VerificationPage() {
                 <tr>
                   <th>No. Pendaftaran</th>
                   <th>Nama Calon Siswa</th>
+                  <th>Gelombang</th>
+                  <th>Tgl Daftar / Submit</th>
                   <th>Status</th>
                   <th>Verifikator</th>
                   <th>Berkas (Valid / Total)</th>
@@ -111,7 +132,33 @@ export function VerificationPage() {
                           <strong>{i.registration_number ?? 'DRAF'}</strong>
                         </Link>
                       </td>
-                      <td>{i.applicant_name}</td>
+                      <td>
+                        <strong>{i.applicant_name}</strong>
+                      </td>
+                      <td>
+                        <span className="badge" style={{ background: 'var(--muted-bg, rgba(0,0,0,0.06))', color: 'var(--fg)', fontSize: '0.75rem' }}>
+                          {i.period_name ?? '—'}
+                        </span>
+                      </td>
+                      <td>
+                        {i.submitted_at ? (
+                          <div title={`Diajukan: ${new Date(i.submitted_at).toLocaleString('id-ID')}`}>
+                            <span style={{ fontWeight: 500 }}>
+                              {new Date(i.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </span>
+                            <br />
+                            <small className="hint" style={{ fontSize: '0.75rem' }}>
+                              {new Date(i.submitted_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                            </small>
+                          </div>
+                        ) : i.created_at ? (
+                          <span className="hint" style={{ fontSize: '0.8rem' }} title="Draf dibuat tapi belum resmi disubmit">
+                            Draf ({new Date(i.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })})
+                          </span>
+                        ) : (
+                          <span className="hint">—</span>
+                        )}
+                      </td>
                       <td><StatusBadge status={i.status} /></td>
                       <td>{i.assigned_verifier_name ?? '—'}</td>
                       <td>
@@ -201,6 +248,63 @@ export function VerificationPage() {
               >
                 ✕ Tutup
               </button>
+            </div>
+
+            {/* Rincian Pendaftaran & Gelombang */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                gap: 12,
+                marginBottom: 16,
+                padding: '12px 14px',
+                background: 'var(--bg)',
+                borderRadius: 'var(--radius-sm)',
+                border: '1px solid var(--line)',
+                fontSize: '0.85rem',
+              }}
+            >
+              <div>
+                <span className="hint" style={{ display: 'block', fontSize: '0.7rem' }}>GELOMBANG PENDAFTARAN</span>
+                <strong>{selectedItem.period_name}</strong>
+                {selectedItem.period_start && selectedItem.period_end && (
+                  <small className="hint" style={{ display: 'block', fontSize: '0.75rem', marginTop: 2 }}>
+                    {new Date(selectedItem.period_start).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} s/d {new Date(selectedItem.period_end).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </small>
+                )}
+              </div>
+              <div>
+                <span className="hint" style={{ display: 'block', fontSize: '0.7rem' }}>TANGGAL DAFTAR (SUBMIT)</span>
+                <strong>
+                  {selectedItem.submitted_at ? (
+                    <>
+                      {new Date(selectedItem.submitted_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      <br />
+                      <small className="hint" style={{ fontWeight: 'normal' }}>
+                        {new Date(selectedItem.submitted_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                      </small>
+                    </>
+                  ) : (
+                    <span className="hint">Belum Diajukan (Draf)</span>
+                  )}
+                </strong>
+              </div>
+              {selectedItem.created_at && (
+                <div>
+                  <span className="hint" style={{ display: 'block', fontSize: '0.7rem' }}>DRAF DIBUAT</span>
+                  <span>
+                    {new Date(selectedItem.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    <br />
+                    <small className="hint">
+                      {new Date(selectedItem.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                    </small>
+                  </span>
+                </div>
+              )}
+              <div>
+                <span className="hint" style={{ display: 'block', fontSize: '0.7rem' }}>STATUS PENDAFTARAN</span>
+                <StatusBadge status={selectedItem.status} />
+              </div>
             </div>
 
             {/* Ringkasan Jumlah Berkas */}

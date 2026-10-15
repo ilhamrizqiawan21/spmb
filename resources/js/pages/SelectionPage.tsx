@@ -76,14 +76,26 @@ export function SelectionPage() {
       <section className="card">
         <h2>Peringkat</h2>
         <table>
-          <thead><tr><th>#</th><th>Pendaftar</th><th>Nilai akhir</th><th>Status</th><th>Keputusan</th></tr></thead>
+          <thead><tr><th>#</th><th>Pendaftar</th><th>Tgl Daftar</th><th>Nilai akhir</th><th>Status</th><th>Keputusan</th></tr></thead>
           <tbody>
             {ranking.data?.map((s) => {
               const app = byId.get(s.application_id)
+              const submitted = s.submitted_at ?? app?.submitted_at
               return (
                 <tr key={s.id}>
                   <td>{s.rank ?? '—'}</td>
                   <td>{s.registration_number}<br /><small>{s.applicant_name}</small></td>
+                  <td>
+                    {submitted ? (
+                      <span title={`Diajukan: ${new Date(submitted).toLocaleString('id-ID')}`}>
+                        {new Date(submitted).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                        <br />
+                        <small className="hint">{new Date(submitted).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</small>
+                      </span>
+                    ) : (
+                      <span className="hint">—</span>
+                    )}
+                  </td>
                   <td>{s.final_score}</td>
                   <td>{app && <StatusBadge status={app.status} />}</td>
                   <td>{app && <DecisionCell app={app} onDone={refresh} />}</td>

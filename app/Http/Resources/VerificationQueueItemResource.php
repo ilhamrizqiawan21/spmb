@@ -71,6 +71,8 @@ class VerificationQueueItemResource extends JsonResource
             'applicant_name' => $m->applicant?->full_name,
             'period_id' => $m->admission_period_id,
             'period_name' => $m->admissionPeriod?->name,
+            'period_start' => $m->admissionPeriod?->registration_start?->toIso8601String(),
+            'period_end' => $m->admissionPeriod?->registration_end?->toIso8601String(),
             'registration_number' => $m->registration_number,
             'status' => $m->status,
             'submitted_at' => $m->submitted_at,

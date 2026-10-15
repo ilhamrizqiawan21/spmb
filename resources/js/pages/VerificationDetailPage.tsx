@@ -69,15 +69,32 @@ export function VerificationDetailPage() {
       <section className="card">
         <h1>{a.applicant_name}</h1>
         <p>{a.period_name} · No. {a.registration_number} · <StatusBadge status={a.status} /></p>
-        {applicant.data && (
-          <dl className="details">
-            <dt>TTL</dt><dd>{applicant.data.birth_place}, {applicant.data.birth_date}</dd>
-            <dt>NIK</dt><dd>{applicant.data.nik ?? '—'}</dd>
-            <dt>NISN</dt><dd>{applicant.data.nisn ?? '—'}</dd>
-            <dt>Alamat</dt><dd>{applicant.data.address}</dd>
-            <dt>Wali</dt><dd>{guardians.data?.map((g) => `${g.full_name} (${g.relationship})`).join(', ') || '—'}</dd>
-          </dl>
-        )}
+        <dl className="details">
+          <dt>Gelombang</dt><dd><strong>{a.period_name}</strong></dd>
+          <dt>Tgl Daftar / Submit</dt>
+          <dd>
+            {a.submitted_at ? (
+              <strong>{new Date(a.submitted_at).toLocaleString('id-ID', { dateStyle: 'full', timeStyle: 'short' })} WIB</strong>
+            ) : (
+              <span className="hint">Belum Diajukan (Draf)</span>
+            )}
+          </dd>
+          {a.created_at && (
+            <>
+              <dt>Draf Dibuat</dt>
+              <dd>{new Date(a.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })} WIB</dd>
+            </>
+          )}
+          {applicant.data && (
+            <>
+              <dt>TTL</dt><dd>{applicant.data.birth_place}, {applicant.data.birth_date}</dd>
+              <dt>NIK</dt><dd>{applicant.data.nik ?? '—'}</dd>
+              <dt>NISN</dt><dd>{applicant.data.nisn ?? '—'}</dd>
+              <dt>Alamat</dt><dd>{applicant.data.address}</dd>
+              <dt>Wali</dt><dd>{guardians.data?.map((g) => `${g.full_name} (${g.relationship})`).join(', ') || '—'}</dd>
+            </>
+          )}
+        </dl>
         <p>Verifikator: <strong>{queueItem.data?.assigned_verifier_name ?? 'belum ditugaskan'}</strong></p>
         {canAssign && !finished && (
           <div className="row">
