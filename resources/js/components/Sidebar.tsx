@@ -223,9 +223,29 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
         {user && (
           <div className="sidebar-footer">
-            <div className="sidebar-user-info">
-              <span className="sidebar-user-name" title={user.name}>{user.name}</span>
-              <span className="sidebar-user-role">Panel Staf</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, var(--brand) 0%, var(--brand-hover) 100%)',
+                  color: '#ffffff',
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                }}
+              >
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="sidebar-user-info" style={{ minWidth: 0, flex: 1 }}>
+                <span className="sidebar-user-name" title={user.name}>{user.name}</span>
+                <span className="sidebar-user-role">Panel Staf SPMB</span>
+              </div>
             </div>
             <div className="sidebar-footer-actions">
               <NavLink to="/akun" className="sidebar-account-btn" onClick={onClose} title="Pengaturan Akun">
