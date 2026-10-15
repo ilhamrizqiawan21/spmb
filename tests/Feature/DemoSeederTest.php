@@ -14,8 +14,8 @@ class DemoSeederTest extends TestCase
 
         $this->postJson(self::API.'/auth/login', ['identifier' => 'admission_admin@demo.test', 'password' => DemoSeeder::PASSWORD])
             ->assertOk()->assertJsonPath('user.roles', ['admission_admin']);
-        $this->assertDatabaseCount('users', 8);
-        $this->getJson(self::API.'/admission/periods')->assertOk()->assertJsonCount(1);
+        $this->assertDatabaseCount('users', 18);
+        $this->getJson(self::API.'/admission/periods')->assertOk()->assertJsonCount(2);
         $this->getJson(self::API.'/selection/components')->assertOk()->assertJsonCount(2);
     }
 
