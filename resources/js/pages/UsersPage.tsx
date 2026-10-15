@@ -281,8 +281,8 @@ function CreateUserModal({
   }
 
   return (
-    <div className="sidebar-backdrop show" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div className="card" style={{ maxWidth: 540, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} role="dialog" aria-labelledby="create-title">
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div className="modal-window" style={{ maxWidth: 540, padding: 24 }} role="dialog" aria-modal="true" aria-labelledby="create-title" onClick={(e) => e.stopPropagation()}>
         <h2 id="create-title">Tambah Pengguna Baru</h2>
         <ErrorNote error={error} />
         <form onSubmit={handleSubmit}>
@@ -365,8 +365,8 @@ function EditUserModal({
   }
 
   return (
-    <div className="sidebar-backdrop show" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div className="card" style={{ maxWidth: 540, width: '100%', maxHeight: '90vh', overflowY: 'auto' }} role="dialog" aria-labelledby="edit-title">
+    <div className="modal-overlay" onClick={onClose} role="presentation">
+      <div className="modal-window" style={{ maxWidth: 540, padding: 24 }} role="dialog" aria-modal="true" aria-labelledby="edit-title" onClick={(e) => e.stopPropagation()}>
         <h2 id="edit-title">Edit Pengguna: {user.name}</h2>
         <ErrorNote error={error} />
         <form onSubmit={handleSubmit}>

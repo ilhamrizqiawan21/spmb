@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { EmptyState } from '../components/EmptyState'
 import { StatusBadge } from '../components/Field'
@@ -36,6 +36,18 @@ export function VerificationPage() {
   const [assignment, setAssignment] = useState('')
   const [search, setSearch] = useState('')
   const [selectedItem, setSelectedItem] = useState<QueueItem | null>(null)
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setSelectedItem(null)
+      }
+    }
+    if (selectedItem) {
+      window.addEventListener('keydown', handleKeyDown)
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedItem])
 
   const q = new URLSearchParams()
   if (assignment) q.set('assignment', assignment)
@@ -154,29 +166,21 @@ export function VerificationPage() {
         )}
       </section>
 
-      {/* Modal Dialog Rincian Status Berkas Persyaratan */}
+      {/* Modal Dialog Rincian Status Berkas Persyaratan (Menonjol ke depan / Floating Modal Window) */}
       {selectedItem && (
         <div
-          className="sidebar-backdrop show"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1100,
-            padding: 16,
-          }}
+          className="modal-overlay"
           onClick={() => setSelectedItem(null)}
+          role="presentation"
         >
           <div
-            className="card"
+            className="modal-window"
             style={{
-              maxWidth: 720,
-              width: '100%',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-              margin: 0,
+              maxWidth: 780,
+              padding: 24,
             }}
             role="dialog"
+            aria-modal="true"
             aria-labelledby="modal-doc-title"
             onClick={(e) => e.stopPropagation()}
           >
