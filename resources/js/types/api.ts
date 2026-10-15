@@ -155,10 +155,15 @@ export interface QueueItem {
 export interface SelectionComponent {
   id: string
   admission_period_id: string
+  period_name?: string
   name: string
   code: string
+  description?: string | null
   weight: string
   max_score: string
+  minimum_score?: string | null
+  sort_order?: number
+  is_active?: boolean
 }
 
 export interface ApplicationScore {
