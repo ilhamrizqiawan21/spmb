@@ -384,7 +384,6 @@ export function AdminDashboardPage() {
                 const startDate = new Date(p.registration_start)
                 const endDate = new Date(p.registration_end)
                 const now = new Date()
-                const isPast = now > endDate
                 const isFuture = now < startDate
                 const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
                 const daysToStart = Math.ceil((startDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
