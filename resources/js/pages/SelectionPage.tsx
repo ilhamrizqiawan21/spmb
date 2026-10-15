@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState, type FormEvent } from 'react'
 import { EmptyState } from '../components/EmptyState'
 import { StatusBadge } from '../components/Field'
+import { Icon } from '../components/Icon'
 import { ErrorNote } from '../components/Notice'
 import { PageHeader } from '../components/PageHeader'
 import { useAuth } from '../features/auth/AuthContext'
@@ -67,10 +68,10 @@ function DecisionModal({ app, score, onClose, onDone }: DecisionModalProps) {
           <button
             type="button"
             className="button secondary"
-            style={{ padding: '4px 10px', fontSize: '0.85rem' }}
+            style={{ padding: '4px 10px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}
             onClick={onClose}
           >
-            ✕ Tutup
+            <Icon name="x" size={14} /> Tutup
           </button>
         </div>
 
@@ -133,8 +134,10 @@ function DecisionModal({ app, score, onClose, onDone }: DecisionModalProps) {
                   onChange={() => setDecision('ACCEPTED')}
                 />
                 <div>
-                  <strong style={{ display: 'block', color: 'var(--brand)' }}>✓ Diterima (ACCEPTED)</strong>
-                  <span className="hint" style={{ fontSize: '0.8rem' }}>
+                  <strong style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--brand)' }}>
+                    <Icon name="check-circle" size={16} /> Diterima (ACCEPTED)
+                  </strong>
+                  <span className="hint" style={{ fontSize: '0.8rem', display: 'block', marginTop: 2 }}>
                     Calon siswa dinyatakan lulus dan berhak melanjutkan ke daftar ulang.
                   </span>
                 </div>
@@ -160,8 +163,10 @@ function DecisionModal({ app, score, onClose, onDone }: DecisionModalProps) {
                   onChange={() => setDecision('WAITLISTED')}
                 />
                 <div>
-                  <strong style={{ display: 'block', color: 'var(--warning, #d97706)' }}>⏳ Daftar Tunggu (WAITLISTED)</strong>
-                  <span className="hint" style={{ fontSize: '0.8rem' }}>
+                  <strong style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--warning, #d97706)' }}>
+                    <Icon name="clock" size={16} /> Daftar Tunggu (WAITLISTED)
+                  </strong>
+                  <span className="hint" style={{ fontSize: '0.8rem', display: 'block', marginTop: 2 }}>
                     Cadangan penerimaan yang dapat dipromosikan jika kuota utama tersedia.
                   </span>
                 </div>
@@ -187,8 +192,10 @@ function DecisionModal({ app, score, onClose, onDone }: DecisionModalProps) {
                   onChange={() => setDecision('REJECTED')}
                 />
                 <div>
-                  <strong style={{ display: 'block', color: 'var(--danger)' }}>✕ Ditolak (REJECTED)</strong>
-                  <span className="hint" style={{ fontSize: '0.8rem' }}>
+                  <strong style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--danger)' }}>
+                    <Icon name="x-circle" size={16} /> Ditolak (REJECTED)
+                  </strong>
+                  <span className="hint" style={{ fontSize: '0.8rem', display: 'block', marginTop: 2 }}>
                     Calon siswa dinyatakan tidak lolos seleksi penerimaan.
                   </span>
                 </div>
@@ -278,10 +285,10 @@ function PromoteModal({ entry, onClose, onDone }: PromoteModalProps) {
           <button
             type="button"
             className="button secondary"
-            style={{ padding: '4px 10px', fontSize: '0.85rem' }}
+            style={{ padding: '4px 10px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}
             onClick={onClose}
           >
-            ✕ Tutup
+            <Icon name="x" size={14} /> Tutup
           </button>
         </div>
 
@@ -328,8 +335,12 @@ function PromoteModal({ entry, onClose, onDone }: PromoteModalProps) {
             <button type="button" className="button secondary" onClick={onClose} disabled={promote.isPending}>
               Batal
             </button>
-            <button type="submit" disabled={!reason.trim() || promote.isPending}>
-              {promote.isPending ? 'Memproses…' : '🚀 Konfirmasi Promosi'}
+            <button
+              type="submit"
+              disabled={!reason.trim() || promote.isPending}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <Icon name="rocket" size={14} /> {promote.isPending ? 'Memproses…' : 'Konfirmasi Promosi'}
             </button>
           </div>
         </form>
@@ -464,10 +475,10 @@ export function SelectionPage() {
         {publish.data && (
           <div
             className="badge badge-verified"
-            style={{ marginTop: 12, display: 'inline-block', padding: '6px 12px', fontSize: '0.85rem' }}
+            style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', fontSize: '0.85rem' }}
             role="status"
           >
-            ✓ Sebanyak {publish.data.published_count} hasil seleksi berhasil diumumkan secara resmi ke publik.
+            <Icon name="check-circle" size={15} /> Sebanyak {publish.data.published_count} hasil seleksi berhasil diumumkan secara resmi ke publik.
           </div>
         )}
 
@@ -547,16 +558,16 @@ export function SelectionPage() {
                     <tr key={s.id}>
                       <td style={{ textAlign: 'center' }}>
                         {rankNum === 1 ? (
-                          <span className="badge badge-verified" style={{ fontWeight: 700 }} title="Peringkat 1">
-                            🥇 1
+                          <span className="badge badge-verified" style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 3 }} title="Peringkat 1">
+                            <Icon name="award" size={13} /> 1
                           </span>
                         ) : rankNum === 2 ? (
-                          <span className="badge" style={{ fontWeight: 700, background: '#94a3b8', color: '#fff' }} title="Peringkat 2">
-                            🥈 2
+                          <span className="badge" style={{ fontWeight: 700, background: '#64748b', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: 3 }} title="Peringkat 2">
+                            <Icon name="award" size={13} /> 2
                           </span>
                         ) : rankNum === 3 ? (
-                          <span className="badge" style={{ fontWeight: 700, background: '#b45309', color: '#fff' }} title="Peringkat 3">
-                            🥉 3
+                          <span className="badge" style={{ fontWeight: 700, background: '#b45309', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: 3 }} title="Peringkat 3">
+                            <Icon name="award" size={13} /> 3
                           </span>
                         ) : (
                           <strong style={{ color: 'var(--muted)' }}>#{rankNum ?? '—'}</strong>
@@ -588,11 +599,17 @@ export function SelectionPage() {
                       <td>{app && <StatusBadge status={app.status} />}</td>
                       <td>
                         {app?.status === 'ACCEPTED' ? (
-                          <span className="badge badge-verified" style={{ fontWeight: 600 }}>✓ Diterima</span>
+                          <span className="badge badge-verified" style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Icon name="check" size={13} /> Diterima
+                          </span>
                         ) : app?.status === 'WAITLISTED' ? (
-                          <span className="badge badge-draft" style={{ fontWeight: 600 }}>⏳ Daftar Tunggu</span>
+                          <span className="badge badge-draft" style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Icon name="clock" size={13} /> Daftar Tunggu
+                          </span>
                         ) : app?.status === 'REJECTED' ? (
-                          <span className="badge badge-rejected" style={{ fontWeight: 600 }}>✕ Ditolak</span>
+                          <span className="badge badge-rejected" style={{ fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Icon name="x" size={13} /> Ditolak
+                          </span>
                         ) : (
                           <span className="badge" style={{ opacity: 0.6 }}>Belum Diputuskan</span>
                         )}
@@ -619,7 +636,7 @@ export function SelectionPage() {
         ) : (
           <EmptyState
             title="Belum ada data perankingan"
-            description="Isi nilai komponen penilaian pendaftar di menu Penilaian, kemudian klik tombol '⚡ Hitung peringkat' di atas."
+            description="Isi nilai komponen penilaian pendaftar di menu Penilaian, kemudian klik tombol 'Hitung peringkat' di atas."
           />
         )}
       </section>
@@ -675,11 +692,11 @@ export function SelectionPage() {
                       <button
                         type="button"
                         className="button"
-                        style={{ fontSize: '0.8rem', padding: '4px 12px' }}
+                        style={{ fontSize: '0.8rem', padding: '4px 12px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                         onClick={() => setSelectedEntryForPromote(w)}
                         title="Promosikan calon siswa ini menjadi DITERIMA"
                       >
-                        🚀 Promosikan
+                        <Icon name="rocket" size={13} /> Promosikan
                       </button>
                     </td>
                   </tr>

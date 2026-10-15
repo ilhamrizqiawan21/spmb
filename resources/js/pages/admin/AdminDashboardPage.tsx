@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { EmptyState } from '../../components/EmptyState'
+import { Icon } from '../../components/Icon'
 import { PageHeader } from '../../components/PageHeader'
 import { api } from '../../lib/api'
 import type { AdminDashboardData } from '../../types/api'
@@ -118,8 +119,8 @@ export function AdminDashboardPage() {
         description="Pusat kendali dan komando operasional infrastruktur, pembersihan cache, antrean tugas, tata kelola akun staf, dan audit keamanan sistem."
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <Link to="/ringkasan" className="button secondary">
-              📊 Funnel Pendaftaran
+            <Link to="/ringkasan" className="button secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <Icon name="bar-chart" size={15} /> Funnel Pendaftaran
             </Link>
             <button type="button" onClick={() => void refetch()} aria-label="Segarkan data">
               Segarkan Status
@@ -144,7 +145,7 @@ export function AdminDashboardPage() {
           role="status"
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span>{feedback.type === 'success' ? '✅' : '❌'}</span>
+            <Icon name={feedback.type === 'success' ? 'check-circle' : 'x-circle'} size={18} />
             <strong>{feedback.message}</strong>
           </div>
           <button
@@ -174,8 +175,8 @@ export function AdminDashboardPage() {
               role="alert"
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: '1.25rem' }}>
-                  {alert.level === 'danger' ? '🚨' : '⚠️'}
+                <span style={{ display: 'flex', alignItems: 'center' }}>
+                  <Icon name={alert.level === 'danger' ? 'alert-circle' : 'alert-triangle'} size={20} />
                 </span>
                 <div>
                   <strong style={{ display: 'block', fontSize: '0.95rem' }}>{alert.title}</strong>
@@ -198,7 +199,7 @@ export function AdminDashboardPage() {
             gap: 10,
           }}
         >
-          <span style={{ fontSize: '1.2rem' }}>🟢</span>
+          <Icon name="check-circle" size={20} style={{ color: 'var(--brand)', flexShrink: 0 }} />
           <div>
             <strong>Kondisi Sistem Normal</strong>
             <span style={{ display: 'block', fontSize: '0.85rem' }}>
@@ -221,7 +222,9 @@ export function AdminDashboardPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
           {/* Aksi Cache */}
           <div style={{ padding: 14, border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', background: 'var(--bg)' }}>
-            <strong style={{ display: 'block', fontSize: '0.95rem', marginBottom: 4 }}>🧹 Cache & Data Sementara</strong>
+            <strong style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.95rem', marginBottom: 4 }}>
+              <Icon name="database" size={16} /> Cache & Data Sementara
+            </strong>
             <p className="hint" style={{ fontSize: '0.825rem', marginBottom: 12 }}>
               Bersihkan seluruh memory cache aplikasi dan template kompilasi saat ada pembaruan konfigurasi atau data.
             </p>
@@ -238,7 +241,9 @@ export function AdminDashboardPage() {
 
           {/* Aksi Queue Workers */}
           <div style={{ padding: 14, border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', background: 'var(--bg)' }}>
-            <strong style={{ display: 'block', fontSize: '0.95rem', marginBottom: 4 }}>⚙️ Manajemen Antrean Tugas</strong>
+            <strong style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.95rem', marginBottom: 4 }}>
+              <Icon name="cpu" size={16} /> Manajemen Antrean Tugas
+            </strong>
             <p className="hint" style={{ fontSize: '0.825rem', marginBottom: 12 }}>
               Status: <strong>{health.queue.failed_jobs}</strong> pekerjaan gagal. Jadwalkan ulang atau bersihkan log antrean yang bermasalah.
             </p>
@@ -246,22 +251,38 @@ export function AdminDashboardPage() {
               <button
                 type="button"
                 className="button secondary"
-                style={{ flex: 1, fontSize: '0.85rem' }}
+                style={{ flex: 1, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
                 disabled={actionLoading !== null || health.queue.failed_jobs === 0}
                 onClick={() => void handleRetryJobs()}
                 title={health.queue.failed_jobs === 0 ? 'Tidak ada pekerjaan gagal' : 'Proses ulang'}
               >
-                {actionLoading === 'retry-jobs' ? 'Menjadwalkan…' : '🔁 Proses Ulang'}
+                {actionLoading === 'retry-jobs' ? 'Menjadwalkan…' : (
+                  <>
+                    <Icon name="refresh-cw" size={13} /> Proses Ulang
+                  </>
+                )}
               </button>
               <button
                 type="button"
                 className="button secondary"
-                style={{ flex: 1, fontSize: '0.85rem', color: health.queue.failed_jobs > 0 ? 'var(--danger)' : 'inherit' }}
+                style={{
+                  flex: 1,
+                  fontSize: '0.85rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 4,
+                  color: health.queue.failed_jobs > 0 ? 'var(--danger)' : 'inherit',
+                }}
                 disabled={actionLoading !== null || health.queue.failed_jobs === 0}
                 onClick={() => void handleFlushFailedJobs()}
                 title={health.queue.failed_jobs === 0 ? 'Tidak ada pekerjaan gagal' : 'Hapus riwayat'}
               >
-                {actionLoading === 'flush-jobs' ? 'Menghapus…' : '🗑️ Hapus Gagal'}
+                {actionLoading === 'flush-jobs' ? 'Menghapus…' : (
+                  <>
+                    <Icon name="trash" size={13} /> Hapus Gagal
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -422,18 +443,18 @@ export function AdminDashboardPage() {
                     {/* Rincian Tanggal Pendaftaran Gelombang */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: '0.82rem', margin: '6px 0 8px', color: 'var(--muted)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
-                        <span>
-                          📅 <strong>Rentang Pendaftaran:</strong>{' '}
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <Icon name="calendar" size={13} /> <strong>Rentang Pendaftaran:</strong>{' '}
                           {startDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} s/d{' '}
                           {endDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </span>
                         {p.is_open ? (
-                          <span className="badge badge-verified" style={{ fontSize: '0.7rem' }}>
-                            ⏳ Sisa {daysLeft} hari lagi
+                          <span className="badge badge-verified" style={{ fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Icon name="clock" size={11} /> Sisa {daysLeft} hari lagi
                           </span>
                         ) : isFuture ? (
-                          <span className="badge badge-draft" style={{ fontSize: '0.7rem' }}>
-                            ⏳ Buka dalam {daysToStart} hari
+                          <span className="badge badge-draft" style={{ fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Icon name="clock" size={11} /> Buka dalam {daysToStart} hari
                           </span>
                         ) : (
                           <span className="badge badge-rejected" style={{ fontSize: '0.7rem' }}>
@@ -442,8 +463,8 @@ export function AdminDashboardPage() {
                         )}
                       </div>
                       {p.announcement_at && (
-                        <div>
-                          📢 <strong>Pengumuman:</strong>{' '}
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <Icon name="megaphone" size={13} /> <strong>Pengumuman:</strong>{' '}
                           {new Date(p.announcement_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </div>
                       )}

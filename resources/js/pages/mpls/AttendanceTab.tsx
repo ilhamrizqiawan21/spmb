@@ -28,7 +28,7 @@ function ScanForm({ eventId, onDone }: { eventId: string; onDone: () => Promise<
       <button className="field" disabled={scan.isPending}>Catat hadir</button>
       {scan.data && (
         <p role="status">
-          {scan.data.attendance.full_name}: {scan.data.already_recorded ? `sudah tercatat (${ATTENDANCE_LABELS[scan.data.attendance.status]})` : 'hadir ✓'}
+          {scan.data.attendance.full_name}: {scan.data.already_recorded ? `sudah tercatat (${ATTENDANCE_LABELS[scan.data.attendance.status]})` : 'hadir'}
         </p>
       )}
       <ErrorNote error={scan.error} />

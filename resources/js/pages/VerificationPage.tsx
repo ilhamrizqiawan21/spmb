@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { EmptyState } from '../components/EmptyState'
 import { StatusBadge } from '../components/Field'
+import { Icon } from '../components/Icon'
 import { PageHeader } from '../components/PageHeader'
 import { api } from '../lib/api'
 import type { AdmissionPeriod, QueueItem } from '../types/api'
@@ -18,15 +19,35 @@ function formatBytes(bytes: number | null | undefined): string {
 function renderDocStatusBadge(status: string) {
   switch (status) {
     case 'VALID':
-      return <span className="badge badge-verified">✓ Valid</span>
+      return (
+        <span className="badge badge-verified" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Icon name="check" size={12} /> Valid
+        </span>
+      )
     case 'PENDING':
-      return <span className="badge badge-draft">⏳ Menunggu Diperiksa</span>
+      return (
+        <span className="badge badge-draft" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Icon name="clock" size={12} /> Menunggu Diperiksa
+        </span>
+      )
     case 'REVISION_REQUIRED':
-      return <span className="badge badge-rejected">⚠️ Perlu Revisi</span>
+      return (
+        <span className="badge badge-rejected" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Icon name="alert-triangle" size={12} /> Perlu Revisi
+        </span>
+      )
     case 'INVALID':
-      return <span className="badge badge-rejected">✗ Tidak Valid</span>
+      return (
+        <span className="badge badge-rejected" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Icon name="x" size={12} /> Tidak Valid
+        </span>
+      )
     case 'NOT_UPLOADED':
-      return <span className="badge" style={{ background: 'var(--muted)', color: '#fff' }}>⚪ Belum Diunggah</span>
+      return (
+        <span className="badge" style={{ background: 'var(--muted)', color: '#fff', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          <Icon name="circle" size={10} /> Belum Diunggah
+        </span>
+      )
     default:
       return <span className="badge">{status}</span>
   }
@@ -181,12 +202,12 @@ export function VerificationPage() {
                           <button
                             type="button"
                             className="button secondary"
-                            style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                            style={{ fontSize: '0.75rem', padding: '2px 8px', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                             onClick={() => setSelectedItem(i)}
                             title="Rincian Berkas yang Sudah Dikirim & Status Validasi"
                             aria-label={`Rincian berkas ${i.applicant_name}`}
                           >
-                            👁️ Rincian Berkas
+                            <Icon name="eye" size={13} /> Rincian Berkas
                           </button>
                         </div>
                       </td>
@@ -243,10 +264,10 @@ export function VerificationPage() {
               <button
                 type="button"
                 className="button secondary"
-                style={{ padding: '4px 10px', fontSize: '0.85rem' }}
+                style={{ padding: '4px 10px', fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                 onClick={() => setSelectedItem(null)}
               >
-                ✕ Tutup
+                <Icon name="x" size={14} /> Tutup
               </button>
             </div>
 
