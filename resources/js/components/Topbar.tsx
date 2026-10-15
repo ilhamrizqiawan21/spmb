@@ -28,7 +28,8 @@ export function Topbar({ isStaff, onToggleSidebar, isSidebarOpen }: TopbarProps)
     const path = location.pathname
     if (path.startsWith('/ringkasan')) return 'Dashboard Ringkasan'
     if (path.startsWith('/verifikasi')) return 'Verifikasi Dokumen & Berkas'
-    if (path.startsWith('/penilaian')) return 'Jadwal & Penilaian Seleksi'
+    if (path.startsWith('/jadwal-asesmen')) return 'Jadwal Asesmen & Ujian Seleksi'
+    if (path.startsWith('/penilaian')) return 'Penilaian & Skor Seleksi'
     if (path.startsWith('/seleksi')) return 'Penetapan Hasil Seleksi'
     if (path.startsWith('/keuangan')) return 'Keuangan & Pembayaran'
     if (path.startsWith('/siswa')) return 'Data Siswa Resmi (Enrollment)'

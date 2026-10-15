@@ -41,6 +41,12 @@ const STAFF_GROUPS: NavGroup[] = [
         iconSvg: 'M9 11l3 3L22 4 M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11',
       },
       {
+        to: '/jadwal-asesmen',
+        label: 'Jadwal Asesmen',
+        perms: ['assessment.input', 'assessment.approve', 'application.override'],
+        iconSvg: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z',
+      },
+      {
         to: '/penilaian',
         label: 'Penilaian',
         perms: ['assessment.input', 'assessment.approve', 'application.override'],

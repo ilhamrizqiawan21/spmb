@@ -12,6 +12,7 @@ import { DashboardPage } from './pages/DashboardPage'
 import { FinancePage } from './pages/FinancePage'
 import { AnnouncementLookupPage, HomePage, PeriodsPage } from './pages/PublicPages'
 import { AssessmentPage } from './pages/AssessmentPage'
+import { SchedulePage } from './pages/SchedulePage'
 import { MplsPage } from './pages/mpls/MplsPage'
 import { ReportsPage } from './pages/ReportsPage'
 import { SelectionPage } from './pages/SelectionPage'
@@ -48,6 +49,7 @@ export default function App() {
                 <Route path="verifikasi/:id" element={<VerificationDetailPage />} />
               </Route>
               <Route element={<RequireAuth permissions={['assessment.input', 'assessment.approve', 'application.override']} />}>
+                <Route path="jadwal-asesmen" element={<SchedulePage />} />
                 <Route path="penilaian" element={<AssessmentPage />} />
               </Route>
               <Route element={<RequireAuth permissions={['application.override']} />}>
