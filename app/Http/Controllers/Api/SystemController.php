@@ -8,7 +8,10 @@ use App\Models\ApplicationDocument;
 use App\Models\AuditLog;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\AuditService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -76,9 +79,11 @@ class SystemController extends ApiController
         $activeYear = AcademicYear::where('is_active', true)->first(['id', 'name']);
 
         // Admission Periods with quota calculations
-        $periods = AdmissionPeriod::withCount('applications')
-            ->where('is_active', true)
-            ->orderBy('registration_start')
+        $periodsQuery = AdmissionPeriod::withCount('applications');
+        if ($activeYear) {
+            $periodsQuery->where('academic_year_id', $activeYear->id);
+        }
+        $periods = $periodsQuery->orderBy('registration_start')
             ->get(['id', 'name', 'code', 'quota', 'is_active', 'registration_start', 'registration_end'])
             ->map(function ($p) {
                 $quota = $p->quota;
@@ -92,7 +97,8 @@ class SystemController extends ApiController
                     'fill_percentage' => $pct,
                     'registration_start' => $p->registration_start->toIso8601String(),
                     'registration_end' => $p->registration_end->toIso8601String(),
-                    'is_open' => now()->between($p->registration_start, $p->registration_end),
+                    'is_open' => $p->is_active && now()->between($p->registration_start, $p->registration_end),
+                    'is_active' => (bool) $p->is_active,
                 ];
             });
 
@@ -197,5 +203,121 @@ class SystemController extends ApiController
         } catch (\Throwable) {
             return false;
         }
+    }
+
+    /**
+     * Clear application cache and compiled views.
+     */
+    public function clearCache(Request $request): JsonResponse
+    {
+        Cache::flush();
+        try {
+            Artisan::call('cache:clear');
+        } catch (\Throwable) {
+            // Ignore artisan terminal exception if sandboxed or restricted
+        }
+
+        AuditService::record(
+            $request->user(),
+            'SYSTEM_CLEAR_CACHE',
+            'System',
+            null,
+            null,
+            null,
+            $request->input('reason', 'Pembersihan cache aplikasi melalui panel kontrol sistem')
+        );
+
+        return response()->json([
+            'message' => 'Cache aplikasi dan data sementara berhasil dibersihkan.',
+        ]);
+    }
+
+    /**
+     * Retry all failed queue jobs.
+     */
+    public function retryJobs(Request $request): JsonResponse
+    {
+        $count = Schema::hasTable('failed_jobs') ? DB::table('failed_jobs')->count() : 0;
+
+        if ($count > 0) {
+            try {
+                Artisan::call('queue:retry', ['id' => ['all']]);
+            } catch (\Throwable $e) {
+                return response()->json([
+                    'message' => 'Gagal memproses ulang antrean: ' . $e->getMessage(),
+                ], 500);
+            }
+        }
+
+        AuditService::record(
+            $request->user(),
+            'SYSTEM_RETRY_FAILED_JOBS',
+            'Queue',
+            null,
+            ['failed_count' => $count],
+            ['action' => 'retry_all'],
+            $request->input('reason', "Menjadwalkan ulang {$count} antrean pekerjaan gagal")
+        );
+
+        return response()->json([
+            'message' => "Berhasil menjadwalkan ulang {$count} antrean pekerjaan untuk diproses kembali.",
+        ]);
+    }
+
+    /**
+     * Flush / wipe all failed queue jobs.
+     */
+    public function flushFailedJobs(Request $request): JsonResponse
+    {
+        $count = Schema::hasTable('failed_jobs') ? DB::table('failed_jobs')->count() : 0;
+
+        if (Schema::hasTable('failed_jobs')) {
+            DB::table('failed_jobs')->delete();
+        }
+
+        AuditService::record(
+            $request->user(),
+            'SYSTEM_FLUSH_FAILED_JOBS',
+            'Queue',
+            null,
+            ['failed_count' => $count],
+            ['action' => 'flush'],
+            $request->input('reason', "Membersihkan {$count} riwayat antrean pekerjaan gagal")
+        );
+
+        return response()->json([
+            'message' => "Berhasil membersihkan {$count} riwayat antrean pekerjaan gagal.",
+        ]);
+    }
+
+    /**
+     * Quick emergency toggle active status for admission periods.
+     */
+    public function togglePeriod(Request $request, string $id): JsonResponse
+    {
+        $period = AdmissionPeriod::findOrFail($id);
+        $oldStatus = (bool) $period->is_active;
+        $newStatus = ! $oldStatus;
+        $period->is_active = $newStatus;
+        $period->save();
+
+        AuditService::record(
+            $request->user(),
+            $newStatus ? 'ENABLE_ADMISSION_PERIOD' : 'DISABLE_ADMISSION_PERIOD',
+            'AdmissionPeriod',
+            $period->id,
+            ['is_active' => $oldStatus],
+            ['is_active' => $newStatus],
+            $request->input('reason', ($newStatus ? 'Mengaktifkan kembali' : 'Menonaktifkan sementara') . " gelombang {$period->name}")
+        );
+
+        return response()->json([
+            'message' => "Gelombang '{$period->name}' berhasil " . ($newStatus ? 'diaktifkan' : 'dinonaktifkan') . '.',
+            'period' => [
+                'id' => $period->id,
+                'name' => $period->name,
+                'is_active' => $period->is_active,
+            ],
+        ]);
     }
 }

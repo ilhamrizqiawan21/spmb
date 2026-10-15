@@ -75,18 +75,20 @@ describe('Super Admin flow and access', () => {
     render(<App />)
 
     // Verify all super admin menus are displayed
-    expect(await screen.findByRole('link', { name: 'Konsol Sistem' })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'Kontrol Sistem' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Data Master' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Pengguna & Staf' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Jejak Audit' })).toBeInTheDocument()
   })
 
-  it('renders dedicated admin console dashboard for super admin', async () => {
+  it('renders dedicated admin console dashboard with operational controls for super admin', async () => {
     mockApi(superAdmin)
     window.history.pushState({}, '', '/admin/dashboard')
     render(<App />)
 
-    expect(await screen.findByRole('heading', { name: 'Konsol Sistem & Super Admin' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Kontrol Sistem & Super Admin' })).toBeInTheDocument()
+    expect(screen.getByText('Panel Kendali Operasional')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Bersihkan Cache Sistem' })).toBeInTheDocument()
     expect(screen.getByText(/Kondisi Sistem Normal/i)).toBeInTheDocument()
     expect(screen.getByText('Status Infrastruktur & Subsistem')).toBeInTheDocument()
   })

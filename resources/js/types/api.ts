@@ -468,6 +468,7 @@ export interface AdminDashboardData {
     registration_start: string
     registration_end: string
     is_open: boolean
+    is_active: boolean
   }[]
   recent_audits: {
     id: string

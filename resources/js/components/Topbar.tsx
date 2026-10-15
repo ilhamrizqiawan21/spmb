@@ -33,7 +33,7 @@ export function Topbar({ isStaff, onToggleSidebar, isSidebarOpen }: TopbarProps)
     if (path.startsWith('/keuangan')) return 'Keuangan & Pembayaran'
     if (path.startsWith('/siswa')) return 'Data Siswa Resmi (Enrollment)'
     if (path.startsWith('/mpls')) return 'Manajemen Kegiatan MPLS'
-    if (path.startsWith('/admin/dashboard')) return 'Konsol Sistem & Super Admin'
+    if (path.startsWith('/admin/dashboard')) return 'Kontrol Sistem & Super Admin'
     if (path.startsWith('/admin')) return 'Data Master Sistem'
     if (path.startsWith('/pengguna')) return 'Manajemen Pengguna & Staf'
     if (path.startsWith('/audit-logs')) return 'Jejak Audit Sistem'

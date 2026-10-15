@@ -33,8 +33,15 @@ $enrollment = 'permission:enrollment.manage,application.override';
 Route::prefix('v1')->group(function () use ($verify, $override, $approve, $assess, $enrollment) {
 
     Route::get('public/school', [SystemController::class, 'school']);
-    Route::get('system/admin-dashboard', [SystemController::class, 'adminDashboard'])
-        ->middleware(['auth:sanctum', 'permission:application.override']);
+
+    // ---- System & Operations Console (Super Admin) ---------------------------
+    Route::prefix('system')->middleware(['auth:sanctum', 'permission:application.override'])->group(function () {
+        Route::get('admin-dashboard', [SystemController::class, 'adminDashboard']);
+        Route::post('actions/clear-cache', [SystemController::class, 'clearCache']);
+        Route::post('actions/retry-jobs', [SystemController::class, 'retryJobs']);
+        Route::post('actions/flush-failed-jobs', [SystemController::class, 'flushFailedJobs']);
+        Route::post('actions/toggle-period/{id}', [SystemController::class, 'togglePeriod']);
+    });
 
     // ---- Auth ----------------------------------------------------------------
     Route::prefix('auth')->group(function () {

@@ -19,7 +19,7 @@ const STAFF_GROUPS: NavGroup[] = [
     items: [
       {
         to: '/admin/dashboard',
-        label: 'Konsol Sistem',
+        label: 'Kontrol Sistem',
         perms: ['application.override'],
         iconSvg: 'M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V17a1 1 0 0 1-2 0v-.07A8 8 0 0 1 4.07 10H5a1 1 0 0 1 0 2 8 8 0 0 0 7 7 8 8 0 0 0 7-7 1 1 0 0 1 0-2h.93A8 8 0 0 1 13 16.93z',
       },

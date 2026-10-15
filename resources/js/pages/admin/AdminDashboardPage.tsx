@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { EmptyState } from '../../components/EmptyState'
 import { PageHeader } from '../../components/PageHeader'
@@ -25,20 +26,84 @@ function formatTime(iso: string): string {
 }
 
 export function AdminDashboardPage() {
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
   const { data, isPending, refetch } = useQuery({
     queryKey: ['admin-dashboard'],
     queryFn: () => api<AdminDashboardData>('/system/admin-dashboard'),
   })
 
+  async function handleClearCache() {
+    if (!window.confirm('Bersihkan seluruh cache sistem dan data sementara sekarang?')) return
+    setActionLoading('clear-cache')
+    setFeedback(null)
+    try {
+      const res = await api<{ message: string }>('/system/actions/clear-cache', { method: 'POST' })
+      setFeedback({ type: 'success', message: res.message })
+      await refetch()
+    } catch (e: unknown) {
+      setFeedback({ type: 'error', message: (e as Error)?.message || 'Gagal membersihkan cache aplikasi.' })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  async function handleRetryJobs() {
+    if (!window.confirm('Jadwalkan ulang seluruh pekerjaan antrean yang gagal untuk diproses kembali?')) return
+    setActionLoading('retry-jobs')
+    setFeedback(null)
+    try {
+      const res = await api<{ message: string }>('/system/actions/retry-jobs', { method: 'POST' })
+      setFeedback({ type: 'success', message: res.message })
+      await refetch()
+    } catch (e: unknown) {
+      setFeedback({ type: 'error', message: (e as Error)?.message || 'Gagal menjadwalkan ulang antrean.' })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  async function handleFlushFailedJobs() {
+    if (!window.confirm('Hapus seluruh riwayat pekerjaan antrean yang gagal secara permanen?')) return
+    setActionLoading('flush-jobs')
+    setFeedback(null)
+    try {
+      const res = await api<{ message: string }>('/system/actions/flush-failed-jobs', { method: 'POST' })
+      setFeedback({ type: 'success', message: res.message })
+      await refetch()
+    } catch (e: unknown) {
+      setFeedback({ type: 'error', message: (e as Error)?.message || 'Gagal membersihkan antrean gagal.' })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  async function handleTogglePeriod(id: string, name: string, currentActive: boolean) {
+    const actionName = currentActive ? 'menonaktifkan' : 'mengaktifkan kembali'
+    if (!window.confirm(`Yakin ingin ${actionName} gelombang '${name}'?`)) return
+    setActionLoading(`toggle-${id}`)
+    setFeedback(null)
+    try {
+      const res = await api<{ message: string }>('/system/actions/toggle-period/' + id, { method: 'POST' })
+      setFeedback({ type: 'success', message: res.message })
+      await refetch()
+    } catch (e: unknown) {
+      setFeedback({ type: 'error', message: (e as Error)?.message || 'Gagal mengubah status gelombang.' })
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   if (isPending) {
-    return <p className="loading-indicator">Memuat metrik konsol sistem…</p>
+    return <p className="loading-indicator">Memuat metrik kontrol sistem…</p>
   }
 
   if (!data) {
     return (
       <EmptyState
-        title="Gagal memuat konsol sistem"
-        description="Terjadi kendala saat mengambil status kesehatan dan metrik sistem."
+        title="Gagal memuat kontrol sistem"
+        description="Terjadi kendala saat mengambil status kesehatan dan kendali sistem."
         action={<button type="button" onClick={() => void refetch()}>Muat Ulang</button>}
       />
     )
@@ -49,8 +114,8 @@ export function AdminDashboardPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
-        title="Konsol Sistem & Super Admin"
-        description="Pusat pemantauan kesehatan infrastruktur, antrean tugas, tata kelola akun staf, dan audit keamanan sistem."
+        title="Kontrol Sistem & Super Admin"
+        description="Pusat kendali dan komando operasional infrastruktur, pembersihan cache, antrean tugas, tata kelola akun staf, dan audit keamanan sistem."
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <Link to="/ringkasan" className="button secondary">
@@ -62,6 +127,36 @@ export function AdminDashboardPage() {
           </div>
         }
       />
+
+      {/* Feedback banner aksi kontrol */}
+      {feedback && (
+        <div
+          className="card"
+          style={{
+            margin: 0,
+            padding: '12px 16px',
+            borderColor: feedback.type === 'success' ? 'var(--brand)' : 'var(--danger)',
+            background: feedback.type === 'success' ? 'var(--brand-light)' : 'var(--danger-light)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+          role="status"
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>{feedback.type === 'success' ? '✅' : '❌'}</span>
+            <strong>{feedback.message}</strong>
+          </div>
+          <button
+            type="button"
+            className="link"
+            style={{ fontSize: '0.85rem' }}
+            onClick={() => setFeedback(null)}
+          >
+            Tutup
+          </button>
+        </div>
+      )}
 
       {/* 1. Baris Peringatan Dini & Anomali */}
       {alerts.length > 0 ? (
@@ -113,7 +208,67 @@ export function AdminDashboardPage() {
         </div>
       )}
 
-      {/* 2. Metrik Kesehatan Subsistem & Infrastruktur */}
+      {/* 2. Panel Kendali & Aksi Cepat Operasional */}
+      <div className="card" style={{ margin: 0 }}>
+        <div className="card-header between" style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+          <div>
+            <h2 className="card-title" style={{ fontSize: '1.15rem' }}>Panel Kendali Operasional</h2>
+            <small className="hint">Eksekusi kendali infrastruktur, pembersihan cache, dan penanganan antrean tugas langsung.</small>
+          </div>
+          <span className="badge badge-verified">Hak Akses Super Admin</span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+          {/* Aksi Cache */}
+          <div style={{ padding: 14, border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', background: 'var(--bg)' }}>
+            <strong style={{ display: 'block', fontSize: '0.95rem', marginBottom: 4 }}>🧹 Cache & Data Sementara</strong>
+            <p className="hint" style={{ fontSize: '0.825rem', marginBottom: 12 }}>
+              Bersihkan seluruh memory cache aplikasi dan template kompilasi saat ada pembaruan konfigurasi atau data.
+            </p>
+            <button
+              type="button"
+              className="button secondary"
+              style={{ width: '100%', fontSize: '0.85rem' }}
+              disabled={actionLoading !== null}
+              onClick={() => void handleClearCache()}
+            >
+              {actionLoading === 'clear-cache' ? 'Membersihkan Cache…' : 'Bersihkan Cache Sistem'}
+            </button>
+          </div>
+
+          {/* Aksi Queue Workers */}
+          <div style={{ padding: 14, border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', background: 'var(--bg)' }}>
+            <strong style={{ display: 'block', fontSize: '0.95rem', marginBottom: 4 }}>⚙️ Manajemen Antrean Tugas</strong>
+            <p className="hint" style={{ fontSize: '0.825rem', marginBottom: 12 }}>
+              Status: <strong>{health.queue.failed_jobs}</strong> pekerjaan gagal. Jadwalkan ulang atau bersihkan log antrean yang bermasalah.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="button"
+                className="button secondary"
+                style={{ flex: 1, fontSize: '0.85rem' }}
+                disabled={actionLoading !== null || health.queue.failed_jobs === 0}
+                onClick={() => void handleRetryJobs()}
+                title={health.queue.failed_jobs === 0 ? 'Tidak ada pekerjaan gagal' : 'Proses ulang'}
+              >
+                {actionLoading === 'retry-jobs' ? 'Menjadwalkan…' : '🔁 Proses Ulang'}
+              </button>
+              <button
+                type="button"
+                className="button secondary"
+                style={{ flex: 1, fontSize: '0.85rem', color: health.queue.failed_jobs > 0 ? 'var(--danger)' : 'inherit' }}
+                disabled={actionLoading !== null || health.queue.failed_jobs === 0}
+                onClick={() => void handleFlushFailedJobs()}
+                title={health.queue.failed_jobs === 0 ? 'Tidak ada pekerjaan gagal' : 'Hapus riwayat'}
+              >
+                {actionLoading === 'flush-jobs' ? 'Menghapus…' : '🗑️ Hapus Gagal'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Metrik Kesehatan Subsistem & Infrastruktur */}
       <div>
         <h2 style={{ fontSize: '1.15rem', marginBottom: 12 }}>Status Infrastruktur & Subsistem</h2>
         <div className="tiles">
@@ -227,14 +382,32 @@ export function AdminDashboardPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {periods.map((p) => (
                 <div key={p.id} style={{ borderBottom: '1px solid var(--line)', paddingBottom: 12 }}>
-                  <div className="between" style={{ display: 'flex', marginBottom: 4 }}>
-                    <div>
-                      <strong>{p.name}</strong> ({p.code})
-                    </div>
-                    <div>
-                      <span className={`badge ${p.is_open ? 'badge-verified' : 'badge-draft'}`}>
-                        {p.is_open ? 'PENDAFTARAN BUKA' : 'TUTUP / DILUAR JADWAL'}
+                  <div className="between" style={{ display: 'flex', marginBottom: 6, alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <strong>{p.name}</strong>
+                      <span className="hint">({p.code})</span>
+                      <span className={`badge ${p.is_active ? 'badge-verified' : 'badge-rejected'}`} style={{ fontSize: '0.7rem' }}>
+                        {p.is_active ? 'Aktif' : 'Nonaktif'}
                       </span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                      <span className={`badge ${p.is_open ? 'badge-verified' : 'badge-draft'}`} style={{ fontSize: '0.75rem' }}>
+                        {p.is_open ? 'Buka' : 'Tutup'}
+                      </span>
+                      <button
+                        type="button"
+                        className="button secondary"
+                        style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+                        disabled={actionLoading !== null}
+                        onClick={() => void handleTogglePeriod(p.id, p.name, p.is_active)}
+                        title={p.is_active ? 'Nonaktifkan gelombang ini sementara' : 'Aktifkan kembali gelombang ini'}
+                      >
+                        {actionLoading === `toggle-${p.id}`
+                          ? 'Menyimpan…'
+                          : p.is_active
+                          ? 'Nonaktifkan'
+                          : 'Aktifkan'}
+                      </button>
                     </div>
                   </div>
 
